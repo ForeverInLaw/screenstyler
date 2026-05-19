@@ -1,0 +1,32 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Toolbar } from './Toolbar';
+import { useDocumentStore } from '@/lib/document/store';
+import { createBlankDoc } from '@/lib/document/factory';
+
+beforeEach(() => {
+  useDocumentStore.getState().loadDoc(createBlankDoc());
+  useDocumentStore.temporal.getState().clear();
+});
+
+describe('Toolbar', () => {
+  it('shows the project name', () => {
+    render(<Toolbar projectName="Hello Shot" onExport={() => {}} />);
+    expect(screen.getByText('Hello Shot')).toBeInTheDocument();
+  });
+
+  it('undo reverts the last document change', async () => {
+    render(<Toolbar projectName="P" onExport={() => {}} />);
+    useDocumentStore.getState().setPadding(300);
+    await userEvent.click(screen.getByRole('button', { name: /undo/i }));
+    expect(useDocumentStore.getState().doc.content.padding).toBe(64);
+  });
+
+  it('calls onExport when Export is clicked', async () => {
+    let called = false;
+    render(<Toolbar projectName="P" onExport={() => { called = true; }} />);
+    await userEvent.click(screen.getByRole('button', { name: /export/i }));
+    expect(called).toBe(true);
+  });
+});
