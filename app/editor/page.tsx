@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { EditorShell } from '@/components/editor/EditorShell';
@@ -12,6 +12,7 @@ import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { projectStore } from '@/lib/storage/project-store-instance';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
+import type { ScreenstylerDoc } from '@/lib/document/schema';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
@@ -37,7 +38,12 @@ function EditorPage() {
       }
     },
   });
-  useAutosave(id || null, (pid, d) => saveMutation.mutate({ id: pid, doc: d }));
+  const { mutate: saveProjectMutate } = saveMutation;
+  const saveProject = useCallback(
+    (pid: string, d: ScreenstylerDoc) => saveProjectMutate({ id: pid, doc: d }),
+    [saveProjectMutate],
+  );
+  useAutosave(id || null, saveProject);
 
   useEffect(() => {
     if (project.data) {
