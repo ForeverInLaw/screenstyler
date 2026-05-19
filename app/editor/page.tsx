@@ -8,6 +8,7 @@ import { CanvasStage } from '@/components/canvas/CanvasStage';
 import { DocumentCanvas } from '@/components/canvas/DocumentCanvas';
 import { UploadZone } from '@/components/editor/UploadZone';
 import { useDocumentStore } from '@/lib/document/store';
+import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { projectStore } from '@/lib/storage/project-store-instance';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 
@@ -50,7 +51,7 @@ function EditorPage() {
           </div>
         )
       }
-      panel={<div style={{ padding: 16 }}>Panels added in Task 15</div>}
+      panel={<PropertiesPanel />}
     />
   );
 }
