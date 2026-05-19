@@ -19,7 +19,11 @@ export function UploadZone() {
       return;
     }
     setError(null);
-    setImage(await ingestImageFile(file));
+    try {
+      setImage(await ingestImageFile(file));
+    } catch {
+      setError('Could not read that image. It may be corrupt — try another file.');
+    }
   }
 
   return (
