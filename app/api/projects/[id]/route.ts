@@ -1,0 +1,56 @@
+import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
+import { getDb } from '@/lib/db/client';
+import { projects } from '@/lib/db/schema';
+import { requireSession, unauthorized } from '@/lib/auth/session';
+
+const patchBody = z.object({
+  doc: z.unknown().optional(),
+  meta: z.object({ name: z.string().min(1).optional() }).optional(),
+});
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(req: Request, ctx: Ctx): Promise<Response> {
+  const session = await requireSession(req);
+  if (!session) return unauthorized();
+  const { id } = await ctx.params;
+  const [row] = await getDb()
+    .select({ doc: projects.doc })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)));
+  if (!row) return new Response('not found', { status: 404 });
+  return Response.json(row.doc);
+}
+
+export async function PATCH(req: Request, ctx: Ctx): Promise<Response> {
+  const session = await requireSession(req);
+  if (!session) return unauthorized();
+  const { id } = await ctx.params;
+  const parsed = patchBody.safeParse(await req.json());
+  if (!parsed.success) return new Response('bad request', { status: 400 });
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.data.doc !== undefined) updates.doc = parsed.data.doc;
+  if (parsed.data.meta?.name) updates.name = parsed.data.meta.name;
+
+  const result = await getDb()
+    .update(projects)
+    .set(updates)
+    .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)))
+    .returning();
+  if (result.length === 0) return new Response('not found', { status: 404 });
+  return Response.json({});
+}
+
+export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
+  const session = await requireSession(req);
+  if (!session) return unauthorized();
+  const { id } = await ctx.params;
+  const result = await getDb()
+    .delete(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)))
+    .returning();
+  if (result.length === 0) return new Response('not found', { status: 404 });
+  return Response.json({});
+}
