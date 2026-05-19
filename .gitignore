@@ -6,6 +6,9 @@ dist/
 build/
 .env
 .env*
+!.env.example
+.env.local
+/lib/db/migrations/meta
 .DS_Store
 *.pem
 npm-debug.log*
