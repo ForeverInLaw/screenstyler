@@ -44,7 +44,7 @@ function EditorPage() {
     (pid: string, d: ScreenstylerDoc) => saveProjectMutate({ id: pid, doc: d }),
     [saveProjectMutate],
   );
-  useAutosave(id || null, saveProject);
+  useAutosave(id || null, saveProject, project.data);
 
   useEffect(() => {
     if (project.data) {

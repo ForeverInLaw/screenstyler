@@ -22,4 +22,16 @@ describe('useAutosave', () => {
     expect(save).toHaveBeenCalledWith('p1', expect.objectContaining({ version: 1 }));
     vi.useRealTimers();
   });
+
+  it('does not save when the document equals the baseline doc', async () => {
+    vi.useFakeTimers();
+    const save = vi.fn();
+    const baseline = createBlankDoc();
+    renderHook(() => useAutosave('p1', save, baseline));
+
+    useDocumentStore.getState().loadDoc(baseline); // state.doc === baseline
+    await vi.advanceTimersByTimeAsync(900);
+    expect(save).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });

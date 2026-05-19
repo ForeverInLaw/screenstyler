@@ -31,7 +31,3 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
 }
-
-export async function copyBlobToClipboard(blob: Blob): Promise<void> {
-  await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-}

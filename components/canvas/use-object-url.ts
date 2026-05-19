@@ -6,10 +6,7 @@ export function useObjectUrl(blobKey: string | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!blobKey) {
-      setUrl(null);
-      return;
-    }
+    if (!blobKey) return;
     let objectUrl: string | null = null;
     let cancelled = false;
 
@@ -25,5 +22,5 @@ export function useObjectUrl(blobKey: string | null): string | null {
     };
   }, [blobKey]);
 
-  return url;
+  return blobKey ? url : null;
 }
