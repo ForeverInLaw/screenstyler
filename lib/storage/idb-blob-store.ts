@@ -17,6 +17,9 @@ function db(): Promise<IDBPDatabase> {
   return dbPromise;
 }
 
+// Blobs are serialized as { type, buffer } instead of stored raw because
+// fake-indexeddb (used in jsdom tests) does not round-trip Blob via structured
+// clone — it returns {} — so we must reconstruct the Blob on read ourselves.
 type BlobRecord = { type: string; buffer: ArrayBuffer };
 
 export class IdbBlobStore implements BlobStore {

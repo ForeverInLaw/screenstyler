@@ -10,6 +10,7 @@ describe('IdbBlobStore', () => {
     const got = await store.get('k1');
     expect(got).toBeInstanceOf(Blob);
     expect(await got!.text()).toBe('hello');
+    expect(got!.type).toBe('text/plain');
 
     await store.remove('k1');
     expect(await store.get('k1')).toBeUndefined();
