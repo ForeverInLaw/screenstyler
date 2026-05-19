@@ -2,9 +2,13 @@
 import Link from 'next/link';
 import type { ProjectMeta } from '@/lib/storage/types';
 
-type Props = { projects: ProjectMeta[]; onDelete: (id: string) => void };
+type Props = {
+  projects: ProjectMeta[];
+  onDelete: (id: string) => void;
+  onDuplicate: (id: string) => void;
+};
 
-export function ProjectList({ projects, onDelete }: Props) {
+export function ProjectList({ projects, onDelete, onDuplicate }: Props) {
   if (projects.length === 0) {
     return <p style={{ opacity: 0.7 }}>No projects yet. Create one to get started.</p>;
   }
@@ -17,6 +21,7 @@ export function ProjectList({ projects, onDelete }: Props) {
             <div style={{ height: 120, background: '#0f1115', borderRadius: 8 }} />
             <strong style={{ display: 'block', marginTop: 8 }}>{p.name}</strong>
           </Link>
+          <button type="button" onClick={() => onDuplicate(p.id)}>Duplicate</button>
           <button type="button" onClick={() => onDelete(p.id)}>Delete</button>
         </li>
       ))}
