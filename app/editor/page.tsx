@@ -13,6 +13,7 @@ import { projectStore } from '@/lib/storage/project-store-instance';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
@@ -54,8 +55,20 @@ function EditorPage() {
 
   async function handleExport() {
     if (!frameRef.current) return;
-    const blob = await exportPng(frameRef.current, 2);
-    downloadBlob(blob, exportFilename(projectName, 2));
+    try {
+      const blob = await exportPng(frameRef.current, 2);
+      downloadBlob(blob, exportFilename(projectName, 2));
+    } catch {
+      window.alert('Export failed. Make sure the image finished loading, then retry.');
+    }
+  }
+
+  if (project.isError) {
+    return (
+      <p style={{ padding: 32 }}>
+        Could not load this project. It may have been deleted.
+      </p>
+    );
   }
 
   return (
@@ -63,9 +76,11 @@ function EditorPage() {
       toolbar={<Toolbar projectName={projectName} onExport={handleExport} />}
       canvas={
         doc.content.image ? (
-          <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
-            <DocumentCanvas ref={frameRef} doc={doc} />
-          </CanvasStage>
+          <ErrorBoundary fallback={<p style={{ margin: 'auto' }}>Canvas failed to render.</p>}>
+            <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
+              <DocumentCanvas ref={frameRef} doc={doc} />
+            </CanvasStage>
+          </ErrorBoundary>
         ) : (
           <div style={{ flex: 1, display: 'flex', background: '#0f1115' }}>
             <UploadZone />
