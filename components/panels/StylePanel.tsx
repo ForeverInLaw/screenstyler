@@ -23,11 +23,12 @@ function Slider(props: {
 }
 
 export function StylePanel() {
-  const doc = useDocumentStore((s) => s.doc);
+  const padding = useDocumentStore((s) => s.doc.content.padding);
+  const cornerRadius = useDocumentStore((s) => s.doc.content.cornerRadius);
+  const shadow = useDocumentStore((s) => s.doc.content.shadow);
   const setPadding = useDocumentStore((s) => s.setPadding);
   const setCornerRadius = useDocumentStore((s) => s.setCornerRadius);
   const setShadow = useDocumentStore((s) => s.setShadow);
-  const { padding, cornerRadius, shadow } = doc.content;
 
   return (
     <section style={{ padding: 16 }}>
