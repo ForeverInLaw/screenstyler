@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { EditorShell } from '@/components/editor/EditorShell';
 import { Toolbar } from '@/components/editor/Toolbar';
 import { CanvasStage } from '@/components/canvas/CanvasStage';
@@ -11,6 +11,7 @@ import { useDocumentStore } from '@/lib/document/store';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { projectStore } from '@/lib/storage/project-store-instance';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
+import { useAutosave } from '@/lib/editor/use-autosave';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
@@ -24,6 +25,20 @@ function EditorPage() {
     enabled: Boolean(id),
   });
 
+  const projects = useQuery({ queryKey: ['projects'], queryFn: () => projectStore.list() });
+  const projectName = projects.data?.find((p) => p.id === id)?.name ?? 'Untitled';
+
+  const saveMutation = useMutation({
+    mutationFn: ({ id: pid, doc: d }: { id: string; doc: typeof doc }) =>
+      projectStore.save(pid, d),
+    onError: (err) => {
+      if (err instanceof Error && err.message === 'STORAGE_FULL') {
+        window.alert('Local storage is full. Delete old projects to keep saving.');
+      }
+    },
+  });
+  useAutosave(id || null, (pid, d) => saveMutation.mutate({ id: pid, doc: d }));
+
   useEffect(() => {
     if (project.data) {
       loadDoc(project.data);
@@ -34,12 +49,12 @@ function EditorPage() {
   async function handleExport() {
     if (!frameRef.current) return;
     const blob = await exportPng(frameRef.current, 2);
-    downloadBlob(blob, exportFilename(id, 2));
+    downloadBlob(blob, exportFilename(projectName, 2));
   }
 
   return (
     <EditorShell
-      toolbar={<Toolbar projectName={id} onExport={handleExport} />}
+      toolbar={<Toolbar projectName={projectName} onExport={handleExport} />}
       canvas={
         doc.content.image ? (
           <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
