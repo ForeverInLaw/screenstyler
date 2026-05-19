@@ -8,8 +8,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
-    include: ['lib/**/*.test.{ts,tsx}', 'components/**/*.test.{ts,tsx}'],
+    include: ['lib/**/*.test.{ts,tsx}', 'components/**/*.test.{ts,tsx}', 'app/**/*.test.{ts,tsx}'],
     passWithNoTests: true,
+    hookTimeout: 60_000,
   },
   resolve: { alias: { '@': resolve(__dirname, '.') } },
 });
