@@ -1,5 +1,6 @@
 'use client';
 import { useDocumentStore } from '@/lib/document/store';
+import { AuthButton } from '@/components/auth/AuthButton';
 
 type Props = { projectName: string; onExport: () => void };
 
@@ -25,6 +26,7 @@ export function Toolbar({ projectName, onExport }: Props) {
         <button type="button" onClick={undo} aria-label="Undo">Undo</button>
         <button type="button" onClick={redo} aria-label="Redo">Redo</button>
         <button type="button" onClick={onExport}>Export</button>
+        <AuthButton />
       </div>
     </header>
   );

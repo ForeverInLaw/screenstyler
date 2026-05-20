@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+vi.mock('@/lib/auth/client', () => ({
+  useSession: () => ({ data: null, isPending: false }),
+  signIn: { email: vi.fn(), social: vi.fn() },
+  signOut: vi.fn(),
+  signUp: { email: vi.fn() },
+}));
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Toolbar } from './Toolbar';
