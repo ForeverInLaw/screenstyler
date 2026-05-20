@@ -16,6 +16,16 @@ function isPgliteMode(): boolean {
 export function getDb(): Db {
   if (cached) return cached;
   const url = process.env.NEON_DATABASE_URL;
+  // Throw only when the variable is absent (undefined) in production at runtime.
+  // An explicitly empty string signals an intentional pglite fallback (e.g., e2e).
+  // Exempt the Next.js build phase, which evaluates module code without real env vars.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.NEXT_PHASE !== 'phase-production-build' &&
+    url === undefined
+  ) {
+    throw new Error('NEON_DATABASE_URL is required in production');
+  }
   if (process.env.NODE_ENV === 'test' || !url) {
     cached = drizzlePglite(new PGlite(), { schema });
   } else {

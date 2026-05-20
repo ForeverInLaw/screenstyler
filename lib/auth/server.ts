@@ -4,6 +4,14 @@ import { Resend } from 'resend';
 import { getDb } from '@/lib/db/client';
 import * as schema from '@/lib/db/schema';
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.NEXT_PHASE !== 'phase-production-build' &&
+  !process.env.BETTER_AUTH_SECRET
+) {
+  throw new Error('BETTER_AUTH_SECRET is required in production');
+}
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export const auth = betterAuth({
