@@ -37,7 +37,12 @@ export function AuthModal() {
 
     try {
       if (isSignup) {
-        const { error: signupError } = await signUp.email({ email, password, name: email });
+        const { error: signupError } = await signUp.email({
+          email,
+          password,
+          name: email,
+          callbackURL: '/projects',
+        });
         if (signupError) {
           setError(signupError.message ?? 'Sign up failed');
           return;
