@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ScreenStyler
 
-## Getting Started
+A modern, high-fidelity browser screenshot decorator, visual editor, and device mockup tool. Built with Next.js, React 19, Zustand, Better Auth, and Drizzle.
 
-First, run the development server:
+## Setup Steps
 
+Follow these steps to set up and run ScreenStyler locally:
+
+### 1. Clone & Install Dependencies
+Ensure you have Node.js installed, then install the package dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Copy `.env.example` to create `.env` (or `.env.local`):
+```bash
+cp .env.example .env
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open `.env` and configure the following parameters:
+- `NEON_DATABASE_URL`: Your PostgreSQL connection string. 
+  *(Note: If left empty/undefined, the app automatically falls back to an in-memory/disk **PGlite** instance, which is excellent for local dev and testing without Neon).*
+- `BETTER_AUTH_SECRET`: Secret key for session hashing. Generate one with:
+  ```bash
+  npx better-auth secret
+  ```
+- `BETTER_AUTH_URL`: The local URL of your app (defaults to `http://localhost:3000`).
+- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Optional Google OAuth configuration for cloud login.
+- `RESEND_API_KEY` & `RESEND_FROM`: Email provider settings for passwordless login and verification.
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`: Cloudflare R2 storage credentials for cloud screenshots and thumbnails.
+  *(Note: Locally, images fall back to browser **IndexedDB** blob storage when not authenticated).*
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Database Schema Setup
+Database migrations are applied automatically during app startup (dev server or API invocations) through self-healing migration clients.
+To generate a new migration after editing `lib/db/schema.ts`:
+```bash
+npx drizzle-kit generate
+```
 
-## Learn More
+### 4. Running the Dev Server
+Start the local development server:
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+ScreenStyler features a comprehensive test suite covering database queries, local fallback stores, store undo/redo functionality, and UI components.
 
-## Deploy on Vercel
+### Run Unit/Integration Tests
+Runs the Vitest test runner:
+```bash
+npm run test
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To run in watch mode:
+```bash
+npm run test:watch
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Run End-to-End Tests
+Runs Playwright browser tests:
+```bash
+npm run test:e2e
+```
