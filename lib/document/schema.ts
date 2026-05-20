@@ -72,3 +72,12 @@ export type Transform3D = z.infer<typeof transform3dSchema>;
 export type Annotation = z.infer<typeof annotationSchema>;
 export type ImageRef = z.infer<typeof imageRefSchema>;
 export type GradientStop = z.infer<typeof gradientStopSchema>;
+
+export class CorruptDocumentError extends Error {
+  isCorrupt = true;
+  constructor(public rawJson: string, public cause: Error) {
+    super('Corrupted project document: ' + cause.message);
+    this.name = 'CorruptDocumentError';
+  }
+}
+

@@ -36,4 +36,47 @@ describe('LocalProjectStore', () => {
     expect((await store.load(id)).content.padding).toBe(200);
     expect((await store.list())[0].updatedAt).toBeGreaterThan(before);
   });
+
+  it('falls back to IndexedDB project storage when localStorage throws', async () => {
+    const originalSetItem = localStorage.setItem;
+    const originalGetItem = localStorage.getItem;
+    const originalRemoveItem = localStorage.removeItem;
+    localStorage.setItem = () => { throw new Error('localStorage is blocked'); };
+    localStorage.getItem = () => { throw new Error('localStorage is blocked'); };
+    localStorage.removeItem = () => { throw new Error('localStorage is blocked'); };
+
+    try {
+      const store = new LocalProjectStore();
+      const id = await store.create('Idb Project', createBlankDoc());
+
+      const list = await store.list();
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({ id, name: 'Idb Project' });
+
+      const loaded = await store.load(id);
+      expect(loaded.version).toBe(1);
+
+      await store.remove(id);
+      expect(await store.list()).toHaveLength(0);
+    } finally {
+      localStorage.setItem = originalSetItem;
+      localStorage.getItem = originalGetItem;
+      localStorage.removeItem = originalRemoveItem;
+    }
+  });
+
+  it('throws CorruptDocumentError when loading a corrupted project', async () => {
+    const store = new LocalProjectStore();
+    const id = 'corrupt-123';
+    localStorage.setItem(`screenstyler:doc:${id}`, 'invalid-json-data}');
+
+    await expect(store.load(id)).rejects.toThrow();
+    try {
+      await store.load(id);
+    } catch (err: any) {
+      expect(err.isCorrupt).toBe(true);
+      expect(err.rawJson).toBe('invalid-json-data}');
+    }
+  });
 });
+

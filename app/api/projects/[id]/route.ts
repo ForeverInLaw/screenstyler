@@ -7,7 +7,10 @@ import { deleteObject } from '@/lib/blob/r2-server';
 
 const patchBody = z.object({
   doc: z.unknown().optional(),
-  meta: z.object({ name: z.string().min(1).optional() }).optional(),
+  meta: z.object({
+    name: z.string().min(1).optional(),
+    thumbnailKey: z.string().nullable().optional(),
+  }).optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -36,6 +39,7 @@ export async function PATCH(req: Request, ctx: Ctx): Promise<Response> {
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.doc !== undefined) updates.doc = parsed.data.doc;
   if (parsed.data.meta?.name) updates.name = parsed.data.meta.name;
+  if (parsed.data.meta?.thumbnailKey !== undefined) updates.thumbnailKey = parsed.data.meta.thumbnailKey;
 
   const result = await getDb()
     .update(projects)

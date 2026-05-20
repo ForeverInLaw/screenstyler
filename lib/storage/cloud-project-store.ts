@@ -31,7 +31,7 @@ export class CloudProjectStore implements ProjectStore {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         doc,
-        meta: meta?.name ? { name: meta.name } : undefined,
+        meta: meta ? { name: meta.name, thumbnailKey: meta.thumbnailKey } : undefined,
       }),
     });
   }

@@ -2,18 +2,34 @@
 import { useDocumentStore } from '@/lib/document/store';
 import { AuthButton } from '@/components/auth/AuthButton';
 
-type Props = { projectName: string; onExport: () => void };
+type Tool = 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
 
-export function Toolbar({ projectName, onExport }: Props) {
+type Props = {
+  projectName: string;
+  onExport: () => void;
+  activeTool: Tool;
+  onChangeTool: (tool: Tool) => void;
+};
+
+export function Toolbar({ projectName, onExport, activeTool, onChangeTool }: Props) {
   const undo = () => useDocumentStore.temporal.getState().undo();
   const redo = () => useDocumentStore.temporal.getState().redo();
+  const setAnnotations = useDocumentStore((s) => s.setAnnotations);
+
+  const tools: { id: Tool; label: string; icon: string }[] = [
+    { id: 'select', label: 'Select', icon: '🖱️' },
+    { id: 'arrow', label: 'Arrow', icon: '↗️' },
+    { id: 'text', label: 'Text', icon: '📝' },
+    { id: 'highlight', label: 'Highlight', icon: '🖍️' },
+    { id: 'blur', label: 'Blur', icon: '🌫️' },
+  ];
 
   return (
     <header
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 16,
         padding: '10px 16px',
         borderBottom: '1px solid #2a2d36',
         background: '#16181d',
@@ -21,13 +37,63 @@ export function Toolbar({ projectName, onExport }: Props) {
       }}
     >
       <strong>Screenstyler</strong>
-      <span style={{ opacity: 0.7 }}>{projectName}</span>
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-        <button type="button" onClick={undo} aria-label="Undo">Undo</button>
-        <button type="button" onClick={redo} aria-label="Redo">Redo</button>
-        <button type="button" onClick={onExport}>Export</button>
+      <span style={{ opacity: 0.7, fontSize: '14px' }}>{projectName}</span>
+
+      {/* Annotation Drawing Tools */}
+      <div style={{ display: 'flex', gap: 4, margin: '0 auto', background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
+        {tools.map((t) => {
+          const isActive = activeTool === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onChangeTool(t.id)}
+              title={t.label}
+              style={{
+                background: isActive ? '#6366f1' : 'transparent',
+                color: isActive ? '#ffffff' : '#e5e7eb',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: isActive ? 'bold' : 'normal',
+                transition: 'background 0.2s',
+              }}
+            >
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={() => setAnnotations([])}
+          style={{
+            background: 'transparent',
+            border: '1px solid #3f3f46',
+            borderRadius: '6px',
+            color: '#e5e7eb',
+            padding: '6px 12px',
+            fontSize: '12px',
+            cursor: 'pointer',
+          }}
+        >
+          🧹 Clear annotations
+        </button>
+        <div style={{ width: 1, height: 20, background: '#2a2d36' }} />
+        <button type="button" onClick={undo} aria-label="Undo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff' }}>Undo</button>
+        <button type="button" onClick={redo} aria-label="Redo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff' }}>Redo</button>
+        <button type="button" onClick={onExport} style={{ background: '#6366f1', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff', fontWeight: 'bold' }}>Export</button>
         <AuthButton />
       </div>
     </header>
   );
 }
+

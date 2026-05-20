@@ -8,9 +8,14 @@ let dbPromise: Promise<IDBPDatabase> | null = null;
 
 function db(): Promise<IDBPDatabase> {
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, 1, {
+    dbPromise = openDB(DB_NAME, 2, {
       upgrade(database) {
-        if (!database.objectStoreNames.contains(STORE)) database.createObjectStore(STORE);
+        if (!database.objectStoreNames.contains(STORE)) {
+          database.createObjectStore(STORE);
+        }
+        if (!database.objectStoreNames.contains('projects')) {
+          database.createObjectStore('projects');
+        }
       },
     });
   }
