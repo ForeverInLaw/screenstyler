@@ -23,7 +23,7 @@ Open `.env` and configure the following parameters:
   *(Note: If left empty/undefined, the app automatically falls back to an in-memory/disk **PGlite** instance, which is excellent for local dev and testing without Neon).*
 - `BETTER_AUTH_SECRET`: Secret key for session hashing. Generate one with:
   ```bash
-  npx better-auth secret
+  npx @better-auth/cli secret
   ```
 - `BETTER_AUTH_URL`: The local URL of your app (defaults to `http://localhost:3000`).
 - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Optional Google OAuth configuration for cloud login.
