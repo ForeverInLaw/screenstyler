@@ -16,7 +16,7 @@ const banner: React.CSSProperties = {
   borderRadius: 8,
 };
 
-type MigrationState = 'idle' | 'running' | 'done' | 'err';
+type MigrationState = 'idle' | 'done' | 'err';
 
 export function MigrationRunner() {
   const { data } = useSession();
@@ -53,6 +53,6 @@ export function MigrationRunner() {
     (typeof window === 'undefined' || !localStorage.getItem(MIGRATED_FLAG));
 
   if (state === 'done' || (!isRunning && state === 'idle')) return null;
-  if (isRunning || state === 'running') return <div style={banner}>Migrating local projects…</div>;
+  if (isRunning) return <div style={banner}>Migrating local projects…</div>;
   return <div style={{ ...banner, background: '#7f1d1d' }}>Some projects failed to migrate. They remain in this browser.</div>;
 }
