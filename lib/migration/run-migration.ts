@@ -1,0 +1,49 @@
+import type { ProjectStore, BlobStore } from '@/lib/storage/types';
+import type { ScreenstylerDoc } from '@/lib/document/schema';
+
+export const MIGRATED_FLAG = 'screenstyler:migrated';
+
+type Args = { local: ProjectStore; blob: BlobStore; userId: string };
+type Result = { migrated: number; failed: number };
+
+async function uploadImage(blob: BlobStore, baseKey: string, userId: string): Promise<string | null> {
+  const data = await blob.get(baseKey);
+  if (!data) return null;
+  const newKey = baseKey.startsWith(`users/${userId}/`) ? baseKey : `users/${userId}/${baseKey}`;
+  // Send through the currently-active cloud BlobStore — the user is signed in
+  // by the time MigrationRunner mounts.
+  const { getBlobStore } = await import('@/lib/storage/active-stores');
+  await getBlobStore().put(newKey, data);
+  return newKey;
+}
+
+export async function runMigration({ local, blob, userId }: Args): Promise<Result> {
+  if (localStorage.getItem(MIGRATED_FLAG)) return { migrated: 0, failed: 0 };
+
+  const metas = await local.list();
+  let migrated = 0;
+  let failed = 0;
+
+  for (const meta of metas) {
+    try {
+      const doc = await local.load(meta.id);
+      const sourceKey = (doc as ScreenstylerDoc).content?.image?.blobKey ?? null;
+      const newKey = sourceKey ? await uploadImage(blob, sourceKey, userId) : null;
+
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: meta.name, doc, sourceImageKey: newKey }),
+      });
+      if (!res.ok) throw new Error(`HTTP_${res.status}`);
+      await local.remove(meta.id);
+      migrated++;
+    } catch {
+      failed++;
+    }
+  }
+
+  if (failed === 0) localStorage.setItem(MIGRATED_FLAG, '1');
+  return { migrated, failed };
+}

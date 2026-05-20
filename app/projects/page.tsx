@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectList } from '@/components/projects/ProjectList';
+import { MigrationRunner } from '@/components/migration/MigrationRunner';
 import { getProjectStore } from '@/lib/storage/active-stores';
 import { createBlankDoc } from '@/lib/document/factory';
 
@@ -32,6 +33,7 @@ export default function ProjectsPage() {
 
   return (
     <main style={{ maxWidth: 1000, margin: '0 auto', padding: 32 }}>
+      <MigrationRunner />
       <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
         <h1>Projects</h1>
         <button type="button" onClick={() => createProject.mutate()}>New project</button>
