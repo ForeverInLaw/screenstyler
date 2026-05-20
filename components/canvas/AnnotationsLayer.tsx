@@ -25,9 +25,10 @@ export function AnnotationsLayer({
   const [tempAnnotation, setTempAnnotation] = useState<Annotation | null>(null);
   const [textPos, setTextPos] = useState<Point | null>(null);
   const [textVal, setTextVal] = useState('');
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  // Convert screen coordinates to canvas-relative coordinates
+  // Convert screen coordinates to canvas-relative coordinates.
+  // The container fills the entire DocumentFrame (inset: 0), so we can
+  // map pixel offsets directly to the canvas coordinate space.
   function getCanvasCoords(e: MouseEvent<HTMLDivElement>): Point {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
@@ -65,7 +66,7 @@ export function AnnotationsLayer({
         id,
         type: 'highlight',
         rect: { x: pt.x, y: pt.y, w: 0, h: 0 },
-        color: 'rgba(234, 179, 8, 0.4)', // yellow highlight
+        color: 'rgba(234, 179, 8, 0.4)',
       });
     } else if (activeTool === 'blur') {
       setTempAnnotation({
@@ -82,32 +83,25 @@ export function AnnotationsLayer({
     const pt = getCanvasCoords(e);
 
     if (tempAnnotation.type === 'arrow') {
-      setTempAnnotation({
-        ...tempAnnotation,
-        to: pt,
-      });
+      setTempAnnotation({ ...tempAnnotation, to: pt });
     } else if (tempAnnotation.type === 'highlight' || tempAnnotation.type === 'blur') {
-      const rect: Rect = {
+      const newRect: Rect = {
         x: Math.min(startPoint.x, pt.x),
         y: Math.min(startPoint.y, pt.y),
         w: Math.abs(startPoint.x - pt.x),
         h: Math.abs(startPoint.y - pt.y),
       };
-      if (tempAnnotation.type === 'highlight') {
-        setTempAnnotation({ ...tempAnnotation, rect });
-      } else {
-        setTempAnnotation({ ...tempAnnotation, rect });
-      }
+      setTempAnnotation({ ...tempAnnotation, rect: newRect });
     }
   }
 
-  function handleMouseUp(e: MouseEvent<HTMLDivElement>) {
+  function handleMouseUp() {
     if (!isDrawing || !tempAnnotation) return;
     setIsDrawing(false);
     setStartPoint(null);
     setTempAnnotation(null);
 
-    // Filter out zero-size rectangles
+    // Filter out zero-size shapes
     if (tempAnnotation.type === 'highlight' || tempAnnotation.type === 'blur') {
       if (tempAnnotation.rect.w < 5 || tempAnnotation.rect.h < 5) return;
     }
@@ -117,10 +111,7 @@ export function AnnotationsLayer({
       if (Math.sqrt(dx * dx + dy * dy) < 5) return;
     }
 
-    onAddAnnotation({
-      ...tempAnnotation,
-      id: crypto.randomUUID(),
-    });
+    onAddAnnotation({ ...tempAnnotation, id: crypto.randomUUID() });
   }
 
   function handleTextSubmit() {
@@ -138,16 +129,18 @@ export function AnnotationsLayer({
     setTextVal('');
   }
 
-  // Handle escape to cancel text drawing
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setTextPos(null);
-      }
+      if (e.key === 'Escape') setTextPos(null);
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // The layer captures mouse events for drawing when a tool is active.
+  // In select mode it is transparent to clicks (pointerEvents: none)
+  // EXCEPT for the delete buttons which have their own pointerEvents: auto.
+  const isDrawMode = activeTool !== 'select';
 
   return (
     <div
@@ -160,11 +153,11 @@ export function AnnotationsLayer({
         position: 'absolute',
         inset: 0,
         zIndex: 20,
-        cursor: activeTool === 'select' ? 'default' : 'crosshair',
-        pointerEvents: activeTool === 'select' && hoveredId === null ? 'none' : 'auto',
+        cursor: isDrawMode ? 'crosshair' : 'default',
+        pointerEvents: isDrawMode ? 'auto' : 'none',
       }}
     >
-      {/* SVG Layer for Drawing Arrows/Highlights/Texts */}
+      {/* SVG Layer for Arrows / Highlights / Texts */}
       <svg
         style={{
           position: 'absolute',
@@ -176,7 +169,6 @@ export function AnnotationsLayer({
         viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
       >
         <defs>
-          {/* Dynamic markers for arrows */}
           {annotations
             .concat(tempAnnotation ? [tempAnnotation] : [])
             .filter((a): a is Extract<Annotation, { type: 'arrow' }> => a.type === 'arrow')
@@ -196,7 +188,7 @@ export function AnnotationsLayer({
             ))}
         </defs>
 
-        {/* Render Highlights */}
+        {/* Highlights */}
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'highlight' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'highlight' }> => a.type === 'highlight')
@@ -212,7 +204,7 @@ export function AnnotationsLayer({
             />
           ))}
 
-        {/* Render Arrows */}
+        {/* Arrows */}
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'arrow' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'arrow' }> => a.type === 'arrow')
@@ -229,7 +221,7 @@ export function AnnotationsLayer({
             />
           ))}
 
-        {/* Render SVG Texts */}
+        {/* Texts */}
         {annotations
           .filter((a): a is Extract<Annotation, { type: 'text' }> => a.type === 'text')
           .map((t) => (
@@ -249,15 +241,8 @@ export function AnnotationsLayer({
           ))}
       </svg>
 
-      {/* HTML Layer for Backdrop Blurs and Delete Handles */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-        }}
-      >
-        {/* Render HTML Blurs */}
+      {/* HTML Layer for Blurs */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'blur' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'blur' }> => a.type === 'blur')
@@ -272,68 +257,66 @@ export function AnnotationsLayer({
                 height: `${(b.rect.h / canvasHeight) * 100}%`,
                 backdropFilter: `blur(${b.intensity}px)`,
                 backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px dashed rgba(255,255,255,0.2)',
                 borderRadius: '4px',
               }}
             />
           ))}
-
-        {/* Render Interactive Delete Handles (only active when in select mode) */}
-        {activeTool === 'select' &&
-          annotations.map((a) => {
-            let left = 0;
-            let top = 0;
-
-            if (a.type === 'arrow') {
-              left = (a.to.x / canvasWidth) * 100;
-              top = (a.to.y / canvasHeight) * 100;
-            } else if (a.type === 'text') {
-              left = (a.pos.x / canvasWidth) * 100;
-              top = (a.pos.y / canvasHeight) * 100;
-            } else {
-              left = ((a.rect.x + a.rect.w) / canvasWidth) * 100;
-              top = (a.rect.y / canvasHeight) * 100;
-            }
-
-            return (
-              <button
-                key={`delete-${a.id}`}
-                type="button"
-                onMouseEnter={() => setHoveredId(a.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => {
-                  onRemoveAnnotation(a.id);
-                  setHoveredId(null);
-                }}
-                style={{
-                  position: 'absolute',
-                  left: `${left}%`,
-                  top: `${top}%`,
-                  transform: 'translate(-50%, -50%)',
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#ef4444',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 30,
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                  pointerEvents: 'auto',
-                }}
-              >
-                ×
-              </button>
-            );
-          })}
       </div>
 
-      {/* Floating text input box for typing text */}
+      {/* Delete buttons — always visible when annotations exist */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {annotations.map((a) => {
+          let left = 0;
+          let top = 0;
+
+          if (a.type === 'arrow') {
+            left = (a.to.x / canvasWidth) * 100;
+            top = (a.to.y / canvasHeight) * 100;
+          } else if (a.type === 'text') {
+            left = (a.pos.x / canvasWidth) * 100;
+            top = (a.pos.y / canvasHeight) * 100;
+          } else {
+            left = ((a.rect.x + a.rect.w) / canvasWidth) * 100;
+            top = (a.rect.y / canvasHeight) * 100;
+          }
+
+          return (
+            <button
+              key={`delete-${a.id}`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveAnnotation(a.id);
+              }}
+              style={{
+                position: 'absolute',
+                left: `${left}%`,
+                top: `${top}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                background: '#ef4444',
+                border: '2px solid #fff',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 30,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                pointerEvents: 'auto',
+              }}
+            >
+              ×
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Floating text input */}
       {textPos && (
         <div
           style={{

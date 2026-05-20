@@ -2,31 +2,14 @@
 import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { Screenshot } from './Screenshot';
 import { FrameMockup } from './FrameMockup';
-import { AnnotationsLayer } from './AnnotationsLayer';
-import { useDocumentStore } from '@/lib/document/store';
 
 type Props = {
   content: ScreenstylerDoc['content'];
-  canvasWidth: number;
-  canvasHeight: number;
-  activeTool?: 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
 };
 
-export function ContentLayer({ content, canvasWidth, canvasHeight, activeTool = 'select' }: Props) {
-  const annotations = useDocumentStore((s) => s.doc.annotations);
-  const addAnnotation = useDocumentStore((s) => s.addAnnotation);
-  const removeAnnotation = useDocumentStore((s) => s.removeAnnotation);
-
+export function ContentLayer({ content }: Props) {
   const { rotateX, rotateY, rotateZ, perspective, scale } = content.transform3d;
-
-  // Flatten the tilt when drawing annotations so mouse click coordinate mapping is 100% accurate
-  const isEditingAnnotations = activeTool !== 'select';
-  const rx = isEditingAnnotations ? 0 : rotateX;
-  const ry = isEditingAnnotations ? 0 : rotateY;
-  const rz = isEditingAnnotations ? 0 : rotateZ;
-  const scl = isEditingAnnotations ? 1 : scale;
-
-  const has3d = rx !== 0 || ry !== 0 || rz !== 0;
+  const has3d = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
 
   return (
     <div
@@ -57,9 +40,9 @@ export function ContentLayer({ content, canvasWidth, canvasHeight, activeTool = 
         <div
           style={{
             position: 'relative',
-            transform: `rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${scl})`,
+            transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`,
             transformStyle: has3d ? 'preserve-3d' : undefined,
-            transition: isDrawingOrEditing(activeTool) ? 'none' : 'transform 0.3s ease-out',
+            transition: 'transform 0.3s ease-out',
             willChange: has3d ? 'transform' : undefined,
             maxWidth: '100%',
             maxHeight: '100%',
@@ -85,22 +68,8 @@ export function ContentLayer({ content, canvasWidth, canvasHeight, activeTool = 
               />
             </FrameMockup>
           )}
-
-          {/* Absolute overlay annotations layer */}
-          <AnnotationsLayer
-            annotations={annotations}
-            activeTool={activeTool}
-            canvasWidth={canvasWidth}
-            canvasHeight={canvasHeight}
-            onAddAnnotation={addAnnotation}
-            onRemoveAnnotation={removeAnnotation}
-          />
         </div>
       </div>
     </div>
   );
-}
-
-function isDrawingOrEditing(tool: string): boolean {
-  return tool !== 'select';
 }
