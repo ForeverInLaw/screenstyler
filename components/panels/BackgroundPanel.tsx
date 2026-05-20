@@ -22,7 +22,7 @@ export function BackgroundPanel() {
     try {
       const imageRef = await ingestImageFile(file);
       setBackground({ type: 'image', ref: imageRef, fit: 'cover' });
-    } catch (err) {
+    } catch {
       setUploadError('Failed to upload background image');
     } finally {
       setIsUploading(false);

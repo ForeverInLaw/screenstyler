@@ -65,6 +65,8 @@ export const screenstylerDocSchema = z.object({
 });
 
 export type ScreenstylerDoc = z.infer<typeof screenstylerDocSchema>;
+export type Point = z.infer<typeof pointSchema>;
+export type Rect = z.infer<typeof rectSchema>;
 export type Background = z.infer<typeof backgroundSchema>;
 export type Shadow = z.infer<typeof shadowSchema>;
 export type Frame = z.infer<typeof frameSchema>;

@@ -12,7 +12,7 @@ import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { getProjectStore, getBlobStore } from '@/lib/storage/active-stores';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
-import { CorruptDocumentError, type ScreenstylerDoc } from '@/lib/document/schema';
+import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { createBlankDoc } from '@/lib/document/factory';
 import { DocumentRecoveryScreen } from '@/components/editor/DocumentRecoveryScreen';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -44,7 +44,7 @@ function EditorPage() {
       let thumbnailKey: string | null = null;
       if (frameRef.current && d.content.image) {
         try {
-          const blob = await exportPng(frameRef.current, 0.15);
+          const blob = await exportPng(frameRef.current, 1);
           const key = `thumbnail_${pid}`;
           await getBlobStore().put(key, blob);
           thumbnailKey = key;
@@ -93,13 +93,17 @@ function EditorPage() {
     }
   }
 
-  const isCorrupted = project.error && (project.error as any).isCorrupt;
-  if (isCorrupted) {
+  const corruptError =
+    project.error instanceof Error && 'isCorrupt' in project.error ?
+      project.error as Error & { isCorrupt: true; rawJson: string }
+    : null;
+
+  if (corruptError) {
     return (
       <DocumentRecoveryScreen
         id={id}
-        rawJson={(project.error as any).rawJson}
-        error={project.error as Error}
+        rawJson={corruptError.rawJson}
+        error={corruptError}
         onReset={resetToBlank}
       />
     );

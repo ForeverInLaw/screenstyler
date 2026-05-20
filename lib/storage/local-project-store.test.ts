@@ -2,6 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { LocalProjectStore } from './local-project-store';
 import { createBlankDoc } from '../document/factory';
 
+type CorruptProjectError = Error & { isCorrupt: true; rawJson: string };
+
+function isCorruptProjectError(err: unknown): err is CorruptProjectError {
+  return err instanceof Error && 'isCorrupt' in err && 'rawJson' in err;
+}
+
 beforeEach(() => localStorage.clear());
 
 describe('LocalProjectStore', () => {
@@ -73,7 +79,9 @@ describe('LocalProjectStore', () => {
     await expect(store.load(id)).rejects.toThrow();
     try {
       await store.load(id);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      expect(isCorruptProjectError(err)).toBe(true);
+      if (!isCorruptProjectError(err)) throw err;
       expect(err.isCorrupt).toBe(true);
       expect(err.rawJson).toBe('invalid-json-data}');
     }

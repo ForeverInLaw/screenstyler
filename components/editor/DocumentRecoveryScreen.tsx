@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { downloadBlob } from '@/lib/export/export-png';
 
 type Props = {
@@ -44,7 +45,7 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
           Document Corruption Detected
         </h1>
         <p style={{ margin: '0 0 20px', fontSize: '14px', lineHeight: '1.5', opacity: 0.8 }}>
-          The project document could not be loaded because the stored data is invalid or corrupted. Don't worry, you can download the raw data below to try and recover it.
+          The project document could not be loaded because the stored data is invalid or corrupted. You can download the raw data below to try and recover it.
         </p>
 
         {/* Technical details */}
@@ -111,7 +112,7 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
             ✨ Reset Project to Blank State
           </button>
 
-          <a
+          <Link
             href="/"
             style={{
               display: 'block',
@@ -132,7 +133,7 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
             onMouseOut={(e) => (e.currentTarget.style.background = '#2a2d36')}
           >
             ⬅️ Back to Dashboard
-          </a>
+          </Link>
         </div>
       </div>
     </div>
