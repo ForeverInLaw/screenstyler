@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",

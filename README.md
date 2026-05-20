@@ -2,48 +2,79 @@
 
 A modern, high-fidelity browser screenshot decorator, visual editor, and device mockup tool. Built with Next.js, React 19, Zustand, Better Auth, and Drizzle.
 
-## Setup Steps
+## Setup steps
 
 Follow these steps to set up and run ScreenStyler locally:
 
-### 1. Clone & Install Dependencies
-Ensure you have Node.js installed, then install the package dependencies:
+### 1. Install dependencies
+
+Use Node.js 20.12 or newer, then install packages:
+
 ```bash
 npm install
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure environment variables
+
 Copy `.env.example` to create `.env` (or `.env.local`):
+
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and configure the following parameters:
-- `NEON_DATABASE_URL`: Your PostgreSQL connection string. 
-  *(Note: If left empty/undefined, the app automatically falls back to an in-memory/disk **PGlite** instance, which is excellent for local dev and testing without Neon).*
+Open `.env` and configure the values you need:
+
+- `NEON_DATABASE_URL`: PostgreSQL connection string for Neon-backed auth and cloud projects. If left empty, local API routes fall back to PGlite for tests and lightweight local development.
 - `BETTER_AUTH_SECRET`: Secret key for session hashing. Generate one with:
+
   ```bash
   npx @better-auth/cli secret
   ```
-- `BETTER_AUTH_URL`: The local URL of your app (defaults to `http://localhost:3000`).
+
+- `BETTER_AUTH_URL`: The URL you open in the browser. If you run `npm run dev -- -p 8080`, set this to `http://localhost:8080`.
 - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Optional Google OAuth configuration for cloud login.
 - `RESEND_API_KEY` & `RESEND_FROM`: Email provider settings for passwordless login and verification.
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`: Cloudflare R2 storage credentials for cloud screenshots and thumbnails.
-  *(Note: Locally, images fall back to browser **IndexedDB** blob storage when not authenticated).*
 
-### 3. Database Schema Setup
-Database migrations are applied automatically during app startup (dev server or API invocations) through self-healing migration clients.
-To generate a new migration after editing `lib/db/schema.ts`:
+### 3. Apply the database schema
+
+If `NEON_DATABASE_URL` points at a real database, apply the Drizzle schema before signing up or using cloud projects:
+
+```bash
+npm run db:push
+```
+
+This creates the Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) and the `projects` table. Without this step, sign up can fail with `relation "users" does not exist`.
+
+For migration-file based deploys, use:
+
+```bash
+npm run db:migrate
+```
+
+When you edit `lib/db/schema.ts`, generate a migration with:
+
 ```bash
 npx drizzle-kit generate
 ```
 
-### 4. Running the Dev Server
+### 4. Run the dev server
+
 Start the local development server:
+
 ```bash
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+To use another port:
+
+```bash
+npm run dev -- -p 8080
+```
+
+Set `BETTER_AUTH_URL` to the same origin when changing ports.
 
 ---
 
