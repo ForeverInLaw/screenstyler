@@ -1,17 +1,21 @@
 'use client';
 import { useDocumentStore } from '@/lib/document/store';
-import { AuthButton } from '@/components/auth/AuthButton';
 
 type Tool = 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
 
 type Props = {
   projectName: string;
   onExport: () => void;
-  activeTool: Tool;
-  onChangeTool: (tool: Tool) => void;
+  activeTool?: Tool;
+  onChangeTool?: (tool: Tool) => void;
 };
 
-export function Toolbar({ projectName, onExport, activeTool, onChangeTool }: Props) {
+export function Toolbar({
+  projectName,
+  onExport,
+  activeTool = 'select',
+  onChangeTool = () => {},
+}: Props) {
   const undo = () => useDocumentStore.temporal.getState().undo();
   const redo = () => useDocumentStore.temporal.getState().redo();
   const setAnnotations = useDocumentStore((s) => s.setAnnotations);
@@ -91,7 +95,6 @@ export function Toolbar({ projectName, onExport, activeTool, onChangeTool }: Pro
         <button type="button" onClick={undo} aria-label="Undo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff' }}>Undo</button>
         <button type="button" onClick={redo} aria-label="Redo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff' }}>Redo</button>
         <button type="button" onClick={onExport} style={{ background: '#6366f1', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff', fontWeight: 'bold' }}>Export</button>
-        <AuthButton />
       </div>
     </header>
   );
