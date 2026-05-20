@@ -17,6 +17,23 @@ async function uploadImage(blob: BlobStore, baseKey: string, userId: string): Pr
   return newKey;
 }
 
+/**
+ * Rewrite all blobKey references inside the doc to use the new prefixed key.
+ * Mutates the provided (already-cloned) doc in place.
+ */
+function rewriteBlobKeys(
+  doc: ScreenstylerDoc,
+  oldKey: string,
+  newKey: string,
+): void {
+  if (doc.content.image?.blobKey === oldKey) {
+    doc.content.image.blobKey = newKey;
+  }
+  if (doc.canvas.background.type === 'image' && doc.canvas.background.ref.blobKey === oldKey) {
+    doc.canvas.background.ref.blobKey = newKey;
+  }
+}
+
 export async function runMigration({ local, blob, userId }: Args): Promise<Result> {
   if (localStorage.getItem(MIGRATED_FLAG)) return { migrated: 0, failed: 0 };
 
@@ -26,20 +43,43 @@ export async function runMigration({ local, blob, userId }: Args): Promise<Resul
 
   for (const meta of metas) {
     try {
-      const doc = await local.load(meta.id);
-      const sourceKey = (doc as ScreenstylerDoc).content?.image?.blobKey ?? null;
-      const newKey = sourceKey ? await uploadImage(blob, sourceKey, userId) : null;
+      // Clone so we never mutate cached local store objects.
+      const doc = structuredClone(await local.load(meta.id)) as ScreenstylerDoc;
+
+      const contentKey = doc.content?.image?.blobKey ?? null;
+      const newContentKey = contentKey ? await uploadImage(blob, contentKey, userId) : null;
+
+      // Upload background image if it has a different blobKey from the content image.
+      const bg = doc.canvas.background;
+      const bgKey = bg.type === 'image' ? bg.ref.blobKey : null;
+      let newBgKey: string | null = null;
+      if (bgKey) {
+        if (bgKey === contentKey && newContentKey) {
+          newBgKey = newContentKey;
+        } else {
+          newBgKey = await uploadImage(blob, bgKey, userId);
+        }
+      }
+
+      // Rewrite all blobKey references in the doc before posting.
+      if (contentKey && newContentKey) {
+        rewriteBlobKeys(doc, contentKey, newContentKey);
+      }
+      if (bgKey && newBgKey && bgKey !== contentKey) {
+        rewriteBlobKeys(doc, bgKey, newBgKey);
+      }
 
       const res = await fetch('/api/projects', {
         method: 'POST',
         credentials: 'include',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: meta.name, doc, sourceImageKey: newKey }),
+        body: JSON.stringify({ name: meta.name, doc, sourceImageKey: newContentKey }),
       });
       if (!res.ok) throw new Error(`HTTP_${res.status}`);
       await local.remove(meta.id);
       migrated++;
-    } catch {
+    } catch (err) {
+      console.warn('runMigration: failed to migrate project', meta.id, err);
       failed++;
     }
   }

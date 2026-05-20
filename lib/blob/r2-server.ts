@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function makeClient(): S3Client {
@@ -28,4 +28,8 @@ export async function signGet(key: string, expiresIn = 300): Promise<string> {
     new GetObjectCommand({ Bucket: bucket(), Key: key }),
     { expiresIn },
   );
+}
+
+export async function deleteObject(key: string): Promise<void> {
+  await makeClient().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
 }

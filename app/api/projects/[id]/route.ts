@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
+import { deleteObject } from '@/lib/blob/r2-server';
 
 const patchBody = z.object({
   doc: z.unknown().optional(),
@@ -50,10 +51,24 @@ export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const { id } = await ctx.params;
-  const result = await getDb()
+
+  // Look up the storage keys before deleting so we can clean up R2 objects.
+  const [row] = await getDb()
+    .select({ sourceImageKey: projects.sourceImageKey, thumbnailKey: projects.thumbnailKey })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)));
+  if (!row) return new Response('not found', { status: 404 });
+
+  await getDb()
     .delete(projects)
-    .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)))
-    .returning();
-  if (result.length === 0) return new Response('not found', { status: 404 });
+    .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)));
+
+  // Fire-and-forget R2 deletions — don't fail the response if R2 errors.
+  for (const key of [row.sourceImageKey, row.thumbnailKey]) {
+    if (key) {
+      deleteObject(key).catch((e) => console.warn('R2 delete failed', key, e));
+    }
+  }
+
   return Response.json({});
 }

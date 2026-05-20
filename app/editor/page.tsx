@@ -33,9 +33,18 @@ function EditorPage() {
   const saveMutation = useMutation({
     mutationFn: ({ id: pid, doc: d }: { id: string; doc: typeof doc }) =>
       getProjectStore().save(pid, d),
-    onError: (err) => {
-      if (err instanceof Error && err.message === 'STORAGE_FULL') {
-        window.alert('Local storage is full. Delete old projects to keep saving.');
+    onError: async (err) => {
+      if (err instanceof Error) {
+        if (err.message === 'STORAGE_FULL') {
+          window.alert('Local storage is full. Delete old projects to keep saving.');
+          return;
+        }
+        if (err.message === 'HTTP_401') {
+          const { signOut } = await import('@/lib/auth/client');
+          await signOut();
+          window.alert('Session expired. Sign in to keep saving.');
+          return;
+        }
       }
     },
   });
