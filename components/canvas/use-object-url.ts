@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { blobStore } from '@/lib/storage/blob-store-instance';
+import { getBlobStore } from '@/lib/storage/active-stores';
 
 export function useObjectUrl(blobKey: string | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
@@ -10,7 +10,7 @@ export function useObjectUrl(blobKey: string | null): string | null {
     let objectUrl: string | null = null;
     let cancelled = false;
 
-    blobStore.get(blobKey).then((blob) => {
+    getBlobStore().get(blobKey).then((blob) => {
       if (cancelled || !blob) return;
       objectUrl = URL.createObjectURL(blob);
       setUrl(objectUrl);

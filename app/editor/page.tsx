@@ -9,7 +9,7 @@ import { DocumentCanvas } from '@/components/canvas/DocumentCanvas';
 import { UploadZone } from '@/components/editor/UploadZone';
 import { useDocumentStore } from '@/lib/document/store';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
-import { projectStore } from '@/lib/storage/project-store-instance';
+import { getProjectStore } from '@/lib/storage/active-stores';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
@@ -23,16 +23,16 @@ function EditorPage() {
 
   const project = useQuery({
     queryKey: ['project', id],
-    queryFn: () => projectStore.load(id),
+    queryFn: () => getProjectStore().load(id),
     enabled: Boolean(id),
   });
 
-  const projects = useQuery({ queryKey: ['projects'], queryFn: () => projectStore.list() });
+  const projects = useQuery({ queryKey: ['projects'], queryFn: () => getProjectStore().list() });
   const projectName = projects.data?.find((p) => p.id === id)?.name ?? 'Untitled';
 
   const saveMutation = useMutation({
     mutationFn: ({ id: pid, doc: d }: { id: string; doc: typeof doc }) =>
-      projectStore.save(pid, d),
+      getProjectStore().save(pid, d),
     onError: (err) => {
       if (err instanceof Error && err.message === 'STORAGE_FULL') {
         window.alert('Local storage is full. Delete old projects to keep saving.');
