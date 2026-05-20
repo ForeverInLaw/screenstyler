@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db/client';
+import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 
@@ -12,6 +12,7 @@ const patchBody = z.object({
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, ctx: Ctx): Promise<Response> {
+  await ensureSchema();
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const { id } = await ctx.params;
@@ -24,6 +25,7 @@ export async function GET(req: Request, ctx: Ctx): Promise<Response> {
 }
 
 export async function PATCH(req: Request, ctx: Ctx): Promise<Response> {
+  await ensureSchema();
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const { id } = await ctx.params;
@@ -44,6 +46,7 @@ export async function PATCH(req: Request, ctx: Ctx): Promise<Response> {
 }
 
 export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
+  await ensureSchema();
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const { id } = await ctx.params;

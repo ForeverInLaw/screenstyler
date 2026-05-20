@@ -7,6 +7,11 @@ import * as schema from './schema';
 type Db = NeonHttpDatabase<typeof schema> | PgliteDatabase<typeof schema>;
 
 let cached: Db | null = null;
+let schemaReady: Promise<void> | null = null;
+
+function isPgliteMode(): boolean {
+  return process.env.NODE_ENV === 'test' || !process.env.NEON_DATABASE_URL;
+}
 
 export function getDb(): Db {
   if (cached) return cached;
@@ -19,8 +24,26 @@ export function getDb(): Db {
   return cached;
 }
 
+export function ensureSchema(): Promise<void> {
+  if (!isPgliteMode()) return Promise.resolve();
+  if (!schemaReady) {
+    // Lazy-import to avoid circular deps (migrate -> getDb).
+    schemaReady = (async () => {
+      const { applyMigrations } = await import('./migrate');
+      await applyMigrations();
+    })();
+  }
+  return schemaReady;
+}
+
 export function resetDbForTests(): void {
   cached = null;
+  schemaReady = null;
+}
+
+/** Call after manually applying migrations in test setup to prevent ensureSchema() from double-migrating. */
+export function markSchemaReadyForTests(): void {
+  schemaReady = Promise.resolve();
 }
 
 export { schema };

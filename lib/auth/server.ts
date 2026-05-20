@@ -16,11 +16,18 @@ export const auth = betterAuth({
       verification: schema.verifications,
     },
   }),
+  advanced: {
+    database: {
+      generateId: 'uuid' as const,
+    },
+  },
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET ?? 'dev-insecure-secret-32-chars-______',
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: process.env.NODE_ENV !== 'test',
+    requireEmailVerification:
+      process.env.NODE_ENV !== 'test' &&
+      process.env.E2E_SKIP_EMAIL_VERIFICATION !== '1',
     sendResetPassword: async ({ user, url }) => {
       if (!resend || !process.env.RESEND_FROM) return;
       await resend.emails.send({

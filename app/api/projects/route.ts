@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
-import { getDb } from '@/lib/db/client';
+import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 
@@ -11,6 +11,7 @@ const createBody = z.object({
 });
 
 export async function GET(req: Request): Promise<Response> {
+  await ensureSchema();
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const rows = await getDb()
@@ -36,6 +37,7 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  await ensureSchema();
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const parsed = createBody.safeParse(await req.json());

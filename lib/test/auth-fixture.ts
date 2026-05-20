@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { getDb, resetDbForTests } from '@/lib/db/client';
+import { getDb, resetDbForTests, markSchemaReadyForTests } from '@/lib/db/client';
 import { applyMigrations } from '@/lib/db/migrate';
 import { users } from '@/lib/db/schema';
 import * as authServer from '@/lib/auth/server';
@@ -7,6 +7,7 @@ import * as authServer from '@/lib/auth/server';
 export async function setupTestDb(): Promise<void> {
   resetDbForTests();
   await applyMigrations();
+  markSchemaReadyForTests();
 }
 
 export async function seedUser(email = 'u@test.local'): Promise<{ id: string; email: string }> {

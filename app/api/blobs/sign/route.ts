@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 import { signGet, signPut } from '@/lib/blob/r2-server';
+import { ensureSchema } from '@/lib/db/client';
 
 const body = z.object({
   key: z.string().min(1),
@@ -9,6 +10,7 @@ const body = z.object({
 });
 
 export async function POST(req: Request): Promise<Response> {
+  await ensureSchema();
   const session = await requireSession(req);
   if (!session) return unauthorized();
   const parsed = body.safeParse(await req.json());
