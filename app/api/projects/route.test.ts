@@ -47,6 +47,16 @@ describe('POST /api/projects', () => {
     expect(list[0]).toMatchObject({ id: json.id, name: 'P' });
   });
 
+  it('accepts null sourceImageKey for migrated local projects', async () => {
+    const u = await seedUser();
+    mockSession(u);
+    const body = JSON.stringify({ name: 'Migrated', doc: { version: 1 }, sourceImageKey: null });
+    const res = await POST(new Request('http://x/api/projects', {
+      method: 'POST', body, headers: { 'content-type': 'application/json' },
+    }));
+    expect(res.status).toBe(200);
+  });
+
   it('rejects an invalid body with 400', async () => {
     const u = await seedUser();
     mockSession(u);

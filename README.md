@@ -35,6 +35,7 @@ Open `.env` and configure the values you need:
 - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Optional Google OAuth configuration for cloud login.
 - `RESEND_API_KEY` & `RESEND_FROM`: Email provider settings for passwordless login and verification.
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`: Cloudflare R2 storage credentials for cloud screenshots and thumbnails.
+  Use the S3 API endpoint origin shown in the bucket settings, without the bucket path. For example, if Cloudflare shows `https://<account-id>.r2.cloudflarestorage.com/screenstyler-dev`, set `R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com` and `R2_BUCKET=screenstyler-dev`.
 
 ### 3. Apply the database schema
 

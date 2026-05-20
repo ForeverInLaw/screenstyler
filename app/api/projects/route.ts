@@ -7,7 +7,7 @@ import { requireSession, unauthorized } from '@/lib/auth/session';
 const createBody = z.object({
   name: z.string().min(1),
   doc: z.unknown(),
-  sourceImageKey: z.string().optional(),
+  sourceImageKey: z.string().nullable().optional(),
 });
 
 export async function GET(req: Request): Promise<Response> {
