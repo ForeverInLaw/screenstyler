@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 import { signGet, signPut } from '@/lib/blob/r2-server';
-import { ensureSchema } from '@/lib/db/client';
+import { getDb, ensureSchema } from '@/lib/db/client';
+import { projects } from '@/lib/db/schema';
 
 const body = z.object({
   key: z.string().min(1),
@@ -17,7 +19,24 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) return new Response('bad request', { status: 400 });
 
   const prefix = `users/${session.user.id}/`;
-  if (!parsed.data.key.startsWith(prefix)) {
+  let allowed = parsed.data.key.startsWith(prefix);
+
+  if (!allowed && parsed.data.op === 'get') {
+    // Check if it's a legacy thumbnail key format: thumbnail_<projectId>
+    const match = parsed.data.key.match(/^thumbnail_(.+)$/);
+    if (match) {
+      const projectId = match[1];
+      const [projectRow] = await getDb()
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)));
+      if (projectRow) {
+        allowed = true;
+      }
+    }
+  }
+
+  if (!allowed) {
     return new Response('forbidden', { status: 403 });
   }
 

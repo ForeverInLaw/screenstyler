@@ -3,89 +3,55 @@ import { Suspense } from 'react';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { AppHeader } from '@/components/common/AppHeader';
 
-const workflow = [
-  {
-    title: 'Upload',
-    desc: 'Drag & drop your screenshot or start from a blank canvas.',
-    badge: '01',
-    color: 'from-blue-500/10 to-indigo-500/10 border-blue-500/25 text-blue-400',
-  },
-  {
-    title: 'Frame',
-    desc: 'Apply canvas presets, shadows, margins, and sleek 3D angles.',
-    badge: '02',
-    color: 'from-indigo-500/10 to-violet-500/10 border-indigo-500/25 text-indigo-400',
-  },
-  {
-    title: 'Annotate',
-    desc: 'Draw arrows, highlight areas, type text, or blur sensitive data.',
-    badge: '03',
-    color: 'from-violet-500/10 to-fuchsia-500/10 border-violet-500/25 text-violet-400',
-  },
-  {
-    title: 'Export',
-    desc: 'Download clean high-resolution PNGs ready for socials or docs.',
-    badge: '04',
-    color: 'from-fuchsia-500/10 to-pink-500/10 border-fuchsia-500/25 text-pink-400',
-  },
-];
+const workflow = ['Upload', 'Frame', 'Annotate', 'Export'];
 
 export default function Home() {
   return (
-    <main className="min-h-dvh bg-zinc-950 text-zinc-100 overflow-x-hidden relative">
-      {/* Ambient glowing background meshes */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] aspect-square rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="absolute top-[20%] right-[-10%] w-[45%] aspect-square rounded-full bg-violet-600/10 blur-[130px] pointer-events-none animate-pulse" style={{ animationDuration: '12s' }} />
-      <div className="absolute bottom-[-10%] left-[20%] w-[40%] aspect-square rounded-full bg-fuchsia-500/5 blur-[100px] pointer-events-none" />
-
+    <main className="min-h-dvh bg-stone-50 text-zinc-950">
       <AppHeader active="home" />
 
-      {/* Hero Section */}
-      <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-24 relative z-10">
+      <section className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
         <div className="flex flex-col justify-center">
-          <p className="mb-6 w-fit rounded-full border border-zinc-800 bg-zinc-900/50 px-4 py-1.5 text-xs font-semibold tracking-wide uppercase text-zinc-400 backdrop-blur-sm shadow-inner shadow-white/5">
-            ✨ Screenstyler Studio
+          <p className="mb-5 w-fit rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-600 shadow-sm">
+            Screenshot studio for product teams
           </p>
-          <h1 className="max-w-3xl text-5xl font-extrabold leading-[1.05] tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-zinc-100 to-zinc-400 sm:text-6.5xl">
+          <h1 className="max-w-3xl text-5xl font-semibold leading-[1.02] tracking-tight text-zinc-950 sm:text-6xl">
             Turn raw screenshots into polished product images.
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
-            Build beautiful device frames, eye-catching gradient backdrops, 3D tilts, and professional annotations in seconds. No heavy design tools required.
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-600">
+            Build clean frames, backgrounds, annotations, and exports without opening a heavyweight design tool.
           </p>
-          
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/projects"
-              className="group relative rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              className="rounded-md bg-zinc-950 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
             >
-              Start Designing Free
-              <span className="inline-block ml-1.5 transition-transform group-hover:translate-x-0.5">→</span>
+              Open projects
             </Link>
             <Link
               href="/?auth=login"
-              className="rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm px-6 py-3.5 text-center text-sm font-semibold text-zinc-200 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800/80 hover:text-white hover:border-zinc-700/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-800"
+              className="rounded-md border border-zinc-300 bg-white px-5 py-3 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
             >
               Sign in for cloud sync
             </Link>
           </div>
 
-          <dl className="mt-14 grid max-w-xl grid-cols-3 gap-6 border-t border-zinc-800/80 pt-8 text-sm">
+          <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-zinc-200 pt-6 text-sm">
             <div>
-              <dt className="font-semibold text-zinc-200">Local-first</dt>
-              <dd className="mt-1.5 text-zinc-450 leading-relaxed">Save drafts automatically, account optional.</dd>
+              <dt className="font-semibold text-zinc-950">Local-first</dt>
+              <dd className="mt-1 text-zinc-600">Create without an account.</dd>
             </div>
             <div>
-              <dt className="font-semibold text-zinc-200">3D Tilt & Shadow</dt>
-              <dd className="mt-1.5 text-zinc-450 leading-relaxed">Create beautiful mockups at arbitrary scales.</dd>
+              <dt className="font-semibold text-zinc-950">2x export</dt>
+              <dd className="mt-1 text-zinc-600">Ready for docs and socials.</dd>
             </div>
             <div>
-              <dt className="font-semibold text-zinc-200">Rich Annotations</dt>
-              <dd className="mt-1.5 text-zinc-450 leading-relaxed">Add blurs, highlights, arrows & text layers.</dd>
+              <dt className="font-semibold text-zinc-950">Cloud sync</dt>
+              <dd className="mt-1 text-zinc-600">Sign in before editing.</dd>
             </div>
           </dl>
         </div>
 
-        {/* 3D Tilted Interactive-Style Hero Graphics */}
         <aside className="relative flex items-center justify-center lg:justify-end">
           <div 
             className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900/40 p-3 shadow-2xl backdrop-blur-md shadow-black/80 transition-all duration-500 hover:rotate-1 hover:scale-[1.01]"
@@ -102,7 +68,7 @@ export default function Home() {
                   <span className="size-2.5 rounded-full bg-yellow-500/85" />
                   <span className="size-2.5 rounded-full bg-green-500/85" />
                 </div>
-                <div className="rounded-md bg-zinc-900 px-3 py-0.5 text-[10px] font-medium text-zinc-550 border border-zinc-850">
+                <div className="rounded-md bg-zinc-900 px-3 py-0.5 text-[10px] font-medium text-zinc-500 border border-zinc-800">
                   release-notes-mock.png
                 </div>
                 <span className="rounded-md bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
@@ -181,41 +147,22 @@ export default function Home() {
         </aside>
       </section>
 
-      {/* Workflow steps / Features */}
-      <section className="mx-auto w-full max-w-6xl px-5 pb-24 sm:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Clean screenshot design workflow.
-          </h2>
-          <p className="mt-4 text-zinc-450 max-w-xl mx-auto">
-            Design stunning showcase graphics in 4 simple steps without loading heavy image editors.
-          </p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {workflow.map((step) => (
-            <article 
-              key={step.title} 
-              className="group relative rounded-2xl border border-zinc-850 bg-zinc-900/35 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-zinc-900/60 hover:border-zinc-800/80 shadow-md hover:shadow-xl hover:shadow-indigo-500/[0.02]"
-            >
-              <div className="flex items-center justify-between">
-                <span className={`rounded-lg border px-2.5 py-0.5 text-xs font-bold bg-gradient-to-r ${step.color}`}>
-                  {step.badge}
-                </span>
-                <span className="size-1.5 rounded-full bg-zinc-800 group-hover:bg-indigo-500 transition-colors" />
-              </div>
-              
-              <h3 className="mt-5 text-lg font-bold tracking-tight text-white">
-                {step.title}
-              </h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-zinc-400 group-hover:text-zinc-350 transition-colors">
-                {step.desc}
+      <section className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-8">
+        <div className="grid gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-zinc-200 md:grid-cols-4">
+          {workflow.map((step, index) => (
+            <article key={step} className="rounded-lg bg-stone-100 p-5">
+              <p className="font-mono text-sm text-zinc-500">0{index + 1}</p>
+              <h2 className="mt-4 text-xl font-semibold tracking-tight">{step}</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-600">
+                {index === 0 && 'Start from a screenshot or blank canvas.'}
+                {index === 1 && 'Pick a device frame, padding, and background.'}
+                {index === 2 && 'Add arrows, highlights, text, and blur.'}
+                {index === 3 && 'Download a clean PNG for sharing.'}
               </p>
             </article>
           ))}
         </div>
       </section>
-
       <Suspense fallback={null}>
         <AuthModal />
       </Suspense>

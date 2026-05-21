@@ -9,7 +9,7 @@ import { DocumentCanvas } from '@/components/canvas/DocumentCanvas';
 import { UploadZone } from '@/components/editor/UploadZone';
 import { useDocumentStore } from '@/lib/document/store';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
-import { getProjectStore, getBlobStore } from '@/lib/storage/active-stores';
+import { getProjectStore, getBlobStore, getActiveUserId } from '@/lib/storage/active-stores';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
@@ -46,7 +46,9 @@ function EditorPage() {
       if (frameRef.current && d.content.image) {
         try {
           const blob = await exportPng(frameRef.current, 1);
-          const key = `thumbnail_${pid}`;
+          const userId = getActiveUserId();
+          const baseKey = `thumbnail_${pid}`;
+          const key = userId ? `users/${userId}/${baseKey}` : baseKey;
           await getBlobStore().put(key, blob);
           thumbnailKey = key;
         } catch (err) {
