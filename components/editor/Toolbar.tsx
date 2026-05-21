@@ -1,4 +1,18 @@
 'use client';
+import {
+  IconArrowBackUp,
+  IconArrowForwardUp,
+  IconArrowUpRight,
+  IconBlur,
+  IconClearAll,
+  IconDownload,
+  IconEye,
+  IconEyeOff,
+  IconHighlight,
+  IconMouse,
+  IconTypography,
+  type Icon,
+} from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
 
 type Tool = 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
@@ -24,12 +38,12 @@ export function Toolbar({
   const redo = () => useDocumentStore.temporal.getState().redo();
   const setAnnotations = useDocumentStore((s) => s.setAnnotations);
 
-  const tools: { id: Tool; label: string; icon: string }[] = [
-    { id: 'select', label: 'Select', icon: '🖱️' },
-    { id: 'arrow', label: 'Arrow', icon: '↗️' },
-    { id: 'text', label: 'Text', icon: '📝' },
-    { id: 'highlight', label: 'Highlight', icon: '🖍️' },
-    { id: 'blur', label: 'Blur', icon: '🌫️' },
+  const tools: { id: Tool; label: string; Icon: Icon }[] = [
+    { id: 'select', label: 'Select', Icon: IconMouse },
+    { id: 'arrow', label: 'Arrow', Icon: IconArrowUpRight },
+    { id: 'text', label: 'Text', Icon: IconTypography },
+    { id: 'highlight', label: 'Highlight', Icon: IconHighlight },
+    { id: 'blur', label: 'Blur', Icon: IconBlur },
   ];
 
   return (
@@ -52,6 +66,7 @@ export function Toolbar({
         <div style={{ display: 'flex', gap: 4, margin: '0 auto', background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
           {tools.map((t) => {
             const isActive = activeTool === t.id;
+            const ToolIcon = t.Icon;
             return (
               <button
                 key={t.id}
@@ -73,7 +88,7 @@ export function Toolbar({
                   transition: 'background 0.2s',
                 }}
               >
-                <span>{t.icon}</span>
+                <ToolIcon size={16} stroke={1.8} aria-hidden="true" />
                 <span>{t.label}</span>
               </button>
             );
@@ -98,13 +113,17 @@ export function Toolbar({
                 padding: '6px 12px',
                 fontSize: '12px',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
-              🧹 Clear annotations
+              <IconClearAll size={16} stroke={1.8} aria-hidden="true" />
+              <span>Clear annotations</span>
             </button>
             <div style={{ width: 1, height: 20, background: '#2a2d36' }} />
-            <button type="button" onClick={undo} aria-label="Undo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff' }}>Undo</button>
-            <button type="button" onClick={redo} aria-label="Redo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff' }}>Redo</button>
+            <button type="button" onClick={undo} aria-label="Undo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}><IconArrowBackUp size={16} stroke={1.8} aria-hidden="true" />Undo</button>
+            <button type="button" onClick={redo} aria-label="Redo" style={{ background: '#2a2d36', border: '1px solid #3a3d46', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}><IconArrowForwardUp size={16} stroke={1.8} aria-hidden="true" />Redo</button>
             <div style={{ width: 1, height: 20, background: '#2a2d36' }} />
           </>
         )}
@@ -119,11 +138,15 @@ export function Toolbar({
             cursor: 'pointer',
             color: '#ffffff',
             fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
           }}
         >
-          {isPreview ? '👁️ Edit Mode' : '👁️ Preview'}
+          {isPreview ? <IconEyeOff size={16} stroke={1.8} aria-hidden="true" /> : <IconEye size={16} stroke={1.8} aria-hidden="true" />}
+          <span>{isPreview ? 'Edit Mode' : 'Preview'}</span>
         </button>
-        <button type="button" onClick={onExport} style={{ background: '#6366f1', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff', fontWeight: 'bold' }}>Export</button>
+        <button type="button" onClick={onExport} style={{ background: '#6366f1', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', color: '#ffffff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}><IconDownload size={16} stroke={1.8} aria-hidden="true" />Export</button>
       </div>
     </header>
   );

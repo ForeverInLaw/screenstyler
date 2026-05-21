@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, type MouseEvent, useEffect } from 'react';
+import { IconX } from '@tabler/icons-react';
 import type { Annotation, Point, Rect } from '@/lib/document/schema';
 
 type Props = {
@@ -313,7 +314,7 @@ export function AnnotationsLayer({
                   pointerEvents: 'auto',
                 }}
               >
-                ×
+                <IconX size={12} stroke={2.5} aria-hidden="true" />
               </button>
             );
           })}

@@ -1,5 +1,11 @@
 'use client';
 import Link from 'next/link';
+import {
+  IconAlertTriangle,
+  IconArrowLeft,
+  IconFileDownload,
+  IconSparkles,
+} from '@tabler/icons-react';
 import { downloadBlob } from '@/lib/export/export-png';
 
 type Props = {
@@ -40,7 +46,7 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
           boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
         }}
       >
-        <span style={{ fontSize: '32px', display: 'block', marginBottom: '16px' }}>⚠️</span>
+        <IconAlertTriangle size={36} stroke={1.8} color="#ef4444" style={{ display: 'block', marginBottom: '16px' }} aria-hidden="true" />
         <h1 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 'bold', color: '#ef4444' }}>
           Document Corruption Detected
         </h1>
@@ -84,11 +90,16 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
               cursor: 'pointer',
               fontSize: '14px',
               transition: 'background 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
             }}
             onMouseOver={(e) => (e.currentTarget.style.background = '#4f46e5')}
             onMouseOut={(e) => (e.currentTarget.style.background = '#6366f1')}
           >
-            📥 Download Raw JSON Data
+            <IconFileDownload size={18} stroke={1.8} aria-hidden="true" />
+            <span>Download Raw JSON Data</span>
           </button>
 
           <button
@@ -105,17 +116,25 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
               cursor: 'pointer',
               fontSize: '14px',
               transition: 'background 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
             }}
             onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
             onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            ✨ Reset Project to Blank State
+            <IconSparkles size={18} stroke={1.8} aria-hidden="true" />
+            <span>Reset Project to Blank State</span>
           </button>
 
           <Link
             href="/"
             style={{
-              display: 'block',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
               textAlign: 'center',
               width: '100%',
               padding: '12px',
@@ -132,7 +151,8 @@ export function DocumentRecoveryScreen({ id, rawJson, error, onReset }: Props) {
             onMouseOver={(e) => (e.currentTarget.style.background = '#374151')}
             onMouseOut={(e) => (e.currentTarget.style.background = '#2a2d36')}
           >
-            ⬅️ Back to Dashboard
+            <IconArrowLeft size={18} stroke={1.8} aria-hidden="true" />
+            <span>Back to Dashboard</span>
           </Link>
         </div>
       </div>

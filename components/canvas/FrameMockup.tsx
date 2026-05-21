@@ -1,5 +1,6 @@
 'use client';
 import { type ReactNode } from 'react';
+import { IconChevronLeft, IconChevronRight, IconLock, IconX } from '@tabler/icons-react';
 import type { Frame, Shadow } from '@/lib/document/schema';
 import { shadowToCss } from '@/lib/style/css';
 
@@ -121,8 +122,8 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
             </div>
             {/* Nav Arrows */}
             <div style={{ display: 'flex', gap: '12px', opacity: 0.5, alignItems: 'center' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+              <IconChevronLeft size={12} stroke={2.5} aria-hidden="true" />
+              <IconChevronRight size={12} stroke={2.5} aria-hidden="true" />
             </div>
             {/* URL Bar */}
             <div
@@ -141,7 +142,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
                 textAlign: 'center',
               }}
             >
-              <span style={{ opacity: 0.5, marginRight: '4px' }}>🔒</span>
+              <IconLock size={12} stroke={2} style={{ opacity: 0.5, marginRight: '4px' }} aria-hidden="true" />
               {displayUrl}
             </div>
           </div>
@@ -192,7 +193,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
                 }}
               >
                 <span>New Tab</span>
-                <span style={{ opacity: 0.5 }}>×</span>
+                <IconX size={12} stroke={2} style={{ opacity: 0.5 }} aria-hidden="true" />
               </div>
             </div>
             {/* Address Bar */}
