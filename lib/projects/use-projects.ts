@@ -46,7 +46,10 @@ export function useProjectQuery(id: string, enabled = true) {
 export function useCreateProjectMutation(userId: string | null, onCreated: (id: string) => void) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => getProjectStoreForUser(userId).create('Untitled', createBlankDoc()),
+    mutationFn: (name: string) => {
+      const projectName = name.trim() || 'Untitled';
+      return getProjectStoreForUser(userId).create(projectName, createBlankDoc());
+    },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       onCreated(id);
