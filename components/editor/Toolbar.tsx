@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
 import { arrowColors, arrowVariants } from '@/lib/annotations/arrows';
+import { highlightColors } from '@/lib/annotations/highlights';
 import { textFontOptions } from '@/lib/annotations/text';
 import type { ArrowVariant } from '@/lib/document/schema';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
@@ -70,8 +71,12 @@ export function Toolbar({
   const setArrowVariant = useAnnotationStyleStore((s) => s.setArrowVariant);
   const textFontFamily = useAnnotationStyleStore((s) => s.textFontFamily);
   const textSize = useAnnotationStyleStore((s) => s.textSize);
+  const highlightColor = useAnnotationStyleStore((s) => s.highlightColor);
+  const highlightOpacity = useAnnotationStyleStore((s) => s.highlightOpacity);
   const setTextFontFamily = useAnnotationStyleStore((s) => s.setTextFontFamily);
   const setTextSize = useAnnotationStyleStore((s) => s.setTextSize);
+  const setHighlightColor = useAnnotationStyleStore((s) => s.setHighlightColor);
+  const setHighlightOpacity = useAnnotationStyleStore((s) => s.setHighlightOpacity);
 
   function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -272,6 +277,47 @@ export function Toolbar({
             style={{ width: 96, cursor: 'pointer' }}
           />
           <span style={{ width: 28, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{textSize}</span>
+        </div>
+      )}
+
+      {!isPreview && activeTool === 'highlight' && (
+        <div aria-label="Highlight options" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
+          {highlightColors.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Highlight color ${color}`}
+              title={color}
+              onClick={() => setHighlightColor(color)}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                border: highlightColor === color ? '2px solid #ffffff' : '1px solid #3a3d46',
+                backgroundColor: color,
+                cursor: 'pointer',
+              }}
+            />
+          ))}
+          <input
+            type="color"
+            aria-label="Custom highlight color"
+            value={highlightColor}
+            onChange={(event) => setHighlightColor(event.target.value)}
+            style={{ width: 28, height: 28, border: '1px solid #3a3d46', borderRadius: 6, backgroundColor: 'transparent', padding: 0, cursor: 'pointer' }}
+          />
+          <div style={{ width: 1, height: 18, background: '#2a2d36' }} />
+          <input
+            type="range"
+            aria-label="Highlight opacity"
+            min={10}
+            max={90}
+            step={5}
+            value={Math.round(highlightOpacity * 100)}
+            onChange={(event) => setHighlightOpacity(Number(event.target.value) / 100)}
+            style={{ width: 88, cursor: 'pointer' }}
+          />
+          <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{Math.round(highlightOpacity * 100)}%</span>
         </div>
       )}
 

@@ -62,4 +62,16 @@ describe('Toolbar', () => {
       textSize: 40,
     });
   });
+
+  it('updates highlight drawing defaults', async () => {
+    render(<Toolbar projectName="P" onExport={() => {}} activeTool="highlight" />);
+
+    await userEvent.click(screen.getByRole('button', { name: /highlight color #38bdf8/i }));
+    fireEvent.change(screen.getByLabelText('Highlight opacity'), { target: { value: '65' } });
+
+    expect(useAnnotationStyleStore.getState()).toMatchObject({
+      highlightColor: '#38bdf8',
+      highlightOpacity: 0.65,
+    });
+  });
 });

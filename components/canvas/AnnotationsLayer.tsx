@@ -5,6 +5,7 @@ import type { Annotation, Point, Rect } from '@/lib/document/schema';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 import { getTextFontFamily } from '@/lib/annotations/text';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
+import { withAlpha } from '@/lib/style/css';
 
 type Props = {
   annotations: Annotation[];
@@ -35,6 +36,8 @@ export function AnnotationsLayer({
   const arrowVariant = useAnnotationStyleStore((s) => s.arrowVariant);
   const textFontFamily = useAnnotationStyleStore((s) => s.textFontFamily);
   const textSize = useAnnotationStyleStore((s) => s.textSize);
+  const highlightColor = useAnnotationStyleStore((s) => s.highlightColor);
+  const highlightOpacity = useAnnotationStyleStore((s) => s.highlightOpacity);
 
   // Convert screen coordinates to canvas-relative coordinates.
   // The container fills the entire DocumentFrame (inset: 0), so we can
@@ -77,7 +80,7 @@ export function AnnotationsLayer({
         id,
         type: 'highlight',
         rect: { x: pt.x, y: pt.y, w: 0, h: 0 },
-        color: 'rgba(234, 179, 8, 0.4)',
+        color: withAlpha(highlightColor, highlightOpacity),
       });
     } else if (activeTool === 'blur') {
       setTempAnnotation({

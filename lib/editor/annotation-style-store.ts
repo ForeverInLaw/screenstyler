@@ -6,10 +6,14 @@ type AnnotationStyleState = {
   arrowVariant: ArrowVariant;
   textFontFamily: string;
   textSize: number;
+  highlightColor: string;
+  highlightOpacity: number;
   setArrowColor: (color: string) => void;
   setArrowVariant: (variant: ArrowVariant) => void;
   setTextFontFamily: (fontFamily: string) => void;
   setTextSize: (size: number) => void;
+  setHighlightColor: (color: string) => void;
+  setHighlightOpacity: (opacity: number) => void;
   reset: () => void;
 };
 
@@ -18,6 +22,8 @@ const defaults = {
   arrowVariant: 'solid' as ArrowVariant,
   textFontFamily: 'inter',
   textSize: 24,
+  highlightColor: '#facc15',
+  highlightOpacity: 0.4,
 };
 
 export const useAnnotationStyleStore = create<AnnotationStyleState>((set) => ({
@@ -26,5 +32,7 @@ export const useAnnotationStyleStore = create<AnnotationStyleState>((set) => ({
   setArrowVariant: (arrowVariant) => set({ arrowVariant }),
   setTextFontFamily: (textFontFamily) => set({ textFontFamily }),
   setTextSize: (textSize) => set({ textSize }),
+  setHighlightColor: (highlightColor) => set({ highlightColor }),
+  setHighlightOpacity: (highlightOpacity) => set({ highlightOpacity }),
   reset: () => set(defaults),
 }));

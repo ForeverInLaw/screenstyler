@@ -92,4 +92,44 @@ describe('AnnotationsLayer', () => {
       pos: { x: 20, y: 30 },
     });
   });
+
+  it('uses configured highlight color and opacity when drawing', () => {
+    let added: Annotation | null = null;
+    useAnnotationStyleStore.getState().setHighlightColor('#38bdf8');
+    useAnnotationStyleStore.getState().setHighlightOpacity(0.65);
+
+    render(
+      <AnnotationsLayer
+        annotations={[]}
+        activeTool="highlight"
+        canvasWidth={100}
+        canvasHeight={100}
+        onAddAnnotation={(annotation) => { added = annotation; }}
+        onRemoveAnnotation={() => {}}
+      />,
+    );
+
+    const layer = screen.getByTestId('annotations-layer');
+    vi.spyOn(layer, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.mouseDown(layer, { clientX: 10, clientY: 10 });
+    fireEvent.mouseMove(layer, { clientX: 40, clientY: 50 });
+    fireEvent.mouseUp(layer);
+
+    expect(added).toMatchObject({
+      type: 'highlight',
+      color: 'rgba(56, 189, 248, 0.65)',
+      rect: { x: 10, y: 10, w: 30, h: 40 },
+    });
+  });
 });
