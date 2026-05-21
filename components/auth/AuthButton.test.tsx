@@ -21,9 +21,12 @@ describe('AuthButton', () => {
     });
 
     render(<AuthButton />);
-    await userEvent.click(screen.getByRole('button', { name: /werrygoodtest@gmail.com/i }));
+    expect(screen.queryByText('werrygoodtest@gmail.com')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /open profile menu/i }));
 
     expect(signOut).not.toHaveBeenCalled();
+    expect(screen.getByText('werrygoodtest@gmail.com')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }));
     expect(signOut).toHaveBeenCalledTimes(1);
   });
