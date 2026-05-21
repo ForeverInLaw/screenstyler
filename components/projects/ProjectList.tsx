@@ -1,5 +1,4 @@
 'use client';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
@@ -40,13 +39,11 @@ function ProjectCard({
       >
         <div className="grid aspect-[16/10] place-items-center overflow-hidden rounded-md bg-zinc-950 ring-1 ring-zinc-900">
           {url ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={url}
               alt={project.name}
-              width={640}
-              height={400}
-              unoptimized
-              className="h-full w-full object-contain"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           ) : (
             <div className="grid h-full w-full place-items-center bg-[linear-gradient(135deg,#f7f3e8,#dbe7df_55%,#cad8f0)] p-6">

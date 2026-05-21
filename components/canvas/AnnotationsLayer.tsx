@@ -9,6 +9,7 @@ type Props = {
   canvasHeight: number;
   onAddAnnotation: (a: Annotation) => void;
   onRemoveAnnotation: (id: string) => void;
+  isPreview?: boolean;
 };
 
 export function AnnotationsLayer({
@@ -18,6 +19,7 @@ export function AnnotationsLayer({
   canvasHeight,
   onAddAnnotation,
   onRemoveAnnotation,
+  isPreview = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -140,7 +142,7 @@ export function AnnotationsLayer({
   // The layer captures mouse events for drawing when a tool is active.
   // In select mode it is transparent to clicks (pointerEvents: none)
   // EXCEPT for the delete buttons which have their own pointerEvents: auto.
-  const isDrawMode = activeTool !== 'select';
+  const isDrawMode = !isPreview && activeTool !== 'select';
 
   return (
     <div
@@ -264,61 +266,64 @@ export function AnnotationsLayer({
       </div>
 
       {/* Delete buttons — always visible when annotations exist */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {annotations.map((a) => {
-          let left = 0;
-          let top = 0;
+      {!isPreview && (
+        <div className="hide-on-export" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          {annotations.map((a) => {
+            let left = 0;
+            let top = 0;
 
-          if (a.type === 'arrow') {
-            left = (a.to.x / canvasWidth) * 100;
-            top = (a.to.y / canvasHeight) * 100;
-          } else if (a.type === 'text') {
-            left = (a.pos.x / canvasWidth) * 100;
-            top = (a.pos.y / canvasHeight) * 100;
-          } else {
-            left = ((a.rect.x + a.rect.w) / canvasWidth) * 100;
-            top = (a.rect.y / canvasHeight) * 100;
-          }
+            if (a.type === 'arrow') {
+              left = (a.to.x / canvasWidth) * 100;
+              top = (a.to.y / canvasHeight) * 100;
+            } else if (a.type === 'text') {
+              left = (a.pos.x / canvasWidth) * 100;
+              top = (a.pos.y / canvasHeight) * 100;
+            } else {
+              left = ((a.rect.x + a.rect.w) / canvasWidth) * 100;
+              top = (a.rect.y / canvasHeight) * 100;
+            }
 
-          return (
-            <button
-              key={`delete-${a.id}`}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveAnnotation(a.id);
-              }}
-              style={{
-                position: 'absolute',
-                left: `${left}%`,
-                top: `${top}%`,
-                transform: 'translate(-50%, -50%)',
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                background: '#ef4444',
-                border: '2px solid #fff',
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                zIndex: 30,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                pointerEvents: 'auto',
-              }}
-            >
-              ×
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={`delete-${a.id}`}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveAnnotation(a.id);
+                }}
+                style={{
+                  position: 'absolute',
+                  left: `${left}%`,
+                  top: `${top}%`,
+                  transform: 'translate(-50%, -50%)',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: '#ef4444',
+                  border: '2px solid #fff',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 30,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                  pointerEvents: 'auto',
+                }}
+              >
+                ×
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Floating text input */}
-      {textPos && (
+      {textPos && !isPreview && (
         <div
+          className="hide-on-export"
           style={{
             position: 'absolute',
             left: `${(textPos.x / canvasWidth) * 100}%`,

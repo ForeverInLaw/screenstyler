@@ -16,9 +16,16 @@ export async function exportPng(node: HTMLElement, scale: ExportScale = 2): Prom
   await Promise.all(
     Array.from(node.querySelectorAll('img')).map((img) => img.decode().catch(() => undefined)),
   );
-  const blob = await snapdom.toBlob(node, { type: 'png', scale, embedFonts: true });
-  if (!blob || blob.size === 0) throw new Error('EXPORT_EMPTY');
-  return blob;
+  const style = document.createElement('style');
+  style.textContent = '.hide-on-export { display: none !important; }';
+  node.appendChild(style);
+  try {
+    const blob = await snapdom.toBlob(node, { type: 'png', scale, embedFonts: true });
+    if (!blob || blob.size === 0) throw new Error('EXPORT_EMPTY');
+    return blob;
+  } finally {
+    style.remove();
+  }
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

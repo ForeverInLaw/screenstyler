@@ -9,17 +9,19 @@ export function EditorShell({ toolbar, canvas, panel }: Props) {
       {toolbar}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <main style={{ flex: 1, display: 'flex', minWidth: 0 }}>{canvas}</main>
-        <aside
-          style={{
-            width: 320,
-            borderLeft: '1px solid #2a2d36',
-            background: '#16181d',
-            color: '#e5e7eb',
-            overflowY: 'auto',
-          }}
-        >
-          {panel}
-        </aside>
+        {panel && (
+          <aside
+            style={{
+              width: 320,
+              borderLeft: '1px solid #2a2d36',
+              background: '#16181d',
+              color: '#e5e7eb',
+              overflowY: 'auto',
+            }}
+          >
+            {panel}
+          </aside>
+        )}
       </div>
     </div>
   );

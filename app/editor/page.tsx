@@ -23,6 +23,7 @@ function EditorPage() {
   const doc = useDocumentStore((s) => s.doc);
   const loadDoc = useDocumentStore((s) => s.loadDoc);
   const [activeTool, setActiveTool] = useState<'select' | 'arrow' | 'text' | 'highlight' | 'blur'>('select');
+  const [isPreview, setIsPreview] = useState(false);
 
   const project = useQuery({
     queryKey: ['project', id],
@@ -125,13 +126,15 @@ function EditorPage() {
           onExport={handleExport}
           activeTool={activeTool}
           onChangeTool={setActiveTool}
+          isPreview={isPreview}
+          onTogglePreview={() => setIsPreview(!isPreview)}
         />
       }
       canvas={
         doc.content.image ? (
           <ErrorBoundary fallback={<p style={{ margin: 'auto' }}>Canvas failed to render.</p>}>
             <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
-              <DocumentCanvas ref={frameRef} doc={doc} activeTool={activeTool} />
+              <DocumentCanvas ref={frameRef} doc={doc} activeTool={activeTool} isPreview={isPreview} />
             </CanvasStage>
           </ErrorBoundary>
         ) : (
@@ -140,7 +143,7 @@ function EditorPage() {
           </div>
         )
       }
-      panel={<PropertiesPanel />}
+      panel={!isPreview && <PropertiesPanel />}
     />
   );
 }

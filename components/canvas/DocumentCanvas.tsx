@@ -12,8 +12,9 @@ export const DocumentCanvas = forwardRef<
   {
     doc: ScreenstylerDoc;
     activeTool?: 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
+    isPreview?: boolean;
   }
->(function DocumentCanvas({ doc, activeTool = 'select' }, ref) {
+>(function DocumentCanvas({ doc, activeTool = 'select', isPreview = false }, ref) {
   const annotations = useDocumentStore((s) => s.doc.annotations);
   const addAnnotation = useDocumentStore((s) => s.addAnnotation);
   const removeAnnotation = useDocumentStore((s) => s.removeAnnotation);
@@ -29,6 +30,7 @@ export const DocumentCanvas = forwardRef<
         canvasHeight={doc.canvas.height}
         onAddAnnotation={addAnnotation}
         onRemoveAnnotation={removeAnnotation}
+        isPreview={isPreview}
       />
     </DocumentFrame>
   );
