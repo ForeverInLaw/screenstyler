@@ -4,7 +4,7 @@ import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
 import { useProjectQuery } from '@/lib/projects/use-projects';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
-import { backgroundToCss } from '@/lib/style/css';
+import { backgroundToStyle } from '@/lib/style/css';
 
 type Props = {
   projects: ProjectMeta[];
@@ -36,10 +36,6 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
     docAspect >= previewAspect
       ? { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` }
       : { height: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
-  const backgroundExtra =
-    doc.canvas.background.type === 'image'
-      ? { backgroundSize: doc.canvas.background.fit, backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
-      : {};
   const imageAspect = image ? image.naturalWidth / image.naturalHeight : 1;
   const imageFitStyle =
     imageAspect >= docAspect
@@ -52,21 +48,19 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
     (frame.type === 'browser' && frame.theme === 'dark');
 
   return (
-    <div className="grid h-full w-full place-items-center bg-zinc-950 p-3">
+    <div className="grid h-full w-full place-items-center bg-zinc-100">
       <div
         style={{
           ...fitStyle,
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: '0 18px 45px rgb(0 0 0 / 0.28)',
         }}
       >
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: backgroundToCss(doc.canvas.background, backgroundUrl ?? undefined),
-            ...backgroundExtra,
+            ...backgroundToStyle(doc.canvas.background, backgroundUrl ?? undefined),
           }}
         />
         {image && imageUrl && (
@@ -90,7 +84,7 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
                 overflow: 'hidden',
                 borderRadius: frame.type === 'none' ? 4 : 6,
                 background: chromeDark ? '#1f1f22' : '#ffffff',
-                boxShadow: '0 10px 24px rgb(0 0 0 / 0.26)',
+                boxShadow: '0 8px 22px rgb(0 0 0 / 0.18)',
                 transform: `rotateX(${doc.content.transform3d.rotateX}deg) rotateY(${doc.content.transform3d.rotateY}deg) rotateZ(${doc.content.transform3d.rotateZ}deg) scale(${doc.content.transform3d.scale})`,
                 transformStyle: 'preserve-3d',
               }}
@@ -212,13 +206,13 @@ function ProjectCard({
         aria-label={`Open ${project.name}`}
         className="block p-3 text-inherit"
       >
-        <div className="grid aspect-[16/10] place-items-center overflow-hidden rounded-md bg-zinc-950 ring-1 ring-zinc-900">
+        <div className="grid aspect-[16/10] place-items-center overflow-hidden rounded-md bg-zinc-100 ring-1 ring-zinc-200">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={url}
               alt={project.name}
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : docPreview.data ? (
             <ProjectDocumentPreview doc={docPreview.data} />

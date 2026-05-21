@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { backgroundToCss, shadowToCss, withAlpha } from './css';
+import { backgroundToCss, backgroundToStyle, shadowToCss, withAlpha } from './css';
 
 describe('css helpers', () => {
   it('withAlpha converts hex to rgba', () => {
@@ -15,6 +15,16 @@ describe('css helpers', () => {
     const css = backgroundToCss({ type: 'gradient', angle: 90,
       stops: [{ color: '#000', offset: 0 }, { color: '#fff', offset: 1 }] });
     expect(css).toBe('linear-gradient(90deg, #000 0%, #fff 100%)');
+  });
+
+  it('backgroundToStyle avoids mixing background shorthand with longhand image props', () => {
+    expect(backgroundToStyle({ type: 'image', ref: { id: 'i', blobKey: 'b', naturalWidth: 1, naturalHeight: 1 }, fit: 'cover' }, 'blob:x')).toEqual({
+      backgroundColor: '#000000',
+      backgroundImage: 'url(blob:x)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    });
   });
 
   it('shadowToCss renders a box-shadow string', () => {

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { Background, Shadow } from '../document/schema';
 
 export function withAlpha(hex: string, alpha: number): string {
@@ -19,6 +20,25 @@ export function backgroundToCss(bg: Background, imageUrl?: string): string {
     }
     case 'image':
       return imageUrl ? `url(${imageUrl})` : '#000000';
+  }
+}
+
+export function backgroundToStyle(bg: Background, imageUrl?: string): CSSProperties {
+  switch (bg.type) {
+    case 'solid':
+      return { backgroundColor: bg.color };
+    case 'gradient': {
+      const stops = bg.stops.map((s) => `${s.color} ${s.offset * 100}%`).join(', ');
+      return { backgroundImage: `linear-gradient(${bg.angle}deg, ${stops})` };
+    }
+    case 'image':
+      return {
+        backgroundColor: '#000000',
+        backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+        backgroundSize: bg.fit,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      };
   }
 }
 
