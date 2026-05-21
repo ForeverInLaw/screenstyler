@@ -1,8 +1,19 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 import { ContentLayer } from './ContentLayer';
 import { blobStore } from '@/lib/storage/blob-store-instance';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
+
+vi.mock('@/lib/auth/client', () => ({
+  useSession: () => ({ data: null, isPending: false }),
+}));
+
+function renderWithQueryClient(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 beforeAll(() => {
   globalThis.URL.createObjectURL = vi.fn(() => 'blob:fake-url');
@@ -20,13 +31,13 @@ const content: ScreenstylerDoc['content'] = {
 
 describe('ContentLayer', () => {
   it('renders nothing when there is no image', () => {
-    render(<ContentLayer content={{ ...content, image: null }} />);
+    renderWithQueryClient(<ContentLayer content={{ ...content, image: null }} />);
     expect(screen.queryByTestId('screenshot')).toBeNull();
   });
 
   it('applies padding, corner radius, and shadow', async () => {
     await blobStore.put('shot-1', new Blob(['x'], { type: 'image/png' }));
-    render(<ContentLayer content={content} />);
+    renderWithQueryClient(<ContentLayer content={content} />);
     const wrapper = screen.getByTestId('content-layer');
     expect(wrapper.style.padding).toBe('80px');
     const shot = await waitFor(() => screen.getByTestId('screenshot'));

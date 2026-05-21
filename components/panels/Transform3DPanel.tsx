@@ -77,7 +77,7 @@ export function Transform3DPanel() {
         label="Scale"
         value={transform3d.scale}
         min={0.5}
-        max={1.5}
+        max={2}
         step={0.05}
         onChange={(v) => setTransform3d({ ...transform3d, scale: v })}
       />
