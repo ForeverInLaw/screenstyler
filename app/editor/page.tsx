@@ -17,6 +17,8 @@ import { createBlankDoc } from '@/lib/document/factory';
 import { DocumentRecoveryScreen } from '@/components/editor/DocumentRecoveryScreen';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { projectKeys, useProjectQuery, useProjectsQuery, useRenameProjectMutation } from '@/lib/projects/use-projects';
+import { imageFileFromClipboard, isEditablePasteTarget } from '@/lib/upload/clipboard';
+import { ingestImageFile, validateImageFile } from '@/lib/upload/load-image';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
@@ -24,6 +26,7 @@ function EditorPage() {
   const frameRef = useRef<HTMLDivElement>(null);
   const doc = useDocumentStore((s) => s.doc);
   const loadDoc = useDocumentStore((s) => s.loadDoc);
+  const setImage = useDocumentStore((s) => s.setImage);
   const [activeTool, setActiveTool] = useState<'select' | 'arrow' | 'text' | 'highlight' | 'blur'>('select');
   const [isPreview, setIsPreview] = useState(false);
 
@@ -86,6 +89,29 @@ function EditorPage() {
       useDocumentStore.temporal.getState().clear();
     }
   }, [project.data, loadDoc]);
+
+  useEffect(() => {
+    function handlePaste(event: ClipboardEvent) {
+      if (isPreview || isEditablePasteTarget(event.target)) return;
+
+      const file = imageFileFromClipboard(event.clipboardData);
+      if (!file) return;
+
+      event.preventDefault();
+      const validation = validateImageFile(file);
+      if (!validation.ok) {
+        window.alert(validation.reason === 'TOO_LARGE' ? 'Image is larger than 25 MB.' : 'Use a PNG, JPG, or WebP image.');
+        return;
+      }
+
+      void ingestImageFile(file, project.userId)
+        .then(setImage)
+        .catch(() => window.alert('Could not read that image. It may be corrupt — try another file.'));
+    }
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isPreview, project.userId, setImage]);
 
   async function handleExport() {
     if (!frameRef.current) return;
