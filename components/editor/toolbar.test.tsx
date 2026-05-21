@@ -5,7 +5,7 @@ vi.mock('@/lib/auth/client', () => ({
   signOut: vi.fn(),
   signUp: { email: vi.fn() },
 }));
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Toolbar } from './Toolbar';
 import { useDocumentStore } from '@/lib/document/store';
@@ -48,6 +48,18 @@ describe('Toolbar', () => {
     expect(useAnnotationStyleStore.getState()).toMatchObject({
       arrowVariant: 'dashed',
       arrowColor: '#22c55e',
+    });
+  });
+
+  it('updates text drawing defaults', async () => {
+    render(<Toolbar projectName="P" onExport={() => {}} activeTool="text" />);
+
+    await userEvent.selectOptions(screen.getByLabelText('Text font'), 'mono');
+    fireEvent.change(screen.getByLabelText('Text size'), { target: { value: '40' } });
+
+    expect(useAnnotationStyleStore.getState()).toMatchObject({
+      textFontFamily: 'mono',
+      textSize: 40,
     });
   });
 });

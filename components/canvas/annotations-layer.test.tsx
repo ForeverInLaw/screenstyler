@@ -50,5 +50,46 @@ describe('AnnotationsLayer', () => {
       to: { x: 70, y: 70 },
     });
   });
-});
 
+  it('uses configured text font and size when adding text', () => {
+    let added: Annotation | null = null;
+    useAnnotationStyleStore.getState().setTextFontFamily('mono');
+    useAnnotationStyleStore.getState().setTextSize(40);
+
+    render(
+      <AnnotationsLayer
+        annotations={[]}
+        activeTool="text"
+        canvasWidth={100}
+        canvasHeight={100}
+        onAddAnnotation={(annotation) => { added = annotation; }}
+        onRemoveAnnotation={() => {}}
+      />,
+    );
+
+    const layer = screen.getByTestId('annotations-layer');
+    vi.spyOn(layer, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.mouseDown(layer, { clientX: 20, clientY: 30 });
+    fireEvent.change(screen.getByPlaceholderText('Type and press Enter'), { target: { value: 'Zoom' } });
+    fireEvent.keyDown(screen.getByPlaceholderText('Type and press Enter'), { key: 'Enter' });
+
+    expect(added).toMatchObject({
+      type: 'text',
+      text: 'Zoom',
+      fontSize: 40,
+      fontFamily: 'mono',
+      pos: { x: 20, y: 30 },
+    });
+  });
+});

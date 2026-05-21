@@ -3,6 +3,7 @@ import { useState, useRef, type MouseEvent, useEffect } from 'react';
 import { IconX } from '@tabler/icons-react';
 import type { Annotation, Point, Rect } from '@/lib/document/schema';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
+import { getTextFontFamily } from '@/lib/annotations/text';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 
 type Props = {
@@ -32,6 +33,8 @@ export function AnnotationsLayer({
   const [textVal, setTextVal] = useState('');
   const arrowColor = useAnnotationStyleStore((s) => s.arrowColor);
   const arrowVariant = useAnnotationStyleStore((s) => s.arrowVariant);
+  const textFontFamily = useAnnotationStyleStore((s) => s.textFontFamily);
+  const textSize = useAnnotationStyleStore((s) => s.textSize);
 
   // Convert screen coordinates to canvas-relative coordinates.
   // The container fills the entire DocumentFrame (inset: 0), so we can
@@ -129,7 +132,8 @@ export function AnnotationsLayer({
         type: 'text',
         pos: textPos,
         text: textVal,
-        fontSize: 24,
+        fontSize: textSize,
+        fontFamily: textFontFamily,
         color: '#ef4444',
       });
     }
@@ -276,7 +280,7 @@ export function AnnotationsLayer({
               fill={t.color}
               fontSize={t.fontSize}
               fontWeight="bold"
-              fontFamily="sans-serif"
+              fontFamily={getTextFontFamily(t.fontFamily)}
               textAnchor="start"
               dominantBaseline="hanging"
             >

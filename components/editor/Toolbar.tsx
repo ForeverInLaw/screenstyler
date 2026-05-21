@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
 import { arrowColors, arrowVariants } from '@/lib/annotations/arrows';
+import { textFontOptions } from '@/lib/annotations/text';
 import type { ArrowVariant } from '@/lib/document/schema';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 
@@ -67,6 +68,10 @@ export function Toolbar({
   const arrowVariant = useAnnotationStyleStore((s) => s.arrowVariant);
   const setArrowColor = useAnnotationStyleStore((s) => s.setArrowColor);
   const setArrowVariant = useAnnotationStyleStore((s) => s.setArrowVariant);
+  const textFontFamily = useAnnotationStyleStore((s) => s.textFontFamily);
+  const textSize = useAnnotationStyleStore((s) => s.textSize);
+  const setTextFontFamily = useAnnotationStyleStore((s) => s.setTextFontFamily);
+  const setTextSize = useAnnotationStyleStore((s) => s.setTextSize);
 
   function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -241,6 +246,32 @@ export function Toolbar({
             onChange={(event) => setArrowColor(event.target.value)}
             style={{ width: 28, height: 28, border: '1px solid #3a3d46', borderRadius: 6, backgroundColor: 'transparent', padding: 0, cursor: 'pointer' }}
           />
+        </div>
+      )}
+
+      {!isPreview && activeTool === 'text' && (
+        <div aria-label="Text options" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
+          <select
+            aria-label="Text font"
+            value={textFontFamily}
+            onChange={(event) => setTextFontFamily(event.target.value)}
+            style={{ height: 28, minWidth: 112, border: '1px solid #3a3d46', borderRadius: 6, background: '#16181d', color: '#e5e7eb', fontSize: 12, padding: '0 8px' }}
+          >
+            {textFontOptions.map((font) => (
+              <option key={font.id} value={font.id}>{font.label}</option>
+            ))}
+          </select>
+          <input
+            type="range"
+            aria-label="Text size"
+            min={14}
+            max={72}
+            step={2}
+            value={textSize}
+            onChange={(event) => setTextSize(Number(event.target.value))}
+            style={{ width: 96, cursor: 'pointer' }}
+          />
+          <span style={{ width: 28, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{textSize}</span>
         </div>
       )}
 

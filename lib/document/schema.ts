@@ -41,7 +41,7 @@ export const annotationSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string(), type: z.literal('arrow'), from: pointSchema, to: pointSchema,
     color: z.string(), thickness: z.number(), variant: arrowVariantSchema.optional() }),
   z.object({ id: z.string(), type: z.literal('text'), pos: pointSchema, text: z.string(),
-    fontSize: z.number(), color: z.string() }),
+    fontSize: z.number(), color: z.string(), fontFamily: z.string().optional() }),
   z.object({ id: z.string(), type: z.literal('highlight'), rect: rectSchema, color: z.string() }),
   z.object({ id: z.string(), type: z.literal('blur'), rect: rectSchema, intensity: z.number() }),
 ]);

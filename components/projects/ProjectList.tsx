@@ -7,6 +7,7 @@ import { useProjectQuery } from '@/lib/projects/use-projects';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { backgroundToStyle } from '@/lib/style/css';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
+import { getTextFontFamily } from '@/lib/annotations/text';
 
 type Props = {
   projects: ProjectMeta[];
@@ -187,6 +188,7 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
                   fill={annotation.color}
                   fontSize={Math.max(annotation.fontSize, 24)}
                   fontWeight="700"
+                  fontFamily={getTextFontFamily(annotation.fontFamily)}
                 >
                   {annotation.text}
                 </text>
