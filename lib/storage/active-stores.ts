@@ -31,6 +31,17 @@ export function getBlobStoreForUser(userId: string | null): BlobStore {
   return userId ? cloudBlob : localBlob;
 }
 
+export function blobStoreScopeForKey(userId: string | null, blobKey: string | null): 'cloud' | 'local' {
+  if (!userId || !blobKey) return 'local';
+  if (blobKey.startsWith(`users/${userId}/`)) return 'cloud';
+  if (blobKey.startsWith('thumbnail_')) return 'cloud';
+  return 'local';
+}
+
+export function getBlobStoreForKey(blobKey: string | null, userId: string | null): BlobStore {
+  return blobStoreScopeForKey(userId, blobKey) === 'cloud' ? cloudBlob : localBlob;
+}
+
 export function getActiveUserId(): string | null {
   return activeUser?.userId ?? null;
 }

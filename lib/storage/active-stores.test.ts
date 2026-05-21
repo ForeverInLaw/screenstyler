@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getProjectStore, getBlobStore, setActiveAuth, getActiveUserId } from './active-stores';
+import {
+  blobStoreScopeForKey,
+  getActiveUserId,
+  getBlobStore,
+  getBlobStoreForKey,
+  getProjectStore,
+  setActiveAuth,
+} from './active-stores';
 import { LocalProjectStore } from './local-project-store';
 import { IdbBlobStore } from './idb-blob-store';
 import { CloudProjectStore } from './cloud-project-store';
@@ -27,5 +34,21 @@ describe('active stores', () => {
     expect(getProjectStore()).toBeInstanceOf(LocalProjectStore);
     expect(getBlobStore()).toBeInstanceOf(IdbBlobStore);
     expect(getActiveUserId()).toBeNull();
+  });
+
+  it('routes blob reads by ownership of the key', () => {
+    expect(blobStoreScopeForKey('u1', 'users/u1/img')).toBe('cloud');
+    expect(getBlobStoreForKey('users/u1/img', 'u1')).toBeInstanceOf(R2BlobStore);
+
+    expect(blobStoreScopeForKey('u1', 'img-legacy')).toBe('local');
+    expect(getBlobStoreForKey('img-legacy', 'u1')).toBeInstanceOf(IdbBlobStore);
+
+    expect(blobStoreScopeForKey('u1', 'users/u2/img')).toBe('local');
+    expect(getBlobStoreForKey('users/u2/img', 'u1')).toBeInstanceOf(IdbBlobStore);
+  });
+
+  it('keeps legacy cloud thumbnails on the cloud store for signed-in users', () => {
+    expect(blobStoreScopeForKey('u1', 'thumbnail_p1')).toBe('cloud');
+    expect(getBlobStoreForKey('thumbnail_p1', 'u1')).toBeInstanceOf(R2BlobStore);
   });
 });

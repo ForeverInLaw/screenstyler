@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useSession } from '@/lib/auth/client';
 import { useDocumentStore } from '@/lib/document/store';
 import { gradientPresets } from '@/lib/presets/gradients';
 import { backgroundToCss } from '@/lib/style/css';
@@ -17,6 +18,7 @@ const defaultGradient = {
 export function BackgroundPanel() {
   const background = useDocumentStore((s) => s.doc.canvas.background);
   const setBackground = useDocumentStore((s) => s.setBackground);
+  const { data } = useSession();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -29,7 +31,7 @@ export function BackgroundPanel() {
     setUploadError(null);
     setIsUploading(true);
     try {
-      const imageRef = await ingestImageFile(file);
+      const imageRef = await ingestImageFile(file, data?.user?.id ?? null);
       setBackground({ type: 'image', ref: imageRef, fit: 'cover' });
     } catch {
       setUploadError('Failed to upload background image');

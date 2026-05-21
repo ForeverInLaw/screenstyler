@@ -1,5 +1,5 @@
 import type { ImageRef } from '@/lib/document/schema';
-import { getBlobStore, getActiveUserId } from '@/lib/storage/active-stores';
+import { getActiveUserId, getBlobStoreForKey } from '@/lib/storage/active-stores';
 
 const ALLOWED = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -14,9 +14,9 @@ export function validateImageFile(file: File): ValidationResult {
   return { ok: true };
 }
 
-export async function ingestImageFile(file: File): Promise<ImageRef> {
+export async function ingestImageFile(file: File, ownerUserId: string | null = getActiveUserId()): Promise<ImageRef> {
   const bitmap = await createImageBitmap(file);
-  const userId = getActiveUserId();
+  const userId = ownerUserId;
   const baseKey = `img-${crypto.randomUUID()}`;
   const blobKey = userId ? `users/${userId}/${baseKey}` : baseKey;
   const ref: ImageRef = {
@@ -26,6 +26,6 @@ export async function ingestImageFile(file: File): Promise<ImageRef> {
     naturalHeight: bitmap.height,
   };
   bitmap.close();
-  await getBlobStore().put(ref.blobKey, file);
+  await getBlobStoreForKey(ref.blobKey, userId).put(ref.blobKey, file);
   return ref;
 }

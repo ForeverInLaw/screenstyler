@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useSession } from '@/lib/auth/client';
 import { useDocumentStore } from '@/lib/document/store';
 import { ingestImageFile, validateImageFile } from '@/lib/upload/load-image';
 
@@ -10,6 +11,7 @@ const MESSAGES: Record<string, string> = {
 
 export function UploadZone() {
   const setImage = useDocumentStore((s) => s.setImage);
+  const { data } = useSession();
   const [error, setError] = useState<string | null>(null);
 
   async function handleFile(file: File) {
@@ -20,7 +22,7 @@ export function UploadZone() {
     }
     setError(null);
     try {
-      setImage(await ingestImageFile(file));
+      setImage(await ingestImageFile(file, data?.user?.id ?? null));
     } catch {
       setError('Could not read that image. It may be corrupt — try another file.');
     }

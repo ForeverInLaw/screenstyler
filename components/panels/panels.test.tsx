@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+vi.mock('@/lib/auth/client', () => ({
+  useSession: () => ({ data: null, isPending: false }),
+}));
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BackgroundPanel } from './BackgroundPanel';
