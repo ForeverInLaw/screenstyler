@@ -2,6 +2,8 @@
 import { useState, useRef, type MouseEvent, useEffect } from 'react';
 import { IconX } from '@tabler/icons-react';
 import type { Annotation, Point, Rect } from '@/lib/document/schema';
+import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
+import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 
 type Props = {
   annotations: Annotation[];
@@ -28,6 +30,8 @@ export function AnnotationsLayer({
   const [tempAnnotation, setTempAnnotation] = useState<Annotation | null>(null);
   const [textPos, setTextPos] = useState<Point | null>(null);
   const [textVal, setTextVal] = useState('');
+  const arrowColor = useAnnotationStyleStore((s) => s.arrowColor);
+  const arrowVariant = useAnnotationStyleStore((s) => s.arrowVariant);
 
   // Convert screen coordinates to canvas-relative coordinates.
   // The container fills the entire DocumentFrame (inset: 0), so we can
@@ -61,8 +65,9 @@ export function AnnotationsLayer({
         type: 'arrow',
         from: pt,
         to: pt,
-        color: '#ef4444',
+        color: arrowColor,
         thickness: 4,
+        variant: arrowVariant,
       });
     } else if (activeTool === 'highlight') {
       setTempAnnotation({
@@ -175,20 +180,50 @@ export function AnnotationsLayer({
           {annotations
             .concat(tempAnnotation ? [tempAnnotation] : [])
             .filter((a): a is Extract<Annotation, { type: 'arrow' }> => a.type === 'arrow')
-            .map((arrow) => (
-              <marker
-                key={`marker-${arrow.id}`}
-                id={`arrow-${arrow.id}`}
-                markerWidth="8"
-                markerHeight="6"
-                refX="7"
-                refY="3"
-                orient="auto"
-                markerUnits="strokeWidth"
-              >
-                <polygon points="0 0, 8 3, 0 6" fill={arrow.color} />
-              </marker>
-            ))}
+            .map((arrow) => {
+              const variant = getArrowVariant(arrow.variant);
+              return (
+                <g key={`marker-${arrow.id}`}>
+                  <marker
+                    id={`arrow-head-${arrow.id}`}
+                    markerWidth="8"
+                    markerHeight="6"
+                    refX="7"
+                    refY="3"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                  >
+                    <polygon points="0 0, 8 3, 0 6" fill={arrow.color} />
+                  </marker>
+                  {variant === 'double' && (
+                    <marker
+                      id={`arrow-tail-${arrow.id}`}
+                      markerWidth="8"
+                      markerHeight="6"
+                      refX="1"
+                      refY="3"
+                      orient="auto"
+                      markerUnits="strokeWidth"
+                    >
+                      <polygon points="8 0, 0 3, 8 6" fill={arrow.color} />
+                    </marker>
+                  )}
+                  {variant === 'dot' && (
+                    <marker
+                      id={`arrow-tail-${arrow.id}`}
+                      markerWidth="6"
+                      markerHeight="6"
+                      refX="3"
+                      refY="3"
+                      orient="auto"
+                      markerUnits="strokeWidth"
+                    >
+                      <circle cx="3" cy="3" r="2.2" fill={arrow.color} />
+                    </marker>
+                  )}
+                </g>
+              );
+            })}
         </defs>
 
         {/* Highlights */}
@@ -211,18 +246,24 @@ export function AnnotationsLayer({
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'arrow' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'arrow' }> => a.type === 'arrow')
-          .map((arrow) => (
-            <line
-              key={arrow.id}
-              x1={arrow.from.x}
-              y1={arrow.from.y}
-              x2={arrow.to.x}
-              y2={arrow.to.y}
-              stroke={arrow.color}
-              strokeWidth={arrow.thickness}
-              markerEnd={`url(#arrow-${arrow.id})`}
-            />
-          ))}
+          .map((arrow) => {
+            const variant = getArrowVariant(arrow.variant);
+            return (
+              <line
+                key={arrow.id}
+                x1={arrow.from.x}
+                y1={arrow.from.y}
+                x2={arrow.to.x}
+                y2={arrow.to.y}
+                stroke={arrow.color}
+                strokeWidth={arrow.thickness}
+                strokeDasharray={arrowStrokeDasharray(variant)}
+                strokeLinecap="round"
+                markerStart={variant === 'double' || variant === 'dot' ? `url(#arrow-tail-${arrow.id})` : undefined}
+                markerEnd={`url(#arrow-head-${arrow.id})`}
+              />
+            );
+          })}
 
         {/* Texts */}
         {annotations

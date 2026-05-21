@@ -10,10 +10,12 @@ import userEvent from '@testing-library/user-event';
 import { Toolbar } from './Toolbar';
 import { useDocumentStore } from '@/lib/document/store';
 import { createBlankDoc } from '@/lib/document/factory';
+import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 
 beforeEach(() => {
   useDocumentStore.getState().loadDoc(createBlankDoc());
   useDocumentStore.temporal.getState().clear();
+  useAnnotationStyleStore.getState().reset();
 });
 
 describe('Toolbar', () => {
@@ -35,5 +37,17 @@ describe('Toolbar', () => {
     render(<Toolbar projectName="P" onExport={() => { called = true; }} />);
     await userEvent.click(screen.getByRole('button', { name: /export/i }));
     expect(called).toBe(true);
+  });
+
+  it('updates arrow drawing defaults', async () => {
+    render(<Toolbar projectName="P" onExport={() => {}} activeTool="arrow" />);
+
+    await userEvent.click(screen.getByRole('button', { name: /dashed arrow/i }));
+    await userEvent.click(screen.getByRole('button', { name: /arrow color #22c55e/i }));
+
+    expect(useAnnotationStyleStore.getState()).toMatchObject({
+      arrowVariant: 'dashed',
+      arrowColor: '#22c55e',
+    });
   });
 });

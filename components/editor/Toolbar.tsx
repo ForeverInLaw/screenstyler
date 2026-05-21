@@ -5,9 +5,13 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconArrowLeft,
+  IconArrowRight,
+  IconArrowRightDashed,
   IconArrowUpRight,
+  IconArrowsLeftRight,
   IconBlur,
   IconCheck,
+  IconCircleDot,
   IconClearAll,
   IconDownload,
   IconEye,
@@ -20,8 +24,18 @@ import {
   type Icon,
 } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
+import { arrowColors, arrowVariants } from '@/lib/annotations/arrows';
+import type { ArrowVariant } from '@/lib/document/schema';
+import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 
 type Tool = 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
+
+const arrowVariantIcons: Record<ArrowVariant, Icon> = {
+  solid: IconArrowRight,
+  dashed: IconArrowRightDashed,
+  double: IconArrowsLeftRight,
+  dot: IconCircleDot,
+};
 
 type Props = {
   projectName: string;
@@ -49,6 +63,10 @@ export function Toolbar({
   const undo = () => useDocumentStore.temporal.getState().undo();
   const redo = () => useDocumentStore.temporal.getState().redo();
   const setAnnotations = useDocumentStore((s) => s.setAnnotations);
+  const arrowColor = useAnnotationStyleStore((s) => s.arrowColor);
+  const arrowVariant = useAnnotationStyleStore((s) => s.arrowVariant);
+  const setArrowColor = useAnnotationStyleStore((s) => s.setArrowColor);
+  const setArrowVariant = useAnnotationStyleStore((s) => s.setArrowVariant);
 
   function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,6 +185,62 @@ export function Toolbar({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {!isPreview && activeTool === 'arrow' && (
+        <div aria-label="Arrow options" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
+          {arrowVariants.map((variant) => {
+            const VariantIcon = arrowVariantIcons[variant.id];
+            const isActive = arrowVariant === variant.id;
+            return (
+              <button
+                key={variant.id}
+                type="button"
+                aria-label={variant.label}
+                title={variant.label}
+                onClick={() => setArrowVariant(variant.id)}
+                style={{
+                  display: 'grid',
+                  placeItems: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: isActive ? '1px solid #818cf8' : '1px solid transparent',
+                  background: isActive ? '#312e81' : 'transparent',
+                  color: '#e5e7eb',
+                  cursor: 'pointer',
+                }}
+              >
+                <VariantIcon size={16} stroke={1.8} aria-hidden="true" />
+              </button>
+            );
+          })}
+          <div style={{ width: 1, height: 18, background: '#2a2d36' }} />
+          {arrowColors.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Arrow color ${color}`}
+              title={color}
+              onClick={() => setArrowColor(color)}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 999,
+                border: arrowColor === color ? '2px solid #ffffff' : '1px solid #3a3d46',
+                backgroundColor: color,
+                cursor: 'pointer',
+              }}
+            />
+          ))}
+          <input
+            type="color"
+            aria-label="Custom arrow color"
+            value={arrowColor}
+            onChange={(event) => setArrowColor(event.target.value)}
+            style={{ width: 28, height: 28, border: '1px solid #3a3d46', borderRadius: 6, backgroundColor: 'transparent', padding: 0, cursor: 'pointer' }}
+          />
         </div>
       )}
 

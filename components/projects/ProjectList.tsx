@@ -1,10 +1,12 @@
 'use client';
+import { Fragment } from 'react';
 import Link from 'next/link';
 import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
 import { useProjectQuery } from '@/lib/projects/use-projects';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { backgroundToStyle } from '@/lib/style/css';
+import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 
 type Props = {
   projects: ProjectMeta[];
@@ -120,6 +122,30 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
           viewBox={`0 0 ${doc.canvas.width} ${doc.canvas.height}`}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
         >
+          <defs>
+            {doc.annotations
+              .filter((a): a is Extract<ScreenstylerDoc['annotations'][number], { type: 'arrow' }> => a.type === 'arrow')
+              .map((arrow) => {
+                const variant = getArrowVariant(arrow.variant);
+                return (
+                  <Fragment key={`preview-marker-${arrow.id}`}>
+                    <marker id={`preview-arrow-head-${arrow.id}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+                      <polygon points="0 0, 8 3, 0 6" fill={arrow.color} />
+                    </marker>
+                    {variant === 'double' && (
+                      <marker id={`preview-arrow-tail-${arrow.id}`} markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <polygon points="8 0, 0 3, 8 6" fill={arrow.color} />
+                      </marker>
+                    )}
+                    {variant === 'dot' && (
+                      <marker id={`preview-arrow-tail-${arrow.id}`} markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <circle cx="3" cy="3" r="2.2" fill={arrow.color} />
+                      </marker>
+                    )}
+                  </Fragment>
+                );
+              })}
+          </defs>
           {doc.annotations.map((annotation) => {
             if (annotation.type === 'highlight') {
               return (
@@ -135,6 +161,7 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
               );
             }
             if (annotation.type === 'arrow') {
+              const variant = getArrowVariant(annotation.variant);
               return (
                 <line
                   key={annotation.id}
@@ -144,7 +171,10 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
                   y2={annotation.to.y}
                   stroke={annotation.color}
                   strokeWidth={Math.max(annotation.thickness, 6)}
+                  strokeDasharray={arrowStrokeDasharray(variant)}
                   strokeLinecap="round"
+                  markerStart={variant === 'double' || variant === 'dot' ? `url(#preview-arrow-tail-${annotation.id})` : undefined}
+                  markerEnd={`url(#preview-arrow-head-${annotation.id})`}
                 />
               );
             }
