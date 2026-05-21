@@ -16,7 +16,7 @@ import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { createBlankDoc } from '@/lib/document/factory';
 import { DocumentRecoveryScreen } from '@/components/editor/DocumentRecoveryScreen';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { projectKeys, useProjectQuery, useProjectsQuery } from '@/lib/projects/use-projects';
+import { projectKeys, useProjectQuery, useProjectsQuery, useRenameProjectMutation } from '@/lib/projects/use-projects';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
@@ -28,6 +28,7 @@ function EditorPage() {
   const [isPreview, setIsPreview] = useState(false);
 
   const project = useProjectQuery(id);
+  const renameProject = useRenameProjectMutation(project.userId);
 
   const resetToBlank = useCallback(async () => {
     const blank = createBlankDoc();
@@ -96,6 +97,11 @@ function EditorPage() {
     }
   }
 
+  function handleRenameProject(name: string) {
+    if (!id) return;
+    renameProject.mutate({ id, name });
+  }
+
   const corruptError =
     project.error instanceof Error && 'isCorrupt' in project.error ?
       project.error as Error & { isCorrupt: true; rawJson: string }
@@ -130,6 +136,8 @@ function EditorPage() {
           onChangeTool={setActiveTool}
           isPreview={isPreview}
           onTogglePreview={() => setIsPreview(!isPreview)}
+          onRenameProject={handleRenameProject}
+          isRenamingProject={renameProject.isPending}
         />
       }
       canvas={

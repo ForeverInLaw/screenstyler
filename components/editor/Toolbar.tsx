@@ -1,4 +1,5 @@
 'use client';
+import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import {
   IconArrowBackUp,
@@ -6,13 +7,16 @@ import {
   IconArrowLeft,
   IconArrowUpRight,
   IconBlur,
+  IconCheck,
   IconClearAll,
   IconDownload,
   IconEye,
   IconEyeOff,
   IconHighlight,
   IconMouse,
+  IconPencil,
   IconTypography,
+  IconX,
   type Icon,
 } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
@@ -26,6 +30,8 @@ type Props = {
   onChangeTool?: (tool: Tool) => void;
   isPreview?: boolean;
   onTogglePreview?: () => void;
+  onRenameProject?: (name: string) => void;
+  isRenamingProject?: boolean;
 };
 
 export function Toolbar({
@@ -35,10 +41,20 @@ export function Toolbar({
   onChangeTool = () => {},
   isPreview = false,
   onTogglePreview = () => {},
+  onRenameProject,
+  isRenamingProject = false,
 }: Props) {
+  const [isEditingProjectName, setIsEditingProjectName] = useState(false);
+  const [draftProjectName, setDraftProjectName] = useState(projectName);
   const undo = () => useDocumentStore.temporal.getState().undo();
   const redo = () => useDocumentStore.temporal.getState().redo();
   const setAnnotations = useDocumentStore((s) => s.setAnnotations);
+
+  function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onRenameProject?.(draftProjectName);
+    setIsEditingProjectName(false);
+  }
 
   const tools: { id: Tool; label: string; Icon: Icon }[] = [
     { id: 'select', label: 'Select', Icon: IconMouse },
@@ -80,7 +96,44 @@ export function Toolbar({
         <IconArrowLeft size={16} stroke={1.8} aria-hidden="true" />
         Projects
       </Link>
-      <span style={{ opacity: 0.7, fontSize: '14px' }}>{projectName}</span>
+      {isEditingProjectName ? (
+        <form onSubmit={handleRenameSubmit} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            autoFocus
+            aria-label="Project name"
+            value={draftProjectName}
+            onChange={(event) => setDraftProjectName(event.target.value)}
+            style={{
+              width: 180,
+              border: '1px solid #3a3d46',
+              borderRadius: 6,
+              background: '#0f1115',
+              color: '#ffffff',
+              padding: '6px 8px',
+              fontSize: 13,
+              outline: 'none',
+            }}
+          />
+          <button type="submit" aria-label="Save project name" disabled={isRenamingProject} style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #3a3d46', background: '#2a2d36', color: '#ffffff', cursor: 'pointer' }}>
+            <IconCheck size={16} stroke={1.8} aria-hidden="true" />
+          </button>
+          <button type="button" aria-label="Cancel rename" onClick={() => setIsEditingProjectName(false)} style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid #3a3d46', background: 'transparent', color: '#e5e7eb', cursor: 'pointer' }}>
+            <IconX size={16} stroke={1.8} aria-hidden="true" />
+          </button>
+        </form>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{ opacity: 0.7, fontSize: '14px', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{projectName}</span>
+          {onRenameProject && (
+            <button type="button" aria-label="Rename project" onClick={() => {
+              setDraftProjectName(projectName);
+              setIsEditingProjectName(true);
+            }} style={{ display: 'grid', placeItems: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid #3a3d46', background: 'transparent', color: '#e5e7eb', cursor: 'pointer' }}>
+              <IconPencil size={15} stroke={1.8} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Annotation Drawing Tools - hidden in preview */}
       {!isPreview && (

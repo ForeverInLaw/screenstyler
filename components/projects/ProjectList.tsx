@@ -10,6 +10,7 @@ type Props = {
   projects: ProjectMeta[];
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onRename: (project: ProjectMeta) => void;
 };
 
 function formatUpdatedAt(value: number) {
@@ -191,10 +192,12 @@ function ProjectCard({
   project,
   onDelete,
   onDuplicate,
+  onRename,
 }: {
   project: ProjectMeta;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onRename: (project: ProjectMeta) => void;
 }) {
   const url = useObjectUrl(project.thumbnailKey);
   const docPreview = useProjectQuery(project.id, !project.thumbnailKey);
@@ -245,6 +248,13 @@ function ProjectCard({
         </button>
         <button
           type="button"
+          onClick={() => onRename(project)}
+          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+        >
+          Rename
+        </button>
+        <button
+          type="button"
           onClick={() => onDelete(project.id)}
           className="flex-1 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
         >
@@ -255,7 +265,7 @@ function ProjectCard({
   );
 }
 
-export function ProjectList({ projects, onDelete, onDuplicate }: Props) {
+export function ProjectList({ projects, onDelete, onDuplicate, onRename }: Props) {
   if (projects.length === 0) {
     return (
       <section className="grid min-h-80 place-items-center rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-zinc-200">
@@ -280,6 +290,7 @@ export function ProjectList({ projects, onDelete, onDuplicate }: Props) {
           project={project}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
+          onRename={onRename}
         />
       ))}
     </ul>

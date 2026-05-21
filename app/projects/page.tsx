@@ -9,16 +9,21 @@ import {
   useDeleteProjectMutation,
   useDuplicateProjectMutation,
   useProjectsQuery,
+  useRenameProjectMutation,
 } from '@/lib/projects/use-projects';
+import type { ProjectMeta } from '@/lib/storage/types';
 
 export default function ProjectsPage() {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const [renameTarget, setRenameTarget] = useState<ProjectMeta | null>(null);
+  const [renameName, setRenameName] = useState('');
   const projects = useProjectsQuery();
   const createProject = useCreateProjectMutation(projects.userId, (id) => router.push(`/editor?id=${id}`));
   const deleteProject = useDeleteProjectMutation(projects.userId);
   const duplicateProject = useDuplicateProjectMutation(projects.userId, projects.data);
+  const renameProject = useRenameProjectMutation(projects.userId);
   const isProjectsPending = projects.isAuthPending || projects.isLoading;
 
   function handleCreateProject(event: FormEvent<HTMLFormElement>) {
@@ -27,6 +32,22 @@ export default function ProjectsPage() {
       onSuccess: () => {
         setIsCreateOpen(false);
         setProjectName('');
+      },
+    });
+  }
+
+  function openRenameProject(project: ProjectMeta) {
+    setRenameTarget(project);
+    setRenameName(project.name);
+  }
+
+  function handleRenameProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!renameTarget) return;
+    renameProject.mutate({ id: renameTarget.id, name: renameName }, {
+      onSuccess: () => {
+        setRenameTarget(null);
+        setRenameName('');
       },
     });
   }
@@ -94,6 +115,45 @@ export default function ProjectsPage() {
           </div>
         )}
 
+        {renameTarget && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/45 px-4 backdrop-blur-sm">
+            <form
+              onSubmit={handleRenameProject}
+              className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5 shadow-2xl shadow-zinc-950/20"
+            >
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-950">Rename project</h2>
+              <label className="mt-4 grid gap-1.5 text-sm font-medium text-zinc-700">
+                Project name
+                <input
+                  autoFocus
+                  value={renameName}
+                  onChange={(event) => setRenameName(event.target.value)}
+                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-950 shadow-sm outline-none transition focus:border-zinc-950 focus:ring-2 focus:ring-zinc-950/10"
+                />
+              </label>
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenameTarget(null);
+                    setRenameName('');
+                  }}
+                  className="rounded-md border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={renameProject.isPending}
+                  className="rounded-md bg-zinc-950 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {renameProject.isPending ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {isProjectsPending && (
           <div className="grid gap-4 md:grid-cols-3">
             {[0, 1, 2].map((item) => (
@@ -116,6 +176,7 @@ export default function ProjectsPage() {
             projects={projects.data}
             onDelete={(id) => deleteProject.mutate(id)}
             onDuplicate={(id) => duplicateProject.mutate(id)}
+            onRename={openRenameProject}
           />
         )}
       </div>

@@ -65,6 +65,19 @@ export function useDeleteProjectMutation(userId: string | null) {
   });
 }
 
+export function useRenameProjectMutation(userId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const projectName = name.trim() || 'Untitled';
+      const store = getProjectStoreForUser(userId);
+      const doc = await store.load(id);
+      await store.save(id, doc, { name: projectName });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: projectKeys.all }),
+  });
+}
+
 export function useDuplicateProjectMutation(userId: string | null, projects: ProjectMeta[] | undefined) {
   const queryClient = useQueryClient();
   return useMutation({

@@ -22,7 +22,7 @@ function renderWithClient(ui: ReactElement) {
 
 describe('ProjectList', () => {
   it('renders one card per project with an open link', () => {
-    renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={() => {}} />);
+    renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={() => {}} onRename={() => {}} />);
     expect(screen.getByText('First')).toBeInTheDocument();
     expect(screen.getByText('Second')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /first/i })).toHaveAttribute(
@@ -31,15 +31,23 @@ describe('ProjectList', () => {
   });
 
   it('shows an empty state when there are no projects', () => {
-    renderWithClient(<ProjectList projects={[]} onDelete={() => {}} onDuplicate={() => {}} />);
+    renderWithClient(<ProjectList projects={[]} onDelete={() => {}} onDuplicate={() => {}} onRename={() => {}} />);
     expect(screen.getByText(/no projects yet/i)).toBeInTheDocument();
   });
 
   it('calls onDuplicate with the project id', async () => {
     let dup: string | null = null;
-    renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={(id) => { dup = id; }} />);
+    renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={(id) => { dup = id; }} onRename={() => {}} />);
     const firstCard = screen.getByText('First').closest('li')!;
     await userEvent.click(within(firstCard).getByRole('button', { name: /duplicate/i }));
     expect(dup).toBe('a');
+  });
+
+  it('calls onRename with the selected project', async () => {
+    let renamed: ProjectMeta | null = null;
+    renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={() => {}} onRename={(project) => { renamed = project; }} />);
+    const firstCard = screen.getByText('First').closest('li')!;
+    await userEvent.click(within(firstCard).getByRole('button', { name: /rename/i }));
+    expect(renamed?.id).toBe('a');
   });
 });
