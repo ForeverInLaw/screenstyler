@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ArrowVariant } from '@/lib/document/schema';
+import type { ArrowVariant, BlurVariant } from '@/lib/document/schema';
 
 type AnnotationStyleState = {
   arrowColor: string;
@@ -8,12 +8,16 @@ type AnnotationStyleState = {
   textSize: number;
   highlightColor: string;
   highlightOpacity: number;
+  blurVariant: BlurVariant;
+  blurIntensity: number;
   setArrowColor: (color: string) => void;
   setArrowVariant: (variant: ArrowVariant) => void;
   setTextFontFamily: (fontFamily: string) => void;
   setTextSize: (size: number) => void;
   setHighlightColor: (color: string) => void;
   setHighlightOpacity: (opacity: number) => void;
+  setBlurVariant: (variant: BlurVariant) => void;
+  setBlurIntensity: (intensity: number) => void;
   reset: () => void;
 };
 
@@ -24,6 +28,8 @@ const defaults = {
   textSize: 24,
   highlightColor: '#facc15',
   highlightOpacity: 0.4,
+  blurVariant: 'soft' as BlurVariant,
+  blurIntensity: 8,
 };
 
 export const useAnnotationStyleStore = create<AnnotationStyleState>((set) => ({
@@ -34,5 +40,7 @@ export const useAnnotationStyleStore = create<AnnotationStyleState>((set) => ({
   setTextSize: (textSize) => set({ textSize }),
   setHighlightColor: (highlightColor) => set({ highlightColor }),
   setHighlightOpacity: (highlightOpacity) => set({ highlightOpacity }),
+  setBlurVariant: (blurVariant) => set({ blurVariant }),
+  setBlurIntensity: (blurIntensity) => set({ blurIntensity }),
   reset: () => set(defaults),
 }));

@@ -4,6 +4,7 @@ export const pointSchema = z.object({ x: z.number(), y: z.number() });
 export const rectSchema = z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() });
 export const gradientStopSchema = z.object({ color: z.string(), offset: z.number().min(0).max(1) });
 export const arrowVariantSchema = z.enum(['solid', 'dashed', 'double', 'dot']);
+export const blurVariantSchema = z.enum(['soft', 'frosted', 'dim']);
 
 export const imageRefSchema = z.object({
   id: z.string(),
@@ -43,7 +44,8 @@ export const annotationSchema = z.discriminatedUnion('type', [
   z.object({ id: z.string(), type: z.literal('text'), pos: pointSchema, text: z.string(),
     fontSize: z.number(), color: z.string(), fontFamily: z.string().optional() }),
   z.object({ id: z.string(), type: z.literal('highlight'), rect: rectSchema, color: z.string() }),
-  z.object({ id: z.string(), type: z.literal('blur'), rect: rectSchema, intensity: z.number() }),
+  z.object({ id: z.string(), type: z.literal('blur'), rect: rectSchema,
+    intensity: z.number(), variant: blurVariantSchema.optional() }),
 ]);
 
 export const screenstylerDocSchema = z.object({
@@ -74,6 +76,7 @@ export type Frame = z.infer<typeof frameSchema>;
 export type Transform3D = z.infer<typeof transform3dSchema>;
 export type Annotation = z.infer<typeof annotationSchema>;
 export type ArrowVariant = z.infer<typeof arrowVariantSchema>;
+export type BlurVariant = z.infer<typeof blurVariantSchema>;
 export type ImageRef = z.infer<typeof imageRefSchema>;
 export type GradientStop = z.infer<typeof gradientStopSchema>;
 

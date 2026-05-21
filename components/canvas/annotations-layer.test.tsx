@@ -132,4 +132,45 @@ describe('AnnotationsLayer', () => {
       rect: { x: 10, y: 10, w: 30, h: 40 },
     });
   });
+
+  it('uses configured blur type and intensity when drawing', () => {
+    let added: Annotation | null = null;
+    useAnnotationStyleStore.getState().setBlurVariant('frosted');
+    useAnnotationStyleStore.getState().setBlurIntensity(18);
+
+    render(
+      <AnnotationsLayer
+        annotations={[]}
+        activeTool="blur"
+        canvasWidth={100}
+        canvasHeight={100}
+        onAddAnnotation={(annotation) => { added = annotation; }}
+        onRemoveAnnotation={() => {}}
+      />,
+    );
+
+    const layer = screen.getByTestId('annotations-layer');
+    vi.spyOn(layer, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.mouseDown(layer, { clientX: 15, clientY: 20 });
+    fireEvent.mouseMove(layer, { clientX: 55, clientY: 70 });
+    fireEvent.mouseUp(layer);
+
+    expect(added).toMatchObject({
+      type: 'blur',
+      intensity: 18,
+      variant: 'frosted',
+      rect: { x: 15, y: 20, w: 40, h: 50 },
+    });
+  });
 });

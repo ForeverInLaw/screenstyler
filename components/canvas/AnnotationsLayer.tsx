@@ -3,6 +3,7 @@ import { useState, useRef, type MouseEvent, useEffect } from 'react';
 import { IconX } from '@tabler/icons-react';
 import type { Annotation, Point, Rect } from '@/lib/document/schema';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
+import { blurOverlayStyle } from '@/lib/annotations/blurs';
 import { getTextFontFamily } from '@/lib/annotations/text';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 import { withAlpha } from '@/lib/style/css';
@@ -38,6 +39,8 @@ export function AnnotationsLayer({
   const textSize = useAnnotationStyleStore((s) => s.textSize);
   const highlightColor = useAnnotationStyleStore((s) => s.highlightColor);
   const highlightOpacity = useAnnotationStyleStore((s) => s.highlightOpacity);
+  const blurVariant = useAnnotationStyleStore((s) => s.blurVariant);
+  const blurIntensity = useAnnotationStyleStore((s) => s.blurIntensity);
 
   // Convert screen coordinates to canvas-relative coordinates.
   // The container fills the entire DocumentFrame (inset: 0), so we can
@@ -87,7 +90,8 @@ export function AnnotationsLayer({
         id,
         type: 'blur',
         rect: { x: pt.x, y: pt.y, w: 0, h: 0 },
-        intensity: 8,
+        intensity: blurIntensity,
+        variant: blurVariant,
       });
     }
   }
@@ -306,8 +310,7 @@ export function AnnotationsLayer({
                 top: `${(b.rect.y / canvasHeight) * 100}%`,
                 width: `${(b.rect.w / canvasWidth) * 100}%`,
                 height: `${(b.rect.h / canvasHeight) * 100}%`,
-                backdropFilter: `blur(${b.intensity}px)`,
-                backgroundColor: 'rgba(255,255,255,0.05)',
+                ...blurOverlayStyle(b.variant, b.intensity),
                 borderRadius: '4px',
               }}
             />

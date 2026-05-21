@@ -7,6 +7,7 @@ import { useProjectQuery } from '@/lib/projects/use-projects';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { backgroundToStyle } from '@/lib/style/css';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
+import { blurPreviewFill } from '@/lib/annotations/blurs';
 import { getTextFontFamily } from '@/lib/annotations/text';
 
 type Props = {
@@ -201,7 +202,7 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
                 y={annotation.rect.y}
                 width={annotation.rect.w}
                 height={annotation.rect.h}
-                fill="rgba(255,255,255,0.26)"
+                fill={blurPreviewFill(annotation.variant)}
                 rx="8"
               />
             );

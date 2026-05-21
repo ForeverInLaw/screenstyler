@@ -74,4 +74,16 @@ describe('Toolbar', () => {
       highlightOpacity: 0.65,
     });
   });
+
+  it('updates blur drawing defaults', async () => {
+    render(<Toolbar projectName="P" onExport={() => {}} activeTool="blur" />);
+
+    await userEvent.selectOptions(screen.getByLabelText('Blur type'), 'frosted');
+    fireEvent.change(screen.getByLabelText('Blur intensity'), { target: { value: '18' } });
+
+    expect(useAnnotationStyleStore.getState()).toMatchObject({
+      blurVariant: 'frosted',
+      blurIntensity: 18,
+    });
+  });
 });

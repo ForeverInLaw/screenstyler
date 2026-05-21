@@ -25,9 +25,10 @@ import {
 } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
 import { arrowColors, arrowVariants } from '@/lib/annotations/arrows';
+import { blurVariants } from '@/lib/annotations/blurs';
 import { highlightColors } from '@/lib/annotations/highlights';
 import { textFontOptions } from '@/lib/annotations/text';
-import type { ArrowVariant } from '@/lib/document/schema';
+import type { ArrowVariant, BlurVariant } from '@/lib/document/schema';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 
 type Tool = 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
@@ -73,10 +74,14 @@ export function Toolbar({
   const textSize = useAnnotationStyleStore((s) => s.textSize);
   const highlightColor = useAnnotationStyleStore((s) => s.highlightColor);
   const highlightOpacity = useAnnotationStyleStore((s) => s.highlightOpacity);
+  const blurVariant = useAnnotationStyleStore((s) => s.blurVariant);
+  const blurIntensity = useAnnotationStyleStore((s) => s.blurIntensity);
   const setTextFontFamily = useAnnotationStyleStore((s) => s.setTextFontFamily);
   const setTextSize = useAnnotationStyleStore((s) => s.setTextSize);
   const setHighlightColor = useAnnotationStyleStore((s) => s.setHighlightColor);
   const setHighlightOpacity = useAnnotationStyleStore((s) => s.setHighlightOpacity);
+  const setBlurVariant = useAnnotationStyleStore((s) => s.setBlurVariant);
+  const setBlurIntensity = useAnnotationStyleStore((s) => s.setBlurIntensity);
 
   function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -318,6 +323,32 @@ export function Toolbar({
             style={{ width: 88, cursor: 'pointer' }}
           />
           <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{Math.round(highlightOpacity * 100)}%</span>
+        </div>
+      )}
+
+      {!isPreview && activeTool === 'blur' && (
+        <div aria-label="Blur options" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
+          <select
+            aria-label="Blur type"
+            value={blurVariant}
+            onChange={(event) => setBlurVariant(event.target.value as BlurVariant)}
+            style={{ height: 28, minWidth: 104, border: '1px solid #3a3d46', borderRadius: 6, background: '#16181d', color: '#e5e7eb', fontSize: 12, padding: '0 8px' }}
+          >
+            {blurVariants.map((variant) => (
+              <option key={variant.id} value={variant.id}>{variant.label}</option>
+            ))}
+          </select>
+          <input
+            type="range"
+            aria-label="Blur intensity"
+            min={2}
+            max={28}
+            step={1}
+            value={blurIntensity}
+            onChange={(event) => setBlurIntensity(Number(event.target.value))}
+            style={{ width: 96, cursor: 'pointer' }}
+          />
+          <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{blurIntensity}px</span>
         </div>
       )}
 
