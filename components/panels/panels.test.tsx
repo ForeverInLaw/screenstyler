@@ -19,6 +19,17 @@ describe('BackgroundPanel', () => {
       type: 'gradient',
     });
   });
+
+  it('updates a custom gradient', () => {
+    render(<BackgroundPanel />);
+    fireEvent.change(screen.getByLabelText('Gradient angle'), { target: { value: '45' } });
+    fireEvent.change(screen.getByLabelText('Gradient start color'), { target: { value: '#111111' } });
+    expect(useDocumentStore.getState().doc.canvas.background).toMatchObject({
+      type: 'gradient',
+      angle: 45,
+      stops: [{ color: '#111111', offset: 0 }, { color: '#ec4899', offset: 1 }],
+    });
+  });
 });
 
 describe('StylePanel', () => {

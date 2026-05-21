@@ -5,6 +5,15 @@ import { gradientPresets } from '@/lib/presets/gradients';
 import { backgroundToCss } from '@/lib/style/css';
 import { ingestImageFile, validateImageFile } from '@/lib/upload/load-image';
 
+const defaultGradient = {
+  type: 'gradient' as const,
+  angle: 135,
+  stops: [
+    { color: '#6366f1', offset: 0 },
+    { color: '#ec4899', offset: 1 },
+  ],
+};
+
 export function BackgroundPanel() {
   const background = useDocumentStore((s) => s.doc.canvas.background);
   const setBackground = useDocumentStore((s) => s.setBackground);
@@ -30,6 +39,20 @@ export function BackgroundPanel() {
   }
 
   const activeSolidColor = background.type === 'solid' ? background.color : '#6366f1';
+  const activeGradient = background.type === 'gradient' ? background : defaultGradient;
+  const gradientStart = activeGradient.stops[0]?.color ?? defaultGradient.stops[0].color;
+  const gradientEnd = activeGradient.stops.at(-1)?.color ?? defaultGradient.stops[1].color;
+
+  function setCustomGradient(next: { angle?: number; start?: string; end?: string }) {
+    setBackground({
+      type: 'gradient',
+      angle: next.angle ?? activeGradient.angle,
+      stops: [
+        { color: next.start ?? gradientStart, offset: 0 },
+        { color: next.end ?? gradientEnd, offset: 1 },
+      ],
+    });
+  }
 
   return (
     <section style={{ padding: '16px', borderBottom: '1px solid #2a2d36', color: '#e5e7eb' }}>
@@ -61,6 +84,43 @@ export function BackgroundPanel() {
 
       {/* Custom Solid Color & Image Upload */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'grid', gap: 10, border: '1px solid #2a2d36', borderRadius: 8, padding: 10 }}>
+          <span style={{ fontSize: '13px', fontWeight: 700 }}>Custom Gradient</span>
+          <label style={{ display: 'grid', gap: 6, fontSize: '13px' }}>
+            Angle: {activeGradient.angle}deg
+            <input
+              type="range"
+              aria-label="Gradient angle"
+              min={0}
+              max={360}
+              value={activeGradient.angle}
+              onChange={(event) => setCustomGradient({ angle: Number(event.target.value) })}
+            />
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: '13px' }}>
+              Start
+              <input
+                type="color"
+                aria-label="Gradient start color"
+                value={gradientStart}
+                onChange={(event) => setCustomGradient({ start: event.target.value })}
+                style={{ width: '100%', height: 32, border: '1px solid #2a2d36', borderRadius: 6, background: 'none', padding: 0, cursor: 'pointer' }}
+              />
+            </label>
+            <label style={{ display: 'grid', gap: 6, fontSize: '13px' }}>
+              End
+              <input
+                type="color"
+                aria-label="Gradient end color"
+                value={gradientEnd}
+                onChange={(event) => setCustomGradient({ end: event.target.value })}
+                style={{ width: '100%', height: 32, border: '1px solid #2a2d36', borderRadius: 6, background: 'none', padding: 0, cursor: 'pointer' }}
+              />
+            </label>
+          </div>
+        </div>
+
         {/* Solid Color Picker */}
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '13px' }}>
           <span style={{ flex: 1 }}>Custom Solid Color:</span>
