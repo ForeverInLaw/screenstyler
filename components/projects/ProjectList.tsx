@@ -34,8 +34,8 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
   const paddingY = Math.min((doc.content.padding / doc.canvas.height) * 100, 36);
   const fitStyle =
     docAspect >= previewAspect
-      ? { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` }
-      : { height: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
+      ? { height: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` }
+      : { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
   const imageAspect = image ? image.naturalWidth / image.naturalHeight : 1;
   const imageFitStyle =
     imageAspect >= docAspect
