@@ -20,6 +20,7 @@ describe('Toolbar', () => {
   it('shows the project name', () => {
     render(<Toolbar projectName="Hello Shot" onExport={() => {}} />);
     expect(screen.getByText('Hello Shot')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /projects/i })).toHaveAttribute('href', '/projects');
   });
 
   it('undo reverts the last document change', async () => {

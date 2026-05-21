@@ -1,7 +1,9 @@
 'use client';
+import Link from 'next/link';
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
+  IconArrowLeft,
   IconArrowUpRight,
   IconBlur,
   IconClearAll,
@@ -59,6 +61,25 @@ export function Toolbar({
       }}
     >
       <strong>Screenstyler</strong>
+      <Link
+        href="/projects"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          border: '1px solid #3a3d46',
+          borderRadius: '6px',
+          color: '#e5e7eb',
+          padding: '6px 10px',
+          textDecoration: 'none',
+          fontSize: '12px',
+          fontWeight: 700,
+          background: '#20232b',
+        }}
+      >
+        <IconArrowLeft size={16} stroke={1.8} aria-hidden="true" />
+        Projects
+      </Link>
       <span style={{ opacity: 0.7, fontSize: '14px' }}>{projectName}</span>
 
       {/* Annotation Drawing Tools - hidden in preview */}
