@@ -1,26 +1,33 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getBlobStore } from '@/lib/storage/active-stores';
+import { useBlobQuery } from '@/lib/blobs/use-blob';
 
 export function useObjectUrl(blobKey: string | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
+  const blob = useBlobQuery(blobKey);
 
   useEffect(() => {
-    if (!blobKey) return;
-    let objectUrl: string | null = null;
     let cancelled = false;
 
-    getBlobStore().get(blobKey).then((blob) => {
-      if (cancelled || !blob) return;
-      objectUrl = URL.createObjectURL(blob);
-      setUrl(objectUrl);
+    if (!blob.data) {
+      queueMicrotask(() => {
+        if (!cancelled) setUrl(null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const objectUrl = URL.createObjectURL(blob.data);
+    queueMicrotask(() => {
+      if (!cancelled) setUrl(objectUrl);
     });
 
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(objectUrl);
     };
-  }, [blobKey]);
+  }, [blob.data]);
 
   return blobKey ? url : null;
 }

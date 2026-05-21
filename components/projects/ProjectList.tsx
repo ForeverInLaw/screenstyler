@@ -2,6 +2,9 @@
 import Link from 'next/link';
 import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
+import { useProjectQuery } from '@/lib/projects/use-projects';
+import type { ScreenstylerDoc } from '@/lib/document/schema';
+import { backgroundToCss } from '@/lib/style/css';
 
 type Props = {
   projects: ProjectMeta[];
@@ -19,6 +22,177 @@ function formatUpdatedAt(value: number) {
   }).format(new Date(value));
 }
 
+function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
+  const imageUrl = useObjectUrl(doc.content.image?.blobKey ?? null);
+  const backgroundUrl = useObjectUrl(
+    doc.canvas.background.type === 'image' ? doc.canvas.background.ref.blobKey : null,
+  );
+  const image = doc.content.image;
+  const docAspect = doc.canvas.width / doc.canvas.height;
+  const previewAspect = 16 / 10;
+  const paddingX = Math.min((doc.content.padding / doc.canvas.width) * 100, 36);
+  const paddingY = Math.min((doc.content.padding / doc.canvas.height) * 100, 36);
+  const fitStyle =
+    docAspect >= previewAspect
+      ? { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` }
+      : { height: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
+  const backgroundExtra =
+    doc.canvas.background.type === 'image'
+      ? { backgroundSize: doc.canvas.background.fit, backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+      : {};
+  const imageAspect = image ? image.naturalWidth / image.naturalHeight : 1;
+  const imageFitStyle =
+    imageAspect >= docAspect
+      ? { width: '100%', aspectRatio: `${image?.naturalWidth ?? 1} / ${image?.naturalHeight ?? 1}` }
+      : { height: '100%', aspectRatio: `${image?.naturalWidth ?? 1} / ${image?.naturalHeight ?? 1}` };
+  const frame = doc.content.frame;
+  const showChrome = frame.type === 'window' || frame.type === 'browser';
+  const chromeDark =
+    (frame.type === 'window' && frame.variant === 'macos-dark') ||
+    (frame.type === 'browser' && frame.theme === 'dark');
+
+  return (
+    <div className="grid h-full w-full place-items-center bg-zinc-950 p-3">
+      <div
+        style={{
+          ...fitStyle,
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 18px 45px rgb(0 0 0 / 0.28)',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: backgroundToCss(doc.canvas.background, backgroundUrl ?? undefined),
+            ...backgroundExtra,
+          }}
+        />
+        {image && imageUrl && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${paddingX}%`,
+              right: `${paddingX}%`,
+              top: `${paddingY}%`,
+              bottom: `${paddingY}%`,
+              display: 'grid',
+              placeItems: 'center',
+              perspective: `${doc.content.transform3d.perspective}px`,
+            }}
+          >
+            <div
+              style={{
+                ...imageFitStyle,
+                maxWidth: '100%',
+                maxHeight: '100%',
+                overflow: 'hidden',
+                borderRadius: frame.type === 'none' ? 4 : 6,
+                background: chromeDark ? '#1f1f22' : '#ffffff',
+                boxShadow: '0 10px 24px rgb(0 0 0 / 0.26)',
+                transform: `rotateX(${doc.content.transform3d.rotateX}deg) rotateY(${doc.content.transform3d.rotateY}deg) rotateZ(${doc.content.transform3d.rotateZ}deg) scale(${doc.content.transform3d.scale})`,
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              {showChrome && (
+                <div
+                  style={{
+                    height: 12,
+                    background: chromeDark ? '#2d2e30' : '#eceff1',
+                    borderBottom: `1px solid ${chromeDark ? '#1f2022' : '#d7dce0'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    paddingInline: 5,
+                  }}
+                >
+                  <span style={{ width: 4, height: 4, borderRadius: 99, background: '#ff5f56' }} />
+                  <span style={{ width: 4, height: 4, borderRadius: 99, background: '#ffbd2e' }} />
+                  <span style={{ width: 4, height: 4, borderRadius: 99, background: '#27c93f' }} />
+                </div>
+              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt=""
+                style={{ display: 'block', width: '100%', height: showChrome ? 'calc(100% - 12px)' : '100%', objectFit: 'contain' }}
+              />
+            </div>
+          </div>
+        )}
+        <svg
+          viewBox={`0 0 ${doc.canvas.width} ${doc.canvas.height}`}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+        >
+          {doc.annotations.map((annotation) => {
+            if (annotation.type === 'highlight') {
+              return (
+                <rect
+                  key={annotation.id}
+                  x={annotation.rect.x}
+                  y={annotation.rect.y}
+                  width={annotation.rect.w}
+                  height={annotation.rect.h}
+                  fill={annotation.color}
+                  rx="8"
+                />
+              );
+            }
+            if (annotation.type === 'arrow') {
+              return (
+                <line
+                  key={annotation.id}
+                  x1={annotation.from.x}
+                  y1={annotation.from.y}
+                  x2={annotation.to.x}
+                  y2={annotation.to.y}
+                  stroke={annotation.color}
+                  strokeWidth={Math.max(annotation.thickness, 6)}
+                  strokeLinecap="round"
+                />
+              );
+            }
+            if (annotation.type === 'text') {
+              return (
+                <text
+                  key={annotation.id}
+                  x={annotation.pos.x}
+                  y={annotation.pos.y}
+                  fill={annotation.color}
+                  fontSize={Math.max(annotation.fontSize, 24)}
+                  fontWeight="700"
+                >
+                  {annotation.text}
+                </text>
+              );
+            }
+            return (
+              <rect
+                key={annotation.id}
+                x={annotation.rect.x}
+                y={annotation.rect.y}
+                width={annotation.rect.w}
+                height={annotation.rect.h}
+                fill="rgba(255,255,255,0.26)"
+                rx="8"
+              />
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function PlaceholderPreview() {
+  return (
+    <div className="grid h-full w-full place-items-center bg-[linear-gradient(135deg,#f7f3e8,#dbe7df_55%,#cad8f0)] p-6">
+      <div className="h-24 w-36 rounded-md bg-white/90 shadow-lg ring-1 ring-black/10" />
+    </div>
+  );
+}
+
 function ProjectCard({
   project,
   onDelete,
@@ -29,6 +203,7 @@ function ProjectCard({
   onDuplicate: (id: string) => void;
 }) {
   const url = useObjectUrl(project.thumbnailKey);
+  const docPreview = useProjectQuery(project.id, !project.thumbnailKey);
 
   return (
     <li className="group flex min-h-72 flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-zinc-200 transition hover:-translate-y-0.5 hover:shadow-md">
@@ -45,10 +220,10 @@ function ProjectCard({
               alt={project.name}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
+          ) : docPreview.data ? (
+            <ProjectDocumentPreview doc={docPreview.data} />
           ) : (
-            <div className="grid h-full w-full place-items-center bg-[linear-gradient(135deg,#f7f3e8,#dbe7df_55%,#cad8f0)] p-6">
-              <div className="h-24 w-36 rounded-md bg-white/90 shadow-lg ring-1 ring-black/10" />
-            </div>
+            <PlaceholderPreview />
           )}
         </div>
         <div className="mt-4 flex items-start justify-between gap-3">

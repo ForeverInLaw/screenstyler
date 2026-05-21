@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { EditorShell } from '@/components/editor/EditorShell';
 import { Toolbar } from '@/components/editor/Toolbar';
 import { CanvasStage } from '@/components/canvas/CanvasStage';
@@ -9,35 +9,34 @@ import { DocumentCanvas } from '@/components/canvas/DocumentCanvas';
 import { UploadZone } from '@/components/editor/UploadZone';
 import { useDocumentStore } from '@/lib/document/store';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
-import { getProjectStore, getBlobStore, getActiveUserId } from '@/lib/storage/active-stores';
+import { getBlobStoreForUser, getProjectStoreForUser } from '@/lib/storage/active-stores';
 import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { createBlankDoc } from '@/lib/document/factory';
 import { DocumentRecoveryScreen } from '@/components/editor/DocumentRecoveryScreen';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { projectKeys, useProjectQuery, useProjectsQuery } from '@/lib/projects/use-projects';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
+  const queryClient = useQueryClient();
   const frameRef = useRef<HTMLDivElement>(null);
   const doc = useDocumentStore((s) => s.doc);
   const loadDoc = useDocumentStore((s) => s.loadDoc);
   const [activeTool, setActiveTool] = useState<'select' | 'arrow' | 'text' | 'highlight' | 'blur'>('select');
   const [isPreview, setIsPreview] = useState(false);
 
-  const project = useQuery({
-    queryKey: ['project', id],
-    queryFn: () => getProjectStore().load(id),
-    enabled: Boolean(id),
-  });
+  const project = useProjectQuery(id);
 
   const resetToBlank = useCallback(async () => {
     const blank = createBlankDoc();
-    await getProjectStore().save(id, blank);
+    await getProjectStoreForUser(project.userId).save(id, blank);
     project.refetch();
-  }, [id, project]);
+    queryClient.invalidateQueries({ queryKey: projectKeys.all });
+  }, [id, project, queryClient]);
 
-  const projects = useQuery({ queryKey: ['projects'], queryFn: () => getProjectStore().list() });
+  const projects = useProjectsQuery();
   const projectName = projects.data?.find((p) => p.id === id)?.name ?? 'Untitled';
 
   const saveMutation = useMutation({
@@ -46,17 +45,18 @@ function EditorPage() {
       if (frameRef.current && d.content.image) {
         try {
           const blob = await exportPng(frameRef.current, 1);
-          const userId = getActiveUserId();
+          const userId = project.userId;
           const baseKey = `thumbnail_${pid}`;
           const key = userId ? `users/${userId}/${baseKey}` : baseKey;
-          await getBlobStore().put(key, blob);
+          await getBlobStoreForUser(userId).put(key, blob);
           thumbnailKey = key;
         } catch (err) {
           console.warn('Thumbnail generation skipped:', err);
         }
       }
-      await getProjectStore().save(pid, d, thumbnailKey ? { thumbnailKey } : undefined);
+      await getProjectStoreForUser(project.userId).save(pid, d, thumbnailKey ? { thumbnailKey } : undefined);
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: projectKeys.all }),
     onError: async (err) => {
       if (err instanceof Error) {
         if (err.message === 'STORAGE_FULL') {

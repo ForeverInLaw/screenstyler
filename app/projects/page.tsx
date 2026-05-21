@@ -1,36 +1,22 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProjectList } from '@/components/projects/ProjectList';
 import { MigrationRunner } from '@/components/migration/MigrationRunner';
 import { AppHeader } from '@/components/common/AppHeader';
-import { getProjectStore } from '@/lib/storage/active-stores';
-import { createBlankDoc } from '@/lib/document/factory';
+import {
+  useCreateProjectMutation,
+  useDeleteProjectMutation,
+  useDuplicateProjectMutation,
+  useProjectsQuery,
+} from '@/lib/projects/use-projects';
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const projects = useQuery({ queryKey: ['projects'], queryFn: () => getProjectStore().list() });
-
-  const createProject = useMutation({
-    mutationFn: () => getProjectStore().create('Untitled', createBlankDoc()),
-    onSuccess: (id) => router.push(`/editor?id=${id}`),
-  });
-
-  const deleteProject = useMutation({
-    mutationFn: (id: string) => getProjectStore().remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
-  });
-
-  const duplicateProject = useMutation({
-    mutationFn: async (sourceId: string) => {
-      const source = projects.data?.find((p) => p.id === sourceId);
-      const doc = await getProjectStore().load(sourceId);
-      return getProjectStore().create(`${source?.name ?? 'Untitled'} copy`, doc);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
-  });
+  const projects = useProjectsQuery();
+  const createProject = useCreateProjectMutation(projects.userId, (id) => router.push(`/editor?id=${id}`));
+  const deleteProject = useDeleteProjectMutation(projects.userId);
+  const duplicateProject = useDuplicateProjectMutation(projects.userId, projects.data);
+  const isProjectsPending = projects.isAuthPending || projects.isLoading;
 
   return (
     <main className="min-h-dvh bg-stone-50 text-zinc-950">
@@ -48,14 +34,14 @@ export default function ProjectsPage() {
           <button
             type="button"
             onClick={() => createProject.mutate()}
-            disabled={createProject.isPending}
+            disabled={projects.isAuthPending || createProject.isPending}
             className="rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
           >
             {createProject.isPending ? 'Creating...' : 'New project'}
           </button>
         </header>
 
-        {projects.isLoading && (
+        {isProjectsPending && (
           <div className="grid gap-4 md:grid-cols-3">
             {[0, 1, 2].map((item) => (
               <div key={item} className="h-64 rounded-lg bg-white shadow-sm ring-1 ring-zinc-200">
@@ -72,7 +58,7 @@ export default function ProjectsPage() {
           </p>
         )}
 
-        {projects.data && (
+        {!isProjectsPending && projects.data && (
           <ProjectList
             projects={projects.data}
             onDelete={(id) => deleteProject.mutate(id)}

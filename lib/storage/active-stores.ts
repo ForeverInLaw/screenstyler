@@ -19,8 +19,16 @@ export function getProjectStore(): ProjectStore {
   return activeUser ? cloudProject : localProject;
 }
 
+export function getProjectStoreForUser(userId: string | null): ProjectStore {
+  return userId ? cloudProject : localProject;
+}
+
 export function getBlobStore(): BlobStore {
   return activeUser ? cloudBlob : localBlob;
+}
+
+export function getBlobStoreForUser(userId: string | null): BlobStore {
+  return userId ? cloudBlob : localBlob;
 }
 
 export function getActiveUserId(): string | null {

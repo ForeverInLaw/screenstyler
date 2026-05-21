@@ -75,4 +75,18 @@ describe('AuthSync', () => {
     expect(client.getQueryData(['projects'])).toBeUndefined();
     expect(client.getQueryData(['project', 'p1'])).toBeUndefined();
   });
+
+  it('does not switch stores or clear project data while the session is pending', () => {
+    (useSession as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: null,
+      isPending: true,
+    });
+    const client = makeClient();
+    client.setQueryData(['projects'], [{ id: 'p1', name: 'Kept' }]);
+
+    renderWithClient(client);
+
+    expect(getProjectStore()).toBeInstanceOf(LocalProjectStore);
+    expect(client.getQueryData(['projects'])).toEqual([{ id: 'p1', name: 'Kept' }]);
+  });
 });
