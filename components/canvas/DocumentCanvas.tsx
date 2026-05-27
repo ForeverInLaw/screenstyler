@@ -21,9 +21,10 @@ export const DocumentCanvas = forwardRef<
   {
     doc: ScreenstylerDoc;
     activeTool?: 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
+    onChangeTool?: (tool: 'select' | 'arrow' | 'text' | 'highlight' | 'blur') => void;
     isPreview?: boolean;
   }
->(function DocumentCanvas({ doc: rawDoc, activeTool = 'select', isPreview = false }, ref) {
+>(function DocumentCanvas({ doc: rawDoc, activeTool = 'select', onChangeTool, isPreview = false }, ref) {
   const doc = normalizeDoc(rawDoc);
   const annotations = useDocumentStore((s) => s.doc.annotations);
   const addAnnotation = useDocumentStore((s) => s.addAnnotation);
@@ -74,16 +75,18 @@ export const DocumentCanvas = forwardRef<
         />
       )}
 
-      <ContentLayer content={doc.content} canvasWidth={doc.canvas.width} canvasHeight={doc.canvas.height} isPreview={isPreview} />
-      <AnnotationsLayer
-        annotations={annotations}
-        activeTool={activeTool}
-        canvasWidth={doc.canvas.width}
-        canvasHeight={doc.canvas.height}
-        onAddAnnotation={addAnnotation}
-        onRemoveAnnotation={removeAnnotation}
-        isPreview={isPreview}
-      />
+      <ContentLayer content={doc.content} canvasWidth={doc.canvas.width} canvasHeight={doc.canvas.height} isPreview={isPreview}>
+        <AnnotationsLayer
+          annotations={annotations}
+          activeTool={activeTool}
+          onChangeTool={onChangeTool}
+          canvasWidth={doc.canvas.width}
+          canvasHeight={doc.canvas.height}
+          onAddAnnotation={addAnnotation}
+          onRemoveAnnotation={removeAnnotation}
+          isPreview={isPreview}
+        />
+      </ContentLayer>
     </DocumentFrame>
   );
 });

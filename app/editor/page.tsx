@@ -224,7 +224,13 @@ function EditorPage() {
               style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}
             >
               <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
-                <DocumentCanvas ref={frameRef} doc={doc} activeTool={activeTool} isPreview={isPreview} />
+                <DocumentCanvas
+                  ref={frameRef}
+                  doc={doc}
+                  activeTool={activeTool}
+                  onChangeTool={setActiveTool}
+                  isPreview={isPreview}
+                />
               </CanvasStage>
             </div>
           </ErrorBoundary>

@@ -6,11 +6,13 @@ import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows'
 import { blurOverlayStyle } from '@/lib/annotations/blurs';
 import { getTextFontFamily } from '@/lib/annotations/text';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
+import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { withAlpha } from '@/lib/style/css';
 
 type Props = {
   annotations: Annotation[];
   activeTool: 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
+  onChangeTool?: (tool: 'select' | 'arrow' | 'text' | 'highlight' | 'blur') => void;
   canvasWidth: number;
   canvasHeight: number;
   onAddAnnotation: (a: Annotation) => void;
@@ -21,6 +23,7 @@ type Props = {
 export function AnnotationsLayer({
   annotations,
   activeTool,
+  onChangeTool,
   canvasWidth,
   canvasHeight,
   onAddAnnotation,
@@ -28,6 +31,16 @@ export function AnnotationsLayer({
   isPreview = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const selectedAnnotationId = useEditorUiStore((s) => s.selectedAnnotationId);
+  const setSelectedAnnotationId = useEditorUiStore((s) => s.setSelectedAnnotationId);
+
+  function handleSelectAnnotation(e: MouseEvent, id: string, type: 'arrow' | 'text' | 'highlight' | 'blur') {
+    if (isPreview) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedAnnotationId(id);
+    onChangeTool?.(type);
+  }
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [tempAnnotation, setTempAnnotation] = useState<Annotation | null>(null);
@@ -254,17 +267,20 @@ export function AnnotationsLayer({
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'highlight' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'highlight' }> => a.type === 'highlight')
-          .map((hl) => (
-            <rect
-              key={hl.id}
-              x={hl.rect.x}
-              y={hl.rect.y}
-              width={hl.rect.w}
-              height={hl.rect.h}
-              fill={hl.color}
-              rx="4"
-            />
-          ))}
+          .map((hl) => {
+            const isSel = selectedAnnotationId === hl.id;
+            const isTemp = hl.id.startsWith('temp-');
+            return (
+              <g key={hl.id}>
+                <rect x={hl.rect.x} y={hl.rect.y} width={hl.rect.w} height={hl.rect.h} fill={hl.color} rx="4"
+                  style={{ cursor: isPreview ? 'default' : (isTemp ? 'crosshair' : 'pointer'), pointerEvents: isPreview ? 'none' : 'auto' }}
+                  onMouseDown={(e) => !isTemp && handleSelectAnnotation(e, hl.id, 'highlight')} />
+                {!isPreview && isSel && (
+                  <rect x={hl.rect.x - 2} y={hl.rect.y - 2} width={hl.rect.w + 4} height={hl.rect.h + 4} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" rx={6} style={{ pointerEvents: 'none' }} />
+                )}
+              </g>
+            );
+          })}
 
         {/* Arrows */}
         {annotations
@@ -272,41 +288,53 @@ export function AnnotationsLayer({
           .filter((a): a is Extract<Annotation, { type: 'arrow' }> => a.type === 'arrow')
           .map((arrow) => {
             const variant = getArrowVariant(arrow.variant);
+            const isSel = selectedAnnotationId === arrow.id;
+            const isTemp = arrow.id.startsWith('temp-');
             return (
-              <line
-                key={arrow.id}
-                x1={arrow.from.x}
-                y1={arrow.from.y}
-                x2={arrow.to.x}
-                y2={arrow.to.y}
-                stroke={arrow.color}
-                strokeWidth={arrow.thickness}
-                strokeDasharray={arrowStrokeDasharray(variant)}
-                strokeLinecap="round"
-                markerStart={variant === 'double' || variant === 'dot' ? `url(#arrow-tail-${arrow.id})` : undefined}
-                markerEnd={`url(#arrow-head-${arrow.id})`}
-              />
+              <g key={arrow.id}>
+                {!isPreview && !isTemp && (
+                  <line x1={arrow.from.x} y1={arrow.from.y} x2={arrow.to.x} y2={arrow.to.y} stroke="transparent" strokeWidth={24} strokeLinecap="round" style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
+                    onMouseDown={(e) => handleSelectAnnotation(e, arrow.id, 'arrow')} />
+                )}
+                <line x1={arrow.from.x} y1={arrow.from.y} x2={arrow.to.x} y2={arrow.to.y} stroke={arrow.color} strokeWidth={arrow.thickness} strokeDasharray={arrowStrokeDasharray(variant)} strokeLinecap="round"
+                  markerStart={variant === 'double' || variant === 'dot' ? `url(#arrow-tail-${arrow.id})` : undefined} markerEnd={`url(#arrow-head-${arrow.id})`}
+                  style={{ cursor: isPreview ? 'default' : (isTemp ? 'crosshair' : 'pointer'), pointerEvents: isPreview ? 'none' : 'stroke' }}
+                  onMouseDown={(e) => !isTemp && handleSelectAnnotation(e, arrow.id, 'arrow')} />
+                {!isPreview && isSel && (
+                  <>
+                    <circle cx={arrow.from.x} cy={arrow.from.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+                    <circle cx={arrow.to.x} cy={arrow.to.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+                  </>
+                )}
+              </g>
             );
           })}
 
         {/* Texts */}
         {annotations
           .filter((a): a is Extract<Annotation, { type: 'text' }> => a.type === 'text')
-          .map((t) => (
-            <text
-              key={t.id}
-              x={t.pos.x}
-              y={t.pos.y}
-              fill={t.color}
-              fontSize={t.fontSize}
-              fontWeight="bold"
-              fontFamily={getTextFontFamily(t.fontFamily)}
-              textAnchor="start"
-              dominantBaseline="hanging"
-            >
-              {t.text}
-            </text>
-          ))}
+          .map((t) => {
+            const isSel = selectedAnnotationId === t.id;
+            const w = t.text.length * t.fontSize * 0.6;
+            const h = t.fontSize * 1.2;
+            return (
+              <g key={t.id}>
+                {!isPreview && (
+                  <rect x={t.pos.x - 4} y={t.pos.y - 2} width={w + 8} height={h + 4} fill="transparent" style={{ cursor: 'pointer', pointerEvents: 'fill' }}
+                    onMouseDown={(e) => handleSelectAnnotation(e, t.id, 'text')} />
+                )}
+                <text x={t.pos.x} y={t.pos.y} fill={t.color} fontSize={t.fontSize} fontWeight="bold" fontFamily={getTextFontFamily(t.fontFamily)} textAnchor="start" dominantBaseline="hanging"
+                  style={{ cursor: isPreview ? 'default' : 'pointer', pointerEvents: isPreview ? 'none' : 'auto', userSelect: 'none' }}
+                  onMouseDown={(e) => handleSelectAnnotation(e, t.id, 'text')}
+                >
+                  {t.text}
+                </text>
+                {!isPreview && isSel && (
+                  <rect x={t.pos.x - 4} y={t.pos.y - 2} width={w + 8} height={h + 4} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" rx={2} style={{ pointerEvents: 'none' }} />
+                )}
+              </g>
+            );
+          })}
       </svg>
 
       {/* HTML Layer for Blurs */}
@@ -314,68 +342,56 @@ export function AnnotationsLayer({
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'blur' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'blur' }> => a.type === 'blur')
-          .map((b) => (
-            <div
-              key={b.id}
-              style={{
-                position: 'absolute',
-                left: `${(b.rect.x / canvasWidth) * 100}%`,
-                top: `${(b.rect.y / canvasHeight) * 100}%`,
-                width: `${(b.rect.w / canvasWidth) * 100}%`,
-                height: `${(b.rect.h / canvasHeight) * 100}%`,
-                ...blurOverlayStyle(b.variant, b.intensity),
-                borderRadius: '4px',
-              }}
-            />
-          ))}
+          .map((b) => {
+            const isSel = selectedAnnotationId === b.id;
+            const isTemp = b.id.startsWith('temp-');
+            return (
+              <div key={b.id} onMouseDown={(e) => !isTemp && handleSelectAnnotation(e, b.id, 'blur')}
+                style={{
+                  position: 'absolute',
+                  left: `${(b.rect.x / canvasWidth) * 100}%`,
+                  top: `${(b.rect.y / canvasHeight) * 100}%`,
+                  width: `${(b.rect.w / canvasWidth) * 100}%`,
+                  height: `${(b.rect.h / canvasHeight) * 100}%`,
+                  ...blurOverlayStyle(b.variant, b.intensity),
+                  borderRadius: '4px',
+                  cursor: isPreview ? 'default' : (isTemp ? 'crosshair' : 'pointer'),
+                  pointerEvents: isPreview ? 'none' : 'auto',
+                }}
+              >
+                {!isPreview && isSel && (
+                  <div style={{ position: 'absolute', inset: '-2px', border: '1.5px dashed #3b82f6', borderRadius: '6px', pointerEvents: 'none' }} />
+                )}
+              </div>
+            );
+          })}
       </div>
 
       {/* Delete buttons — always visible when annotations exist */}
       {!isPreview && (
         <div className="hide-on-export" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
           {annotations.map((a) => {
-            let left = 0;
-            let top = 0;
-
+            let left = 0; let top = 0;
             if (a.type === 'arrow') {
-              left = (a.to.x / canvasWidth) * 100;
-              top = (a.to.y / canvasHeight) * 100;
+              left = (a.to.x / canvasWidth) * 100; top = (a.to.y / canvasHeight) * 100;
             } else if (a.type === 'text') {
-              left = (a.pos.x / canvasWidth) * 100;
-              top = (a.pos.y / canvasHeight) * 100;
+              left = (a.pos.x / canvasWidth) * 100; top = (a.pos.y / canvasHeight) * 100;
             } else {
-              left = ((a.rect.x + a.rect.w) / canvasWidth) * 100;
-              top = (a.rect.y / canvasHeight) * 100;
+              left = ((a.rect.x + a.rect.w) / canvasWidth) * 100; top = (a.rect.y / canvasHeight) * 100;
             }
-
             return (
-              <button
-                key={`delete-${a.id}`}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
+              <button key={`delete-${a.id}`} type="button"
+                onMouseDown={(e) => {
+                  e.stopPropagation(); e.preventDefault();
                   onRemoveAnnotation(a.id);
+                  if (selectedAnnotationId === a.id) setSelectedAnnotationId(null);
                 }}
                 style={{
-                  position: 'absolute',
-                  left: `${left}%`,
-                  top: `${top}%`,
-                  transform: 'translate(-50%, -50%)',
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: '#ef4444',
-                  border: '2px solid #fff',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 30,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                  pointerEvents: isDrawMode ? 'none' : 'auto',
+                  position: 'absolute', left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)',
+                  width: '20px', height: '20px', borderRadius: '50%', background: '#ef4444', border: '2px solid #fff',
+                  color: '#ffffff', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', cursor: 'pointer', zIndex: 30, boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                  pointerEvents: 'auto',
                 }}
               >
                 <IconX size={12} stroke={2.5} aria-hidden="true" />

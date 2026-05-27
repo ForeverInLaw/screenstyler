@@ -83,6 +83,7 @@ interface DocumentState {
   setFrame: (frame: Frame) => void;
   setAnnotations: (annotations: Annotation[]) => void;
   addAnnotation: (annotation: Annotation) => void;
+  updateAnnotation: (id: string, updates: Partial<Annotation>) => void;
   removeAnnotation: (id: string) => void;
   applyStylePreset: (styles: {
     padding: number;
@@ -230,6 +231,15 @@ export const useDocumentStore = create<DocumentState>()(
         set((s) => ({ doc: { ...s.doc, annotations } })),
       addAnnotation: (annotation) =>
         set((s) => ({ doc: { ...s.doc, annotations: [...s.doc.annotations, annotation] } })),
+      updateAnnotation: (id, updates) =>
+        set((s) => ({
+          doc: {
+            ...s.doc,
+            annotations: s.doc.annotations.map((a) =>
+              a.id === id ? ({ ...a, ...updates } as Annotation) : a
+            ),
+          },
+        })),
       removeAnnotation: (id) =>
         set((s) => ({
           doc: { ...s.doc, annotations: s.doc.annotations.filter((a) => a.id !== id) },

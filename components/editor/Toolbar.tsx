@@ -1,5 +1,5 @@
 'use client';
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Link from 'next/link';
 import {
   IconArrowBackUp,
@@ -30,6 +30,8 @@ import { highlightColors } from '@/lib/annotations/highlights';
 import { textFontOptions } from '@/lib/annotations/text';
 import type { ArrowVariant, BlurVariant } from '@/lib/document/schema';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
+import { useEditorUiStore } from '@/lib/editor/ui-store';
+import { withAlpha } from '@/lib/style/css';
 
 type Tool = 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
 
@@ -66,6 +68,14 @@ export function Toolbar({
   const undo = () => useDocumentStore.temporal.getState().undo();
   const redo = () => useDocumentStore.temporal.getState().redo();
   const setAnnotations = useDocumentStore((s) => s.setAnnotations);
+
+  const selectedAnnotationId = useEditorUiStore((s) => s.selectedAnnotationId);
+  const annotations = useDocumentStore((s) => s.doc.annotations);
+  const updateAnnotation = useDocumentStore((s) => s.updateAnnotation);
+
+  const selectedAnnotation = annotations.find((a) => a.id === selectedAnnotationId);
+  const effectiveTool = selectedAnnotation ? selectedAnnotation.type : activeTool;
+
   const arrowColor = useAnnotationStyleStore((s) => s.arrowColor);
   const arrowVariant = useAnnotationStyleStore((s) => s.arrowVariant);
   const setArrowColor = useAnnotationStyleStore((s) => s.setArrowColor);
@@ -82,6 +92,79 @@ export function Toolbar({
   const setHighlightOpacity = useAnnotationStyleStore((s) => s.setHighlightOpacity);
   const setBlurVariant = useAnnotationStyleStore((s) => s.setBlurVariant);
   const setBlurIntensity = useAnnotationStyleStore((s) => s.setBlurIntensity);
+
+  function parseRgba(color: string): { hex: string; opacity: number } {
+    if (color.startsWith('rgba')) {
+      const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        const opacity = match[4] !== undefined ? parseFloat(match[4]) : 1;
+        const toHex = (c: number) => {
+          const hex = c.toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        };
+        return { hex: `#${toHex(r)}${toHex(g)}${toHex(b)}`, opacity };
+      }
+    }
+    return { hex: color, opacity: 1 };
+  }
+
+  useEffect(() => {
+    if (!selectedAnnotation) return;
+    if (selectedAnnotation.type === 'arrow') {
+      setArrowColor(selectedAnnotation.color);
+      setArrowVariant(selectedAnnotation.variant || 'solid');
+    } else if (selectedAnnotation.type === 'text') {
+      setTextFontFamily(selectedAnnotation.fontFamily || 'inter');
+      setTextSize(selectedAnnotation.fontSize);
+    } else if (selectedAnnotation.type === 'highlight') {
+      const parsed = parseRgba(selectedAnnotation.color);
+      setHighlightColor(parsed.hex);
+      setHighlightOpacity(parsed.opacity);
+    } else if (selectedAnnotation.type === 'blur') {
+      setBlurVariant(selectedAnnotation.variant || 'soft');
+      setBlurIntensity(selectedAnnotation.intensity);
+    }
+  }, [selectedAnnotationId]);
+
+  function handleArrowVariantChange(variantId: ArrowVariant) {
+    setArrowVariant(variantId);
+    if (selectedAnnotation?.type === 'arrow') updateAnnotation(selectedAnnotation.id, { variant: variantId });
+  }
+  function handleArrowColorChange(color: string) {
+    setArrowColor(color);
+    if (selectedAnnotation?.type === 'arrow') updateAnnotation(selectedAnnotation.id, { color });
+  }
+  function handleTextFontFamilyChange(fontFamily: string) {
+    setTextFontFamily(fontFamily);
+    if (selectedAnnotation?.type === 'text') updateAnnotation(selectedAnnotation.id, { fontFamily });
+  }
+  function handleTextSizeChange(size: number) {
+    setTextSize(size);
+    if (selectedAnnotation?.type === 'text') updateAnnotation(selectedAnnotation.id, { fontSize: size });
+  }
+  function handleHighlightColorChange(color: string) {
+    setHighlightColor(color);
+    if (selectedAnnotation?.type === 'highlight') {
+      updateAnnotation(selectedAnnotation.id, { color: withAlpha(color, highlightOpacity) });
+    }
+  }
+  function handleHighlightOpacityChange(opacity: number) {
+    setHighlightOpacity(opacity);
+    if (selectedAnnotation?.type === 'highlight') {
+      updateAnnotation(selectedAnnotation.id, { color: withAlpha(highlightColor, opacity) });
+    }
+  }
+  function handleBlurVariantChange(variant: BlurVariant) {
+    setBlurVariant(variant);
+    if (selectedAnnotation?.type === 'blur') updateAnnotation(selectedAnnotation.id, { variant });
+  }
+  function handleBlurIntensityChange(intensity: number) {
+    setBlurIntensity(intensity);
+    if (selectedAnnotation?.type === 'blur') updateAnnotation(selectedAnnotation.id, { intensity });
+  }
 
   function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -203,7 +286,7 @@ export function Toolbar({
         </div>
       )}
 
-      {!isPreview && activeTool === 'arrow' && (
+      {!isPreview && effectiveTool === 'arrow' && (
         <div aria-label="Arrow options" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
           {arrowVariants.map((variant) => {
             const VariantIcon = arrowVariantIcons[variant.id];
@@ -214,7 +297,7 @@ export function Toolbar({
                 type="button"
                 aria-label={variant.label}
                 title={variant.label}
-                onClick={() => setArrowVariant(variant.id)}
+                onClick={() => handleArrowVariantChange(variant.id)}
                 style={{
                   display: 'grid',
                   placeItems: 'center',
@@ -238,7 +321,7 @@ export function Toolbar({
               type="button"
               aria-label={`Arrow color ${color}`}
               title={color}
-              onClick={() => setArrowColor(color)}
+              onClick={() => handleArrowColorChange(color)}
               style={{
                 width: 22,
                 height: 22,
@@ -253,18 +336,18 @@ export function Toolbar({
             type="color"
             aria-label="Custom arrow color"
             value={arrowColor}
-            onChange={(event) => setArrowColor(event.target.value)}
+            onChange={(event) => handleArrowColorChange(event.target.value)}
             style={{ width: 28, height: 28, border: '1px solid #3a3d46', borderRadius: 6, backgroundColor: 'transparent', padding: 0, cursor: 'pointer' }}
           />
         </div>
       )}
 
-      {!isPreview && activeTool === 'text' && (
+      {!isPreview && effectiveTool === 'text' && (
         <div aria-label="Text options" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
           <select
             aria-label="Text font"
             value={textFontFamily}
-            onChange={(event) => setTextFontFamily(event.target.value)}
+            onChange={(event) => handleTextFontFamilyChange(event.target.value)}
             style={{ height: 28, minWidth: 112, border: '1px solid #3a3d46', borderRadius: 6, background: '#16181d', color: '#e5e7eb', fontSize: 12, padding: '0 8px' }}
           >
             {textFontOptions.map((font) => (
@@ -278,14 +361,14 @@ export function Toolbar({
             max={72}
             step={2}
             value={textSize}
-            onChange={(event) => setTextSize(Number(event.target.value))}
+            onChange={(event) => handleTextSizeChange(Number(event.target.value))}
             style={{ width: 96, cursor: 'pointer' }}
           />
           <span style={{ width: 28, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{textSize}</span>
         </div>
       )}
 
-      {!isPreview && activeTool === 'highlight' && (
+      {!isPreview && effectiveTool === 'highlight' && (
         <div aria-label="Highlight options" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
           {highlightColors.map((color) => (
             <button
@@ -293,7 +376,7 @@ export function Toolbar({
               type="button"
               aria-label={`Highlight color ${color}`}
               title={color}
-              onClick={() => setHighlightColor(color)}
+              onClick={() => handleHighlightColorChange(color)}
               style={{
                 width: 22,
                 height: 22,
@@ -308,7 +391,7 @@ export function Toolbar({
             type="color"
             aria-label="Custom highlight color"
             value={highlightColor}
-            onChange={(event) => setHighlightColor(event.target.value)}
+            onChange={(event) => handleHighlightColorChange(event.target.value)}
             style={{ width: 28, height: 28, border: '1px solid #3a3d46', borderRadius: 6, backgroundColor: 'transparent', padding: 0, cursor: 'pointer' }}
           />
           <div style={{ width: 1, height: 18, background: '#2a2d36' }} />
@@ -319,19 +402,19 @@ export function Toolbar({
             max={90}
             step={5}
             value={Math.round(highlightOpacity * 100)}
-            onChange={(event) => setHighlightOpacity(Number(event.target.value) / 100)}
+            onChange={(event) => handleHighlightOpacityChange(Number(event.target.value) / 100)}
             style={{ width: 88, cursor: 'pointer' }}
           />
           <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{Math.round(highlightOpacity * 100)}%</span>
         </div>
       )}
 
-      {!isPreview && activeTool === 'blur' && (
+      {!isPreview && effectiveTool === 'blur' && (
         <div aria-label="Blur options" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0f1115', padding: 4, borderRadius: 8, border: '1px solid #2a2d36' }}>
           <select
             aria-label="Blur type"
             value={blurVariant}
-            onChange={(event) => setBlurVariant(event.target.value as BlurVariant)}
+            onChange={(event) => handleBlurVariantChange(event.target.value as BlurVariant)}
             style={{ height: 28, minWidth: 104, border: '1px solid #3a3d46', borderRadius: 6, background: '#16181d', color: '#e5e7eb', fontSize: 12, padding: '0 8px' }}
           >
             {blurVariants.map((variant) => (
@@ -345,7 +428,7 @@ export function Toolbar({
             max={28}
             step={1}
             value={blurIntensity}
-            onChange={(event) => setBlurIntensity(Number(event.target.value))}
+            onChange={(event) => handleBlurIntensityChange(Number(event.target.value))}
             style={{ width: 96, cursor: 'pointer' }}
           />
           <span style={{ width: 34, textAlign: 'right', fontSize: 12, fontWeight: 700 }}>{blurIntensity}px</span>
