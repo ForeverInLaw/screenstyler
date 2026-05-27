@@ -1,4 +1,5 @@
 'use client';
+import { type ReactNode } from 'react';
 import type { ScreenstylerDoc, ScreenshotItem } from '@/lib/document/schema';
 import { ScreenshotItemComponent } from './ScreenshotItemComponent';
 
@@ -7,9 +8,10 @@ type Props = {
   canvasWidth?: number;
   canvasHeight?: number;
   isPreview?: boolean;
+  children?: ReactNode;
 };
 
-export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000, isPreview = false }: Props) {
+export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000, isPreview = false, children }: Props) {
   const { rotateX, rotateY, rotateZ, perspective, scale } = content.transform3d;
   const has3d = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
 
@@ -83,7 +85,6 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
             width: '100%',
             height: '100%',
             transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`,
-            transformStyle: has3d ? 'preserve-3d' : undefined,
             transition: 'transform 0.3s ease-out',
             willChange: has3d ? 'transform' : undefined,
           }}
@@ -96,6 +97,7 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
               isPreview={isPreview}
             />
           ))}
+          {children}
         </div>
       </div>
     </div>

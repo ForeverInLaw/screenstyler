@@ -178,7 +178,6 @@ function ProjectDocumentPreview({ doc: rawDoc }: { doc: ScreenstylerDoc }) {
                 width: '100%',
                 height: '100%',
                 transform: `rotateX(${doc.content.transform3d.rotateX}deg) rotateY(${doc.content.transform3d.rotateY}deg) rotateZ(${doc.content.transform3d.rotateZ}deg) scale(${finalScale})`,
-                transformStyle: 'preserve-3d',
               }}
             >
               {screenshots.map((item) => (
