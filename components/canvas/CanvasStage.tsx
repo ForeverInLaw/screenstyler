@@ -6,11 +6,13 @@ type Props = { docWidth: number; docHeight: number; children: ReactNode };
 
 export function CanvasStage({ docWidth, docHeight, children }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
   const viewportZoom = useEditorUiStore((s) => s.viewportZoom);
-  const setViewportZoom = useEditorUiStore((s) => s.setViewportZoom);
+  const viewportOffset = useEditorUiStore((s) => s.viewportOffset);
   const resetViewportZoom = useEditorUiStore((s) => s.resetViewportZoom);
 
+  // Auto-fit on resize
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -28,22 +30,46 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
     return () => observer.disconnect();
   }, [docWidth, docHeight]);
 
-  // Handle Alt+Wheel for viewport zoom
+  // Alt+Wheel: zoom towards cursor position
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (!e.altKey) return;
       e.preventDefault();
 
+      const container = containerRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      // Mouse position relative to the container center
+      const mx = e.clientX - rect.left - rect.width / 2;
+      const my = e.clientY - rect.top - rect.height / 2;
+
+      const state = useEditorUiStore.getState();
+      const oldZoom = state.viewportZoom;
+      const oldOffset = state.viewportOffset;
+
       const direction = e.deltaY < 0 ? 1 : -1;
       const step = e.shiftKey ? 0.15 : 0.08;
-      const current = useEditorUiStore.getState().viewportZoom;
-      const next = Number((current + direction * step).toFixed(2));
-      setViewportZoom(next);
+      const rawNext = oldZoom + direction * step;
+      const newZoom = Math.min(5, Math.max(0.1, Number(rawNext.toFixed(2))));
+
+      if (newZoom === oldZoom) return;
+
+      const ratio = newZoom / oldZoom;
+
+      // Zoom-to-cursor formula:
+      // The point under the cursor should stay fixed.
+      // newOffset = mouse - (mouse - oldOffset) * ratio
+      const newOffsetX = mx - (mx - oldOffset.x) * ratio;
+      const newOffsetY = my - (my - oldOffset.y) * ratio;
+
+      useEditorUiStore.getState().setViewportZoom(newZoom);
+      useEditorUiStore.getState().setViewportOffset({ x: newOffsetX, y: newOffsetY });
     },
-    [setViewportZoom],
+    [],
   );
 
-  // Attach as non-passive so we can preventDefault on Alt+Wheel
+  // Attach as non-passive so we can preventDefault
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -51,7 +77,7 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
-  // Reset zoom on double-click while holding Alt
+  // Alt+Double-click to reset zoom
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.altKey) {
@@ -80,7 +106,14 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
         position: 'relative',
       }}
     >
-      <div style={{ transform: `scale(${combinedScale})`, transformOrigin: 'center', transition: 'transform 0.1s ease-out' }}>
+      <div
+        ref={innerRef}
+        style={{
+          transform: `translate(${viewportOffset.x}px, ${viewportOffset.y}px) scale(${combinedScale})`,
+          transformOrigin: 'center',
+          willChange: 'transform',
+        }}
+      >
         {children}
       </div>
 
