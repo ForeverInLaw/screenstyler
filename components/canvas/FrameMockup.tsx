@@ -50,6 +50,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
           background: contentBg,
           border,
           width: '100%',
+          height: '100%',
         }}
       >
         {/* Title Bar */}
@@ -62,6 +63,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
             padding: '0 12px',
             borderBottom: isDark ? '1px solid #232425' : '1px solid #d8d8d8',
             position: 'relative',
+            flexShrink: 0,
           }}
         >
           {/* Traffic Lights */}
@@ -72,7 +74,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
           </div>
         </div>
         {/* Window Content */}
-        <div style={{ overflow: 'hidden', position: 'relative' }}>
+        <div style={{ overflow: 'hidden', position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
       </div>
@@ -100,6 +102,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
             background: isDark ? '#1e1e1e' : '#ffffff',
             border,
             width: '100%',
+            height: '100%',
           }}
         >
           {/* Safari Header */}
@@ -112,6 +115,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
               padding: '0 16px',
               gap: '16px',
               borderBottom: border,
+              flexShrink: 0,
             }}
           >
             {/* Traffic Lights */}
@@ -146,7 +150,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
               {displayUrl}
             </div>
           </div>
-          <div style={{ overflow: 'hidden', position: 'relative' }}>
+          <div style={{ overflow: 'hidden', position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
             {children}
           </div>
         </div>
@@ -166,10 +170,11 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
             background: isDark ? '#202124' : '#ffffff',
             border,
             width: '100%',
+            height: '100%',
           }}
         >
           {/* Chrome Tab & URL Bar */}
-          <div style={{ background: headerBg, padding: '8px 8px 4px 8px', display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: border }}>
+          <div style={{ background: headerBg, padding: '8px 8px 4px 8px', display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: border, flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {/* Traffic Lights */}
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -214,7 +219,7 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
               </div>
             </div>
           </div>
-          <div style={{ overflow: 'hidden', position: 'relative' }}>
+          <div style={{ overflow: 'hidden', position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
             {children}
           </div>
         </div>
@@ -250,7 +255,8 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
         <div
           data-testid="frame-mockup-device"
           style={{
-            width: '280px',
+            width: '100%',
+            height: '100%',
             aspectRatio: '9 / 19.5',
             borderRadius: '36px',
             border: '10px solid #1a1a1a',
@@ -289,7 +295,8 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
         <div
           data-testid="frame-mockup-device"
           style={{
-            width: '420px',
+            width: '100%',
+            height: '100%',
             aspectRatio: '4 / 3',
             borderRadius: '24px',
             border: '14px solid #1c1c1e',
@@ -314,14 +321,15 @@ export function FrameMockup({ frame, shadow, cornerRadius, children }: Props) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            width: '480px',
+            width: '100%',
+            height: '100%',
           }}
         >
           {/* Screen Bezel */}
           <div
             style={{
               width: '100%',
-              aspectRatio: '16 / 10',
+              flex: 1,
               border: '12px solid #000000',
               borderRadius: '16px 16px 0 0',
               background: '#000000',

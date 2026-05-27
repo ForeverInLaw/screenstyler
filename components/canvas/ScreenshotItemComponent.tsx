@@ -7,7 +7,7 @@ import {
   IconChevronUp,
   IconChevronDown,
 } from '@tabler/icons-react';
-import type { ScreenshotItem, ScreenstylerDoc } from '@/lib/document/schema';
+import type { ScreenshotItem, ScreenstylerDoc, Frame } from '@/lib/document/schema';
 import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { FrameMockup } from './FrameMockup';
@@ -19,6 +19,15 @@ type Props = {
   content: ScreenstylerDoc['content'];
   isPreview?: boolean;
 };
+
+function getHeaderHeight(frame: Frame) {
+  if (frame.type === 'window') return 32;
+  if (frame.type === 'browser') {
+    if (frame.variant === 'safari') return 42;
+    if (frame.variant === 'chrome') return 70;
+  }
+  return 0;
+}
 
 export function ScreenshotItemComponent({ item, content, isPreview = false }: Props) {
   const doc = useDocumentStore((s) => s.doc);
@@ -33,6 +42,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
 
   const isSelected = selectedScreenshotId === item.id;
   const url = useObjectUrl(item.image.blobKey);
+
+  const headerH = getHeaderHeight(content.frame);
+  const renderY = item.y - headerH;
+  const renderH = item.height + headerH;
 
   const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
   const scaleX = item.width / crop.w;
@@ -356,9 +369,9 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
       style={{
         position: 'absolute',
         left: `${(item.x / doc.canvas.width) * 100}%`,
-        top: `${(item.y / doc.canvas.height) * 100}%`,
+        top: `${(renderY / doc.canvas.height) * 100}%`,
         width: `${(item.width / doc.canvas.width) * 100}%`,
-        height: `${(item.height / doc.canvas.height) * 100}%`,
+        height: `${(renderH / doc.canvas.height) * 100}%`,
         cursor: isPreview ? 'default' : 'move',
         pointerEvents: 'auto',
         zIndex: isSelected ? 10 : 2,
@@ -381,25 +394,43 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
             aspectRatio: `${item.width} / ${item.height}`,
           }}
         >
-          <img
-            data-testid="screenshot"
-            src={url}
-            alt=""
-            style={{
-              position: 'absolute',
-              left: `${offsetX}px`,
-              top: `${offsetY}px`,
-              width: `${fullW}px`,
-              height: `${fullH}px`,
-              maxWidth: 'none',
-              maxHeight: 'none',
-              display: 'block',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              borderRadius: content.frame.type === 'none' ? `${content.cornerRadius}px` : undefined,
-              boxShadow: content.frame.type === 'none' ? shadowToCss(content.shadow) : undefined,
-            }}
-          />
+          {item.crop ? (
+            <img
+              data-testid="screenshot"
+              src={url}
+              alt=""
+              style={{
+                position: 'absolute',
+                left: `${offsetX}px`,
+                top: `${offsetY}px`,
+                width: `${fullW}px`,
+                height: `${fullH}px`,
+                maxWidth: 'none',
+                maxHeight: 'none',
+                display: 'block',
+                userSelect: 'none',
+                pointerEvents: 'none',
+                borderRadius: content.frame.type === 'none' ? `${content.cornerRadius}px` : undefined,
+                boxShadow: content.frame.type === 'none' ? shadowToCss(content.shadow) : undefined,
+              }}
+            />
+          ) : (
+            <img
+              data-testid="screenshot"
+              src={url}
+              alt=""
+              style={{
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                userSelect: 'none',
+                pointerEvents: 'none',
+                borderRadius: content.frame.type === 'none' ? `${content.cornerRadius}px` : undefined,
+                boxShadow: content.frame.type === 'none' ? shadowToCss(content.shadow) : undefined,
+              }}
+            />
+          )}
         </div>
       </FrameMockup>
 

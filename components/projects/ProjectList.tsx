@@ -91,19 +91,32 @@ function ProjectScreenshotItem({
         </div>
       )}
       <div style={{ position: 'relative', width: '100%', height: showChrome ? 'calc(100% - 12px)' : '100%', overflow: 'hidden' }}>
-        <img
-          src={imageUrl}
-          alt=""
-          style={{
-            position: 'absolute',
-            left,
-            top,
-            width,
-            height,
-            maxWidth: 'none',
-            maxHeight: 'none',
-          }}
-        />
+        {item.crop ? (
+          <img
+            src={imageUrl}
+            alt=""
+            style={{
+              position: 'absolute',
+              left,
+              top,
+              width,
+              height,
+              maxWidth: 'none',
+              maxHeight: 'none',
+            }}
+          />
+        ) : (
+          <img
+            src={imageUrl}
+            alt=""
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        )}
       </div>
     </div>
   );
