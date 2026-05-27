@@ -116,6 +116,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
       | 'crop-bl'
       | 'crop-br'
   ) => {
+    if (e.button === 1) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -417,7 +418,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         setSelectedScreenshotId(item.id);
       }}
       onMouseDown={(e) => {
-        if (isPreview) return;
+        if (isPreview || e.button === 1) return;
         handleDragStart(e, 'move');
       }}
       style={{

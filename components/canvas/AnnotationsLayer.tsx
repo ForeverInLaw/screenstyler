@@ -36,7 +36,7 @@ export function AnnotationsLayer({
   const setSelectedAnnotationId = useEditorUiStore((s) => s.setSelectedAnnotationId);
 
   function handleSelectAnnotation(e: MouseEvent, id: string, type: 'arrow' | 'text' | 'highlight' | 'blur') {
-    if (isPreview) return;
+    if (isPreview || e.button === 1) return;
     e.stopPropagation();
     e.preventDefault();
     setSelectedAnnotationId(id);
@@ -48,7 +48,7 @@ export function AnnotationsLayer({
     annotation: Annotation,
     type: 'move' | 'handle-from' | 'handle-to' | 'resize-br'
   ) => {
-    if (isPreview) return;
+    if (isPreview || e.button === 1) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -148,7 +148,7 @@ export function AnnotationsLayer({
   }
 
   function handleMouseDown(e: MouseEvent<HTMLDivElement>) {
-    if (activeTool === 'select') return;
+    if (activeTool === 'select' || e.button === 1) return;
     e.preventDefault();
     const pt = getCanvasCoords(e);
     if (activeTool === 'text') { setTextPos(pt); setTextVal(''); return; }
@@ -469,6 +469,7 @@ export function AnnotationsLayer({
             return (
               <button key={`delete-${a.id}`} type="button"
                 onMouseDown={(e) => {
+                  if (e.button === 1) return;
                   e.stopPropagation(); e.preventDefault();
                   onRemoveAnnotation(a.id);
                   if (selectedAnnotationId === a.id) setSelectedAnnotationId(null);
