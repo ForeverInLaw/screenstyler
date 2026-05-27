@@ -510,6 +510,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
           <div
             className="hide-on-export"
             onMouseDown={(e) => e.stopPropagation()} // Prevent dragging from starting when clicking toolbar buttons
+            onClick={(e) => e.stopPropagation()} // Prevent resetting selection and crop mode when clicking buttons
             style={{
               position: 'absolute',
               left: '50%',
