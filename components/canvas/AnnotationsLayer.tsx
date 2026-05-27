@@ -46,17 +46,19 @@ export function AnnotationsLayer({
   // Projects coordinates using browser's offsetX/offsetY on the transformed container.
   function getCanvasCoords(e: MouseEvent<HTMLDivElement>): Point {
     if (!containerRef.current) return { x: 0, y: 0 };
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
+    const rect = containerRef.current.getBoundingClientRect();
+    const width = containerRef.current.clientWidth || rect.width || canvasWidth;
+    const height = containerRef.current.clientHeight || rect.height || canvasHeight;
 
     let localX = e.nativeEvent.offsetX;
     let localY = e.nativeEvent.offsetY;
 
-    // Fallback to bounding rect projection if mouse target is a child element
-    if (e.target !== e.currentTarget) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      localX = ((e.clientX - rect.left) / rect.width) * width;
-      localY = ((e.clientY - rect.top) / rect.height) * height;
+    // Fallback to bounding rect projection if nativeEvent.offsetX is missing (jsdom tests) or if target is a child
+    if (typeof localX !== 'number' || e.target !== e.currentTarget) {
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      localX = (clickX / (rect.width || 1)) * width;
+      localY = (clickY / (rect.height || 1)) * height;
     }
 
     const x = (localX / width) * canvasWidth;
