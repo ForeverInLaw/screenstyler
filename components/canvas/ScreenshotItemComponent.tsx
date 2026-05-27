@@ -270,7 +270,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
             height: `${currentCrop.h * displayScale}px`,
             outline: '2px solid #818cf8',
             boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
-            cursor: 'move',
+            cursor: 'default',
             overflow: 'hidden',
           }}
         >
@@ -426,7 +426,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         top: `${(renderY / doc.canvas.height) * 100}%`,
         width: `${(item.width / doc.canvas.width) * 100}%`,
         height: `${(renderH / doc.canvas.height) * 100}%`,
-        cursor: isPreview ? 'default' : 'move',
+        cursor: 'default',
         pointerEvents: 'auto',
         zIndex: isSelected ? 10 : 2,
         boxSizing: 'border-box',
