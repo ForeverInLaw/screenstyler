@@ -1,4 +1,8 @@
 .continuum/
+.claude/
+.codegraph/
+.mcp.json
+opencode.jsonc
 node_modules/
 .next/
 out/
