@@ -114,6 +114,43 @@ function EditorPage() {
     return () => window.removeEventListener('paste', handlePaste);
   }, [isPreview, project.userId, addScreenshot]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (isPreview) return;
+
+      // Ignore shortcuts if user is typing in input, textarea, or contenteditable
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCmdOrCtrl = isMac ? event.metaKey : event.ctrlKey;
+
+      if (isCmdOrCtrl) {
+        if (event.key.toLowerCase() === 'z') {
+          event.preventDefault();
+          if (event.shiftKey) {
+            useDocumentStore.temporal.getState().redo();
+          } else {
+            useDocumentStore.temporal.getState().undo();
+          }
+        } else if (event.key.toLowerCase() === 'y') {
+          event.preventDefault();
+          useDocumentStore.temporal.getState().redo();
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPreview]);
+
   async function handleExport() {
     if (!frameRef.current) return;
     try {
@@ -184,7 +221,7 @@ function EditorPage() {
                   }
                 });
               }}
-              style={{ flex: 1, display: 'flex', position: 'relative' }}
+              style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}
             >
               <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
                 <DocumentCanvas ref={frameRef} doc={doc} activeTool={activeTool} isPreview={isPreview} />
