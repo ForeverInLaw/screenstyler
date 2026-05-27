@@ -162,7 +162,7 @@ function ProjectDocumentPreview({ doc: rawDoc }: { doc: ScreenstylerDoc }) {
             ...backgroundToStyle(doc.canvas.background, backgroundUrl ?? undefined),
           }}
         />
-        {screenshots.length > 0 && (
+        {(screenshots.length > 0 || doc.annotations.length > 0) && (
           <div
             style={{
               position: 'absolute',
@@ -192,97 +192,97 @@ function ProjectDocumentPreview({ doc: rawDoc }: { doc: ScreenstylerDoc }) {
                   cornerRadius={cornerRadius}
                 />
               ))}
+              <svg
+                viewBox={`0 0 ${doc.canvas.width} ${doc.canvas.height}`}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+              >
+                <defs>
+                  {doc.annotations
+                    .filter((a): a is Extract<ScreenstylerDoc['annotations'][number], { type: 'arrow' }> => a.type === 'arrow')
+                    .map((arrow) => {
+                      const variant = getArrowVariant(arrow.variant);
+                      return (
+                        <Fragment key={`preview-marker-${arrow.id}`}>
+                          <marker id={`preview-arrow-head-${arrow.id}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <polygon points="0 0, 8 3, 0 6" fill={arrow.color} />
+                          </marker>
+                          {variant === 'double' && (
+                            <marker id={`preview-arrow-tail-${arrow.id}`} markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto" markerUnits="strokeWidth">
+                              <polygon points="8 0, 0 3, 8 6" fill={arrow.color} />
+                            </marker>
+                          )}
+                          {variant === 'dot' && (
+                            <marker id={`preview-arrow-tail-${arrow.id}`} markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+                              <circle cx="3" cy="3" r="2.2" fill={arrow.color} />
+                            </marker>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                </defs>
+                {doc.annotations.map((annotation) => {
+                  if (annotation.type === 'highlight') {
+                    return (
+                      <rect
+                        key={annotation.id}
+                        x={annotation.rect.x}
+                        y={annotation.rect.y}
+                        width={annotation.rect.w}
+                        height={annotation.rect.h}
+                        fill={annotation.color}
+                        rx="8"
+                      />
+                    );
+                  }
+                  if (annotation.type === 'arrow') {
+                    const variant = getArrowVariant(annotation.variant);
+                    return (
+                      <line
+                        key={annotation.id}
+                        x1={annotation.from.x}
+                        y1={annotation.from.y}
+                        x2={annotation.to.x}
+                        y2={annotation.to.y}
+                        stroke={annotation.color}
+                        strokeWidth={Math.max(annotation.thickness, 6)}
+                        strokeDasharray={arrowStrokeDasharray(variant)}
+                        strokeLinecap="round"
+                        markerStart={variant === 'double' || variant === 'dot' ? `url(#preview-arrow-tail-${annotation.id})` : undefined}
+                        markerEnd={`url(#preview-arrow-head-${annotation.id})`}
+                      />
+                    );
+                  }
+                  if (annotation.type === 'text') {
+                    return (
+                      <text
+                        key={annotation.id}
+                        x={annotation.pos.x}
+                        y={annotation.pos.y}
+                        fill={annotation.color}
+                        fontSize={Math.max(annotation.fontSize, 24)}
+                        fontWeight="700"
+                        fontFamily={getTextFontFamily(annotation.fontFamily)}
+                      >
+                        {annotation.text}
+                      </text>
+                    );
+                  }
+                  return (
+                    <rect
+                      key={annotation.id}
+                      x={annotation.rect.x}
+                      y={annotation.rect.y}
+                      width={annotation.rect.w}
+                      height={annotation.rect.h}
+                      fill={blurPreviewFill(annotation.variant)}
+                      rx="8"
+                    />
+                  );
+                })}
+              </svg>
             </div>
           </div>
         )}
-        <svg
-          viewBox={`0 0 ${doc.canvas.width} ${doc.canvas.height}`}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-        >
-          <defs>
-            {doc.annotations
-              .filter((a): a is Extract<ScreenstylerDoc['annotations'][number], { type: 'arrow' }> => a.type === 'arrow')
-              .map((arrow) => {
-                const variant = getArrowVariant(arrow.variant);
-                return (
-                  <Fragment key={`preview-marker-${arrow.id}`}>
-                    <marker id={`preview-arrow-head-${arrow.id}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
-                      <polygon points="0 0, 8 3, 0 6" fill={arrow.color} />
-                    </marker>
-                    {variant === 'double' && (
-                      <marker id={`preview-arrow-tail-${arrow.id}`} markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto" markerUnits="strokeWidth">
-                        <polygon points="8 0, 0 3, 8 6" fill={arrow.color} />
-                      </marker>
-                    )}
-                    {variant === 'dot' && (
-                      <marker id={`preview-arrow-tail-${arrow.id}`} markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                        <circle cx="3" cy="3" r="2.2" fill={arrow.color} />
-                      </marker>
-                    )}
-                  </Fragment>
-                );
-              })}
-          </defs>
-          {doc.annotations.map((annotation) => {
-            if (annotation.type === 'highlight') {
-              return (
-                <rect
-                  key={annotation.id}
-                  x={annotation.rect.x}
-                  y={annotation.rect.y}
-                  width={annotation.rect.w}
-                  height={annotation.rect.h}
-                  fill={annotation.color}
-                  rx="8"
-                />
-              );
-            }
-            if (annotation.type === 'arrow') {
-              const variant = getArrowVariant(annotation.variant);
-              return (
-                <line
-                  key={annotation.id}
-                  x1={annotation.from.x}
-                  y1={annotation.from.y}
-                  x2={annotation.to.x}
-                  y2={annotation.to.y}
-                  stroke={annotation.color}
-                  strokeWidth={Math.max(annotation.thickness, 6)}
-                  strokeDasharray={arrowStrokeDasharray(variant)}
-                  strokeLinecap="round"
-                  markerStart={variant === 'double' || variant === 'dot' ? `url(#preview-arrow-tail-${annotation.id})` : undefined}
-                  markerEnd={`url(#preview-arrow-head-${annotation.id})`}
-                />
-              );
-            }
-            if (annotation.type === 'text') {
-              return (
-                <text
-                  key={annotation.id}
-                  x={annotation.pos.x}
-                  y={annotation.pos.y}
-                  fill={annotation.color}
-                  fontSize={Math.max(annotation.fontSize, 24)}
-                  fontWeight="700"
-                  fontFamily={getTextFontFamily(annotation.fontFamily)}
-                >
-                  {annotation.text}
-                </text>
-              );
-            }
-            return (
-              <rect
-                key={annotation.id}
-                x={annotation.rect.x}
-                y={annotation.rect.y}
-                width={annotation.rect.w}
-                height={annotation.rect.h}
-                fill={blurPreviewFill(annotation.variant)}
-                rx="8"
-              />
-            );
-          })}
-        </svg>
       </div>
     </div>
   );
