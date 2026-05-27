@@ -77,6 +77,40 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  // Middle-mouse-button panning
+  const handleMiddleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 1) return; // middle button only
+      e.preventDefault();
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startOffset = useEditorUiStore.getState().viewportOffset;
+
+      const container = containerRef.current;
+      if (container) container.style.cursor = 'grabbing';
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        useEditorUiStore.getState().setViewportOffset({
+          x: startOffset.x + dx,
+          y: startOffset.y + dy,
+        });
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        if (container) container.style.cursor = '';
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    },
+    [],
+  );
+
   // Alt+Double-click to reset zoom
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -95,6 +129,7 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
     <div
       ref={containerRef}
       data-testid="canvas-stage"
+      onMouseDown={handleMiddleMouseDown}
       onDoubleClick={handleDoubleClick}
       style={{
         flex: 1,
