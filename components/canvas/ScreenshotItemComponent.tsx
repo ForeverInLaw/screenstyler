@@ -119,6 +119,8 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
     e.preventDefault();
     e.stopPropagation();
 
+    useDocumentStore.temporal.getState().pause();
+
     const startX = e.clientX;
     const startY = e.clientY;
 
@@ -211,6 +213,11 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
     const onMouseUp = () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+
+      const temporal = useDocumentStore.temporal.getState();
+      temporal.resume();
+      const state = useDocumentStore.getState();
+      useDocumentStore.setState({ doc: { ...state.doc } });
     };
 
     window.addEventListener('mousemove', onMouseMove);

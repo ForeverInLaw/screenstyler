@@ -45,6 +45,15 @@ export function GridPanel() {
             step={5}
             value={grid.size}
             onChange={(e) => setGridSettings({ size: Number(e.target.value) })}
+            onPointerDown={() => {
+              useDocumentStore.temporal.getState().pause();
+            }}
+            onPointerUp={() => {
+              const temporal = useDocumentStore.temporal.getState();
+              temporal.resume();
+              const state = useDocumentStore.getState();
+              useDocumentStore.setState({ doc: { ...state.doc } });
+            }}
             style={{ width: '100%', cursor: 'pointer', accentColor: '#6366f1' }}
           />
         </div>

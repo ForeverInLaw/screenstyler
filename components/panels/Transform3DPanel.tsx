@@ -27,6 +27,15 @@ function Slider(props: {
         step={props.step ?? 1}
         value={props.value}
         onChange={(e) => props.onChange(Number(e.target.value))}
+        onPointerDown={() => {
+          useDocumentStore.temporal.getState().pause();
+        }}
+        onPointerUp={() => {
+          const temporal = useDocumentStore.temporal.getState();
+          temporal.resume();
+          const state = useDocumentStore.getState();
+          useDocumentStore.setState({ doc: { ...state.doc } });
+        }}
         style={{ width: '100%', marginTop: '4px', cursor: 'pointer' }}
       />
     </label>

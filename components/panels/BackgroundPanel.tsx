@@ -97,6 +97,15 @@ export function BackgroundPanel() {
               max={360}
               value={activeGradient.angle}
               onChange={(event) => setCustomGradient({ angle: Number(event.target.value) })}
+              onPointerDown={() => {
+                useDocumentStore.temporal.getState().pause();
+              }}
+              onPointerUp={() => {
+                const temporal = useDocumentStore.temporal.getState();
+                temporal.resume();
+                const state = useDocumentStore.getState();
+                useDocumentStore.setState({ doc: { ...state.doc } });
+              }}
             />
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
