@@ -43,13 +43,24 @@ export function AnnotationsLayer({
   const blurIntensity = useAnnotationStyleStore((s) => s.blurIntensity);
 
   // Convert screen coordinates to canvas-relative coordinates.
-  // The container fills the entire DocumentFrame (inset: 0), so we can
-  // map pixel offsets directly to the canvas coordinate space.
+  // Projects coordinates using browser's offsetX/offsetY on the transformed container.
   function getCanvasCoords(e: MouseEvent<HTMLDivElement>): Point {
     if (!containerRef.current) return { x: 0, y: 0 };
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * canvasWidth;
-    const y = ((e.clientY - rect.top) / rect.height) * canvasHeight;
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+
+    let localX = e.nativeEvent.offsetX;
+    let localY = e.nativeEvent.offsetY;
+
+    // Fallback to bounding rect projection if mouse target is a child element
+    if (e.target !== e.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      localX = ((e.clientX - rect.left) / rect.width) * width;
+      localY = ((e.clientY - rect.top) / rect.height) * height;
+    }
+
+    const x = (localX / width) * canvasWidth;
+    const y = (localY / height) * canvasHeight;
     return { x: Math.round(x), y: Math.round(y) };
   }
 
@@ -362,7 +373,7 @@ export function AnnotationsLayer({
                   cursor: 'pointer',
                   zIndex: 30,
                   boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                  pointerEvents: 'auto',
+                  pointerEvents: isDrawMode ? 'none' : 'auto',
                 }}
               >
                 <IconX size={12} stroke={2.5} aria-hidden="true" />
