@@ -13,6 +13,30 @@ export const imageRefSchema = z.object({
   naturalHeight: z.number().positive(),
 });
 
+export const cropSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  w: z.number().positive(),
+  h: z.number().positive(),
+});
+
+export const screenshotItemSchema = z.object({
+  id: z.string(),
+  image: imageRefSchema,
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  scale: z.number().positive().default(1),
+  crop: cropSchema.nullable().optional(),
+});
+
+export const gridSchema = z.object({
+  visible: z.boolean(),
+  size: z.number().min(2).max(200),
+  snap: z.boolean(),
+});
+
 export const backgroundSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('solid'), color: z.string() }),
   z.object({ type: z.literal('gradient'), angle: z.number(),
@@ -55,9 +79,11 @@ export const screenstylerDocSchema = z.object({
     width: z.number().positive(),
     height: z.number().positive(),
     background: backgroundSchema,
+    grid: gridSchema.optional(),
   }),
   content: z.object({
-    image: imageRefSchema.nullable(),
+    image: imageRefSchema.nullable().optional(),
+    screenshots: z.array(screenshotItemSchema).optional(),
     padding: z.number().min(0),
     cornerRadius: z.number().min(0),
     shadow: shadowSchema,
@@ -79,6 +105,9 @@ export type ArrowVariant = z.infer<typeof arrowVariantSchema>;
 export type BlurVariant = z.infer<typeof blurVariantSchema>;
 export type ImageRef = z.infer<typeof imageRefSchema>;
 export type GradientStop = z.infer<typeof gradientStopSchema>;
+export type Crop = z.infer<typeof cropSchema>;
+export type ScreenshotItem = z.infer<typeof screenshotItemSchema>;
+export type Grid = z.infer<typeof gridSchema>;
 
 export class CorruptDocumentError extends Error {
   isCorrupt = true;
@@ -87,4 +116,3 @@ export class CorruptDocumentError extends Error {
     this.name = 'CorruptDocumentError';
   }
 }
-

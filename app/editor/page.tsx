@@ -26,7 +26,7 @@ function EditorPage() {
   const frameRef = useRef<HTMLDivElement>(null);
   const doc = useDocumentStore((s) => s.doc);
   const loadDoc = useDocumentStore((s) => s.loadDoc);
-  const setImage = useDocumentStore((s) => s.setImage);
+  const addScreenshot = useDocumentStore((s) => s.addScreenshot);
   const [activeTool, setActiveTool] = useState<'select' | 'arrow' | 'text' | 'highlight' | 'blur'>('select');
   const [isPreview, setIsPreview] = useState(false);
 
@@ -46,7 +46,8 @@ function EditorPage() {
   const saveMutation = useMutation({
     mutationFn: async ({ id: pid, doc: d }: { id: string; doc: typeof doc }) => {
       let thumbnailKey: string | null = null;
-      if (frameRef.current && d.content.image) {
+      const hasScreenshots = d.content.screenshots && d.content.screenshots.length > 0;
+      if (frameRef.current && hasScreenshots) {
         try {
           const blob = await exportPng(frameRef.current, 1);
           const userId = project.userId;
@@ -105,13 +106,13 @@ function EditorPage() {
       }
 
       void ingestImageFile(file, project.userId)
-        .then(setImage)
+        .then((img) => addScreenshot(img))
         .catch(() => window.alert('Could not read that image. It may be corrupt — try another file.'));
     }
 
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [isPreview, project.userId, setImage]);
+  }, [isPreview, project.userId, addScreenshot]);
 
   async function handleExport() {
     if (!frameRef.current) return;
@@ -167,11 +168,28 @@ function EditorPage() {
         />
       }
       canvas={
-        doc.content.image ? (
+        doc.content.screenshots && doc.content.screenshots.length > 0 ? (
           <ErrorBoundary fallback={<p style={{ margin: 'auto' }}>Canvas failed to render.</p>}>
-            <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
-              <DocumentCanvas ref={frameRef} doc={doc} activeTool={activeTool} isPreview={isPreview} />
-            </CanvasStage>
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files);
+                files.forEach((file) => {
+                  const validation = validateImageFile(file);
+                  if (validation.ok) {
+                    ingestImageFile(file, project.userId)
+                      .then((img) => addScreenshot(img))
+                      .catch(() => {});
+                  }
+                });
+              }}
+              style={{ flex: 1, display: 'flex', position: 'relative' }}
+            >
+              <CanvasStage docWidth={doc.canvas.width} docHeight={doc.canvas.height}>
+                <DocumentCanvas ref={frameRef} doc={doc} activeTool={activeTool} isPreview={isPreview} />
+              </CanvasStage>
+            </div>
           </ErrorBoundary>
         ) : (
           <div style={{ flex: 1, display: 'flex', background: '#0f1115' }}>

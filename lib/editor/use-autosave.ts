@@ -15,7 +15,7 @@ export function useAutosave(
   useEffect(() => {
     if (!projectId) return;
     const unsubscribe = useDocumentStore.subscribe((state) => {
-      if (state.doc === baselineDoc) return; // skip the just-loaded baseline
+      if (baselineDoc && JSON.stringify(state.doc) === JSON.stringify(baselineDoc)) return;
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => save(projectId, state.doc), DEBOUNCE_MS);
     });

@@ -5,7 +5,9 @@ import { DocumentFrame } from './DocumentFrame';
 import { BackgroundLayer } from './BackgroundLayer';
 import { ContentLayer } from './ContentLayer';
 import { AnnotationsLayer } from './AnnotationsLayer';
-import { useDocumentStore } from '@/lib/document/store';
+import { useDocumentStore, normalizeDoc } from '@/lib/document/store';
+
+import { useEditorUiStore } from '@/lib/editor/ui-store';
 
 const MIN_CONTENT_SCALE = 0.5;
 const MAX_CONTENT_SCALE = 2;
@@ -21,14 +23,21 @@ export const DocumentCanvas = forwardRef<
     activeTool?: 'select' | 'arrow' | 'text' | 'highlight' | 'blur';
     isPreview?: boolean;
   }
->(function DocumentCanvas({ doc, activeTool = 'select', isPreview = false }, ref) {
+>(function DocumentCanvas({ doc: rawDoc, activeTool = 'select', isPreview = false }, ref) {
+  const doc = normalizeDoc(rawDoc);
   const annotations = useDocumentStore((s) => s.doc.annotations);
   const addAnnotation = useDocumentStore((s) => s.addAnnotation);
   const removeAnnotation = useDocumentStore((s) => s.removeAnnotation);
   const setTransform3d = useDocumentStore((s) => s.setTransform3d);
+  const setSelectedScreenshotId = useEditorUiStore((s) => s.setSelectedScreenshotId);
+
+  const gridVisible = useDocumentStore((s) => s.doc.canvas.grid?.visible ?? false);
+  const gridSize = useDocumentStore((s) => s.doc.canvas.grid?.size ?? 20);
 
   function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
-    if (isPreview || !doc.content.image) return;
+    // If no screenshots, return
+    const hasScreenshots = (doc.content.screenshots || []).length > 0;
+    if (isPreview || !hasScreenshots) return;
 
     event.preventDefault();
     const transform3d = useDocumentStore.getState().doc.content.transform3d;
@@ -40,8 +49,32 @@ export const DocumentCanvas = forwardRef<
 
   return (
     <DocumentFrame ref={ref} width={doc.canvas.width} height={doc.canvas.height} onWheel={handleWheelZoom}>
-      <BackgroundLayer background={doc.canvas.background} />
-      <ContentLayer content={doc.content} />
+      <div
+        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+        onClick={() => {
+          if (!isPreview) {
+            setSelectedScreenshotId(null);
+          }
+        }}
+      >
+        <BackgroundLayer background={doc.canvas.background} />
+      </div>
+      
+      {!isPreview && gridVisible && (
+        <div
+          data-testid="grid-overlay"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 1,
+            backgroundImage: 'radial-gradient(circle, rgba(128, 128, 128, 0.3) 1.5px, transparent 1.5px)',
+            backgroundSize: `${gridSize}px ${gridSize}px`,
+          }}
+        />
+      )}
+
+      <ContentLayer content={doc.content} canvasWidth={doc.canvas.width} canvasHeight={doc.canvas.height} isPreview={isPreview} />
       <AnnotationsLayer
         annotations={annotations}
         activeTool={activeTool}

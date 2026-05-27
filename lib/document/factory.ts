@@ -11,9 +11,11 @@ export function createBlankDoc(): ScreenstylerDoc {
         { color: '#6366f1', offset: 0 },
         { color: '#ec4899', offset: 1 },
       ] },
+      grid: { visible: false, size: 20, snap: false },
     },
     content: {
       image: null,
+      screenshots: [],
       padding: 64,
       cornerRadius: 12,
       shadow: { x: 0, y: 30, blur: 60, spread: 0, color: '#000000', opacity: 0.35 },

@@ -29,6 +29,13 @@ function rewriteBlobKeys(
   if (doc.content.image?.blobKey === oldKey) {
     doc.content.image.blobKey = newKey;
   }
+  if (doc.content.screenshots) {
+    for (const item of doc.content.screenshots) {
+      if (item.image.blobKey === oldKey) {
+        item.image.blobKey = newKey;
+      }
+    }
+  }
   if (doc.canvas.background.type === 'image' && doc.canvas.background.ref.blobKey === oldKey) {
     doc.canvas.background.ref.blobKey = newKey;
   }

@@ -27,30 +27,111 @@ function formatUpdatedAt(value: number) {
   }).format(new Date(value));
 }
 
-function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
-  const imageUrl = useObjectUrl(doc.content.image?.blobKey ?? null);
-  const backgroundUrl = useObjectUrl(
-    doc.canvas.background.type === 'image' ? doc.canvas.background.ref.blobKey : null,
-  );
-  const image = doc.content.image;
-  const docAspect = doc.canvas.width / doc.canvas.height;
-  const previewAspect = 16 / 10;
-  const paddingX = Math.min((doc.content.padding / doc.canvas.width) * 100, 36);
-  const paddingY = Math.min((doc.content.padding / doc.canvas.height) * 100, 36);
-  const fitStyle =
-    docAspect >= previewAspect
-      ? { height: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` }
-      : { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
-  const imageAspect = image ? image.naturalWidth / image.naturalHeight : 1;
-  const imageFitStyle =
-    imageAspect >= docAspect
-      ? { width: '100%', aspectRatio: `${image?.naturalWidth ?? 1} / ${image?.naturalHeight ?? 1}` }
-      : { height: '100%', aspectRatio: `${image?.naturalWidth ?? 1} / ${image?.naturalHeight ?? 1}` };
-  const frame = doc.content.frame;
+import { normalizeDoc } from '@/lib/document/store';
+import type { ScreenshotItem } from '@/lib/document/schema';
+
+function ProjectScreenshotItem({
+  item,
+  docWidth,
+  docHeight,
+  frame,
+  shadow,
+  cornerRadius,
+}: {
+  item: ScreenshotItem;
+  docWidth: number;
+  docHeight: number;
+  frame: any;
+  shadow: any;
+  cornerRadius: number;
+}) {
+  const imageUrl = useObjectUrl(item.image.blobKey);
+  if (!imageUrl) return null;
+
   const showChrome = frame.type === 'window' || frame.type === 'browser';
   const chromeDark =
     (frame.type === 'window' && frame.variant === 'macos-dark') ||
     (frame.type === 'browser' && frame.theme === 'dark');
+
+  const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
+  const left = `${(-crop.x / crop.w) * 100}%`;
+  const top = `${(-crop.y / crop.h) * 100}%`;
+  const width = `${(item.image.naturalWidth / crop.w) * 100}%`;
+  const height = `${(item.image.naturalHeight / crop.h) * 100}%`;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: `${(item.x / docWidth) * 100}%`,
+        top: `${(item.y / docHeight) * 100}%`,
+        width: `${(item.width / docWidth) * 100}%`,
+        height: `${(item.height / docHeight) * 100}%`,
+        borderRadius: frame.type === 'none' ? 4 : 6,
+        background: chromeDark ? '#1f1f22' : '#ffffff',
+        boxShadow: '0 8px 22px rgb(0 0 0 / 0.18)',
+        overflow: 'hidden',
+      }}
+    >
+      {showChrome && (
+        <div
+          style={{
+            height: 12,
+            background: chromeDark ? '#2d2e30' : '#eceff1',
+            borderBottom: `1px solid ${chromeDark ? '#1f2022' : '#d7dce0'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            paddingInline: 5,
+          }}
+        >
+          <span style={{ width: 4, height: 4, borderRadius: 99, background: '#ff5f56' }} />
+          <span style={{ width: 4, height: 4, borderRadius: 99, background: '#ffbd2e' }} />
+          <span style={{ width: 4, height: 4, borderRadius: 99, background: '#27c93f' }} />
+        </div>
+      )}
+      <div style={{ position: 'relative', width: '100%', height: showChrome ? 'calc(100% - 12px)' : '100%', overflow: 'hidden' }}>
+        <img
+          src={imageUrl}
+          alt=""
+          style={{
+            position: 'absolute',
+            left,
+            top,
+            width,
+            height,
+            maxWidth: 'none',
+            maxHeight: 'none',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProjectDocumentPreview({ doc: rawDoc }: { doc: ScreenstylerDoc }) {
+  const doc = normalizeDoc(rawDoc);
+  const backgroundUrl = useObjectUrl(
+    doc.canvas.background.type === 'image' ? doc.canvas.background.ref.blobKey : null,
+  );
+  const docAspect = doc.canvas.width / doc.canvas.height;
+  const previewAspect = 16 / 10;
+  const padding = doc.content.padding;
+  const fitStyle =
+    docAspect >= previewAspect
+      ? { height: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` }
+      : { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
+
+  const frame = doc.content.frame;
+  const shadow = doc.content.shadow;
+  const cornerRadius = doc.content.cornerRadius;
+
+  const scaleX = Math.max(0.1, (doc.canvas.width - 2 * padding) / doc.canvas.width);
+  const scaleY = Math.max(0.1, (doc.canvas.height - 2 * padding) / doc.canvas.height);
+  const paddingScale = Math.min(scaleX, scaleY);
+  const finalScale = doc.content.transform3d.scale * paddingScale;
+
+  const screenshots = doc.content.screenshots || [];
 
   return (
     <div className="grid h-full w-full place-items-center bg-zinc-100">
@@ -68,14 +149,11 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
             ...backgroundToStyle(doc.canvas.background, backgroundUrl ?? undefined),
           }}
         />
-        {image && imageUrl && (
+        {screenshots.length > 0 && (
           <div
             style={{
               position: 'absolute',
-              left: `${paddingX}%`,
-              right: `${paddingX}%`,
-              top: `${paddingY}%`,
-              bottom: `${paddingY}%`,
+              inset: 0,
               display: 'grid',
               placeItems: 'center',
               perspective: `${doc.content.transform3d.perspective}px`,
@@ -83,40 +161,24 @@ function ProjectDocumentPreview({ doc }: { doc: ScreenstylerDoc }) {
           >
             <div
               style={{
-                ...imageFitStyle,
-                maxWidth: '100%',
-                maxHeight: '100%',
-                overflow: 'hidden',
-                borderRadius: frame.type === 'none' ? 4 : 6,
-                background: chromeDark ? '#1f1f22' : '#ffffff',
-                boxShadow: '0 8px 22px rgb(0 0 0 / 0.18)',
-                transform: `rotateX(${doc.content.transform3d.rotateX}deg) rotateY(${doc.content.transform3d.rotateY}deg) rotateZ(${doc.content.transform3d.rotateZ}deg) scale(${doc.content.transform3d.scale})`,
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                transform: `rotateX(${doc.content.transform3d.rotateX}deg) rotateY(${doc.content.transform3d.rotateY}deg) rotateZ(${doc.content.transform3d.rotateZ}deg) scale(${finalScale})`,
                 transformStyle: 'preserve-3d',
               }}
             >
-              {showChrome && (
-                <div
-                  style={{
-                    height: 12,
-                    background: chromeDark ? '#2d2e30' : '#eceff1',
-                    borderBottom: `1px solid ${chromeDark ? '#1f2022' : '#d7dce0'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    paddingInline: 5,
-                  }}
-                >
-                  <span style={{ width: 4, height: 4, borderRadius: 99, background: '#ff5f56' }} />
-                  <span style={{ width: 4, height: 4, borderRadius: 99, background: '#ffbd2e' }} />
-                  <span style={{ width: 4, height: 4, borderRadius: 99, background: '#27c93f' }} />
-                </div>
-              )}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt=""
-                style={{ display: 'block', width: '100%', height: showChrome ? 'calc(100% - 12px)' : '100%', objectFit: 'contain' }}
-              />
+              {screenshots.map((item) => (
+                <ProjectScreenshotItem
+                  key={item.id}
+                  item={item}
+                  docWidth={doc.canvas.width}
+                  docHeight={doc.canvas.height}
+                  frame={frame}
+                  shadow={shadow}
+                  cornerRadius={cornerRadius}
+                />
+              ))}
             </div>
           </div>
         )}
