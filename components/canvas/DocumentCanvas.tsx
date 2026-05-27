@@ -36,6 +36,9 @@ export const DocumentCanvas = forwardRef<
   const gridSize = useDocumentStore((s) => s.doc.canvas.grid?.size ?? 20);
 
   function handleWheelZoom(event: WheelEvent<HTMLDivElement>) {
+    // Alt+Wheel is handled by CanvasStage for viewport zoom
+    if (event.altKey) return;
+
     // If no screenshots, return
     const hasScreenshots = (doc.content.screenshots || []).length > 0;
     if (isPreview || !hasScreenshots) return;
