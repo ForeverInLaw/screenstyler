@@ -5,6 +5,7 @@ import type { Annotation, Point, Rect } from '@/lib/document/schema';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 import { blurOverlayStyle } from '@/lib/annotations/blurs';
 import { getTextFontFamily } from '@/lib/annotations/text';
+import { useDocumentStore } from '@/lib/document/store';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { withAlpha } from '@/lib/style/css';
@@ -41,6 +42,83 @@ export function AnnotationsLayer({
     setSelectedAnnotationId(id);
     onChangeTool?.(type);
   }
+
+  const handleDragStart = (
+    e: React.MouseEvent,
+    annotation: Annotation,
+    type: 'move' | 'handle-from' | 'handle-to' | 'resize-br'
+  ) => {
+    if (isPreview) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    useDocumentStore.temporal.getState().pause();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const initialAnn = { ...annotation };
+    const frameEl = document.querySelector('[data-testid="document-frame"]');
+    const scale = frameEl ? frameEl.getBoundingClientRect().width / canvasWidth : 1;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = (moveEvent.clientX - startX) / scale;
+      const dy = (moveEvent.clientY - startY) / scale;
+
+      const snap = useDocumentStore.getState().doc.canvas.grid?.snap;
+      const gridSize = useDocumentStore.getState().doc.canvas.grid?.size || 20;
+      const snapValue = (val: number) => {
+        return snap ? Math.round(val / gridSize) * gridSize : Math.round(val);
+      };
+
+      if (initialAnn.type === 'arrow') {
+        if (type === 'handle-from') {
+          const nextFrom = { x: snapValue(initialAnn.from.x + dx), y: snapValue(initialAnn.from.y + dy) };
+          useDocumentStore.getState().updateAnnotation(initialAnn.id, { from: nextFrom });
+        } else if (type === 'handle-to') {
+          const nextTo = { x: snapValue(initialAnn.to.x + dx), y: snapValue(initialAnn.to.y + dy) };
+          useDocumentStore.getState().updateAnnotation(initialAnn.id, { to: nextTo });
+        } else if (type === 'move') {
+          const nextFrom = { x: snapValue(initialAnn.from.x + dx), y: snapValue(initialAnn.from.y + dy) };
+          const nextTo = { x: snapValue(initialAnn.to.x + dx), y: snapValue(initialAnn.to.y + dy) };
+          useDocumentStore.getState().updateAnnotation(initialAnn.id, { from: nextFrom, to: nextTo });
+        }
+      } else if (initialAnn.type === 'text') {
+        if (type === 'move') {
+          const nextPos = { x: snapValue(initialAnn.pos.x + dx), y: snapValue(initialAnn.pos.y + dy) };
+          useDocumentStore.getState().updateAnnotation(initialAnn.id, { pos: nextPos });
+        }
+      } else if (initialAnn.type === 'highlight' || initialAnn.type === 'blur') {
+        if (type === 'move') {
+          const nextRect = {
+            ...initialAnn.rect,
+            x: snapValue(initialAnn.rect.x + dx),
+            y: snapValue(initialAnn.rect.y + dy),
+          };
+          useDocumentStore.getState().updateAnnotation(initialAnn.id, { rect: nextRect });
+        } else if (type === 'resize-br') {
+          const nextW = Math.max(10, snapValue(initialAnn.rect.w + dx));
+          const nextH = Math.max(10, snapValue(initialAnn.rect.h + dy));
+          useDocumentStore.getState().updateAnnotation(initialAnn.id, {
+            rect: { ...initialAnn.rect, w: nextW, h: nextH },
+          });
+        }
+      }
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+
+      const temporal = useDocumentStore.temporal.getState();
+      temporal.resume();
+      const state = useDocumentStore.getState();
+      useDocumentStore.setState({ doc: { ...state.doc } });
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [tempAnnotation, setTempAnnotation] = useState<Annotation | null>(null);
@@ -56,122 +134,63 @@ export function AnnotationsLayer({
   const blurIntensity = useAnnotationStyleStore((s) => s.blurIntensity);
 
   // Convert screen coordinates to canvas-relative coordinates.
-  // Projects coordinates using browser's offsetX/offsetY on the transformed container.
   function getCanvasCoords(e: MouseEvent<HTMLDivElement>): Point {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    const width = containerRef.current.clientWidth || rect.width || canvasWidth;
-    const height = containerRef.current.clientHeight || rect.height || canvasHeight;
-
-    let localX = e.nativeEvent.offsetX;
-    let localY = e.nativeEvent.offsetY;
-
-    // Fallback to bounding rect projection if nativeEvent.offsetX is missing (jsdom tests) or if target is a child
-    if (typeof localX !== 'number' || e.target !== e.currentTarget) {
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      localX = (clickX / (rect.width || 1)) * width;
-      localY = (clickY / (rect.height || 1)) * height;
+    const w = containerRef.current.clientWidth || rect.width || canvasWidth;
+    const h = containerRef.current.clientHeight || rect.height || canvasHeight;
+    let lx = e.nativeEvent.offsetX, ly = e.nativeEvent.offsetY;
+    if (typeof lx !== 'number' || e.target !== e.currentTarget) {
+      lx = ((e.clientX - rect.left) / (rect.width || 1)) * w;
+      ly = ((e.clientY - rect.top) / (rect.height || 1)) * h;
     }
-
-    const x = (localX / width) * canvasWidth;
-    const y = (localY / height) * canvasHeight;
-    return { x: Math.round(x), y: Math.round(y) };
+    return { x: Math.round((lx / w) * canvasWidth), y: Math.round((ly / h) * canvasHeight) };
   }
 
   function handleMouseDown(e: MouseEvent<HTMLDivElement>) {
     if (activeTool === 'select') return;
     e.preventDefault();
-
     const pt = getCanvasCoords(e);
-    if (activeTool === 'text') {
-      setTextPos(pt);
-      setTextVal('');
-      return;
-    }
-
-    setIsDrawing(true);
-    setStartPoint(pt);
-
+    if (activeTool === 'text') { setTextPos(pt); setTextVal(''); return; }
+    setIsDrawing(true); setStartPoint(pt);
     const id = `temp-${Date.now()}`;
     if (activeTool === 'arrow') {
-      setTempAnnotation({
-        id,
-        type: 'arrow',
-        from: pt,
-        to: pt,
-        color: arrowColor,
-        thickness: 4,
-        variant: arrowVariant,
-      });
+      setTempAnnotation({ id, type: 'arrow', from: pt, to: pt, color: arrowColor, thickness: 4, variant: arrowVariant });
     } else if (activeTool === 'highlight') {
-      setTempAnnotation({
-        id,
-        type: 'highlight',
-        rect: { x: pt.x, y: pt.y, w: 0, h: 0 },
-        color: withAlpha(highlightColor, highlightOpacity),
-      });
+      setTempAnnotation({ id, type: 'highlight', rect: { x: pt.x, y: pt.y, w: 0, h: 0 }, color: withAlpha(highlightColor, highlightOpacity) });
     } else if (activeTool === 'blur') {
-      setTempAnnotation({
-        id,
-        type: 'blur',
-        rect: { x: pt.x, y: pt.y, w: 0, h: 0 },
-        intensity: blurIntensity,
-        variant: blurVariant,
-      });
+      setTempAnnotation({ id, type: 'blur', rect: { x: pt.x, y: pt.y, w: 0, h: 0 }, intensity: blurIntensity, variant: blurVariant });
     }
   }
 
   function handleMouseMove(e: MouseEvent<HTMLDivElement>) {
     if (!isDrawing || !startPoint || !tempAnnotation) return;
     const pt = getCanvasCoords(e);
-
     if (tempAnnotation.type === 'arrow') {
       setTempAnnotation({ ...tempAnnotation, to: pt });
     } else if (tempAnnotation.type === 'highlight' || tempAnnotation.type === 'blur') {
-      const newRect: Rect = {
-        x: Math.min(startPoint.x, pt.x),
-        y: Math.min(startPoint.y, pt.y),
-        w: Math.abs(startPoint.x - pt.x),
-        h: Math.abs(startPoint.y - pt.y),
-      };
-      setTempAnnotation({ ...tempAnnotation, rect: newRect });
+      setTempAnnotation({ ...tempAnnotation, rect: { x: Math.min(startPoint.x, pt.x), y: Math.min(startPoint.y, pt.y), w: Math.abs(startPoint.x - pt.x), h: Math.abs(startPoint.y - pt.y) } });
     }
   }
 
   function handleMouseUp() {
     if (!isDrawing || !tempAnnotation) return;
-    setIsDrawing(false);
-    setStartPoint(null);
-    setTempAnnotation(null);
-
-    // Filter out zero-size shapes
+    setIsDrawing(false); setStartPoint(null); setTempAnnotation(null);
     if (tempAnnotation.type === 'highlight' || tempAnnotation.type === 'blur') {
       if (tempAnnotation.rect.w < 5 || tempAnnotation.rect.h < 5) return;
     }
     if (tempAnnotation.type === 'arrow') {
-      const dx = tempAnnotation.to.x - tempAnnotation.from.x;
-      const dy = tempAnnotation.to.y - tempAnnotation.from.y;
+      const dx = tempAnnotation.to.x - tempAnnotation.from.x, dy = tempAnnotation.to.y - tempAnnotation.from.y;
       if (Math.sqrt(dx * dx + dy * dy) < 5) return;
     }
-
     onAddAnnotation({ ...tempAnnotation, id: crypto.randomUUID() });
   }
 
   function handleTextSubmit() {
     if (textPos && textVal.trim()) {
-      onAddAnnotation({
-        id: crypto.randomUUID(),
-        type: 'text',
-        pos: textPos,
-        text: textVal,
-        fontSize: textSize,
-        fontFamily: textFontFamily,
-        color: '#ef4444',
-      });
+      onAddAnnotation({ id: crypto.randomUUID(), type: 'text', pos: textPos, text: textVal, fontSize: textSize, fontFamily: textFontFamily, color: '#ef4444' });
     }
-    setTextPos(null);
-    setTextVal('');
+    setTextPos(null); setTextVal('');
   }
 
   useEffect(() => {
@@ -274,9 +293,19 @@ export function AnnotationsLayer({
               <g key={hl.id}>
                 <rect x={hl.rect.x} y={hl.rect.y} width={hl.rect.w} height={hl.rect.h} fill={hl.color} rx="4"
                   style={{ cursor: isPreview ? 'default' : (isTemp ? 'crosshair' : 'pointer'), pointerEvents: isPreview ? 'none' : 'auto' }}
-                  onMouseDown={(e) => !isTemp && handleSelectAnnotation(e, hl.id, 'highlight')} />
+                  onMouseDown={(e) => {
+                    if (!isTemp) {
+                      handleSelectAnnotation(e, hl.id, 'highlight');
+                      handleDragStart(e, hl, 'move');
+                    }
+                  }} />
                 {!isPreview && isSel && (
-                  <rect x={hl.rect.x - 2} y={hl.rect.y - 2} width={hl.rect.w + 4} height={hl.rect.h + 4} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" rx={6} style={{ pointerEvents: 'none' }} />
+                  <>
+                    <rect x={hl.rect.x - 2} y={hl.rect.y - 2} width={hl.rect.w + 4} height={hl.rect.h + 4} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" rx={6} style={{ pointerEvents: 'none' }} />
+                    <circle cx={hl.rect.x + hl.rect.w} cy={hl.rect.y + hl.rect.h} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5}
+                      style={{ cursor: 'nwse-resize', pointerEvents: 'auto' }}
+                      onMouseDown={(e) => handleDragStart(e, hl, 'resize-br')} />
+                  </>
                 )}
               </g>
             );
@@ -294,16 +323,28 @@ export function AnnotationsLayer({
               <g key={arrow.id}>
                 {!isPreview && !isTemp && (
                   <line x1={arrow.from.x} y1={arrow.from.y} x2={arrow.to.x} y2={arrow.to.y} stroke="transparent" strokeWidth={24} strokeLinecap="round" style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
-                    onMouseDown={(e) => handleSelectAnnotation(e, arrow.id, 'arrow')} />
+                    onMouseDown={(e) => {
+                      handleSelectAnnotation(e, arrow.id, 'arrow');
+                      handleDragStart(e, arrow, 'move');
+                    }} />
                 )}
                 <line x1={arrow.from.x} y1={arrow.from.y} x2={arrow.to.x} y2={arrow.to.y} stroke={arrow.color} strokeWidth={arrow.thickness} strokeDasharray={arrowStrokeDasharray(variant)} strokeLinecap="round"
                   markerStart={variant === 'double' || variant === 'dot' ? `url(#arrow-tail-${arrow.id})` : undefined} markerEnd={`url(#arrow-head-${arrow.id})`}
                   style={{ cursor: isPreview ? 'default' : (isTemp ? 'crosshair' : 'pointer'), pointerEvents: isPreview ? 'none' : 'stroke' }}
-                  onMouseDown={(e) => !isTemp && handleSelectAnnotation(e, arrow.id, 'arrow')} />
+                  onMouseDown={(e) => {
+                    if (!isTemp) {
+                      handleSelectAnnotation(e, arrow.id, 'arrow');
+                      handleDragStart(e, arrow, 'move');
+                    }
+                  }} />
                 {!isPreview && isSel && (
                   <>
-                    <circle cx={arrow.from.x} cy={arrow.from.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
-                    <circle cx={arrow.to.x} cy={arrow.to.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+                    <circle cx={arrow.from.x} cy={arrow.from.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5}
+                      style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                      onMouseDown={(e) => handleDragStart(e, arrow, 'handle-from')} />
+                    <circle cx={arrow.to.x} cy={arrow.to.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5}
+                      style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                      onMouseDown={(e) => handleDragStart(e, arrow, 'handle-to')} />
                   </>
                 )}
               </g>
@@ -321,11 +362,17 @@ export function AnnotationsLayer({
               <g key={t.id}>
                 {!isPreview && (
                   <rect x={t.pos.x - 4} y={t.pos.y - 2} width={w + 8} height={h + 4} fill="transparent" style={{ cursor: 'pointer', pointerEvents: 'fill' }}
-                    onMouseDown={(e) => handleSelectAnnotation(e, t.id, 'text')} />
+                    onMouseDown={(e) => {
+                      handleSelectAnnotation(e, t.id, 'text');
+                      handleDragStart(e, t, 'move');
+                    }} />
                 )}
                 <text x={t.pos.x} y={t.pos.y} fill={t.color} fontSize={t.fontSize} fontWeight="bold" fontFamily={getTextFontFamily(t.fontFamily)} textAnchor="start" dominantBaseline="hanging"
                   style={{ cursor: isPreview ? 'default' : 'pointer', pointerEvents: isPreview ? 'none' : 'auto', userSelect: 'none' }}
-                  onMouseDown={(e) => handleSelectAnnotation(e, t.id, 'text')}
+                  onMouseDown={(e) => {
+                    handleSelectAnnotation(e, t.id, 'text');
+                    handleDragStart(e, t, 'move');
+                  }}
                 >
                   {t.text}
                 </text>
@@ -346,7 +393,13 @@ export function AnnotationsLayer({
             const isSel = selectedAnnotationId === b.id;
             const isTemp = b.id.startsWith('temp-');
             return (
-              <div key={b.id} onMouseDown={(e) => !isTemp && handleSelectAnnotation(e, b.id, 'blur')}
+              <div key={b.id}
+                onMouseDown={(e) => {
+                  if (!isTemp) {
+                    handleSelectAnnotation(e, b.id, 'blur');
+                    handleDragStart(e, b, 'move');
+                  }
+                }}
                 style={{
                   position: 'absolute',
                   left: `${(b.rect.x / canvasWidth) * 100}%`,
@@ -360,7 +413,28 @@ export function AnnotationsLayer({
                 }}
               >
                 {!isPreview && isSel && (
-                  <div style={{ position: 'absolute', inset: '-2px', border: '1.5px dashed #3b82f6', borderRadius: '6px', pointerEvents: 'none' }} />
+                  <>
+                    <div style={{ position: 'absolute', inset: '-2px', border: '1.5px dashed #3b82f6', borderRadius: '6px', pointerEvents: 'none' }} />
+                    <div
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        handleDragStart(e, b, 'resize-br');
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '-5px',
+                        bottom: '-5px',
+                        width: '10px',
+                        height: '10px',
+                        background: '#ffffff',
+                        border: '1.5px solid #3b82f6',
+                        borderRadius: '50%',
+                        cursor: 'nwse-resize',
+                        pointerEvents: 'auto',
+                        zIndex: 100,
+                      }}
+                    />
+                  </>
                 )}
               </div>
             );
@@ -373,11 +447,24 @@ export function AnnotationsLayer({
           {annotations.map((a) => {
             let left = 0; let top = 0;
             if (a.type === 'arrow') {
-              left = (a.to.x / canvasWidth) * 100; top = (a.to.y / canvasHeight) * 100;
+              // Place above the midpoint of the arrow, offset enough to not touch handles
+              const midX = (a.from.x + a.to.x) / 2;
+              const midY = (a.from.y + a.to.y) / 2;
+              // Perpendicular offset direction (rotate 90°)
+              const dxLine = a.to.x - a.from.x;
+              const dyLine = a.to.y - a.from.y;
+              const len = Math.sqrt(dxLine * dxLine + dyLine * dyLine) || 1;
+              const perpX = -dyLine / len * 24;
+              const perpY = dxLine / len * 24;
+              left = ((midX + perpX) / canvasWidth) * 100;
+              top = ((midY + perpY) / canvasHeight) * 100;
             } else if (a.type === 'text') {
-              left = (a.pos.x / canvasWidth) * 100; top = (a.pos.y / canvasHeight) * 100;
+              left = ((a.pos.x + a.text.length * a.fontSize * 0.6 + 12) / canvasWidth) * 100;
+              top = ((a.pos.y - 4) / canvasHeight) * 100;
             } else {
-              left = ((a.rect.x + a.rect.w) / canvasWidth) * 100; top = (a.rect.y / canvasHeight) * 100;
+              // Place at top-right corner, offset outward so it doesn't overlap resize handle at bottom-right
+              left = ((a.rect.x + a.rect.w + 14) / canvasWidth) * 100;
+              top = ((a.rect.y - 14) / canvasHeight) * 100;
             }
             return (
               <button key={`delete-${a.id}`} type="button"
@@ -403,35 +490,10 @@ export function AnnotationsLayer({
 
       {/* Floating text input */}
       {textPos && !isPreview && (
-        <div
-          className="hide-on-export"
-          style={{
-            position: 'absolute',
-            left: `${(textPos.x / canvasWidth) * 100}%`,
-            top: `${(textPos.y / canvasHeight) * 100}%`,
-            zIndex: 40,
-          }}
-        >
-          <input
-            autoFocus
-            type="text"
-            value={textVal}
-            onChange={(e) => setTextVal(e.target.value)}
-            onBlur={handleTextSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleTextSubmit();
-            }}
-            placeholder="Type and press Enter"
-            style={{
-              background: '#1f2937',
-              border: '1px solid #ef4444',
-              color: '#ffffff',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '16px',
-              outline: 'none',
-              width: '200px',
-            }}
+        <div className="hide-on-export" style={{ position: 'absolute', left: `${(textPos.x / canvasWidth) * 100}%`, top: `${(textPos.y / canvasHeight) * 100}%`, zIndex: 40 }}>
+          <input autoFocus type="text" value={textVal} onChange={(e) => setTextVal(e.target.value)} onBlur={handleTextSubmit}
+            onKeyDown={(e) => e.key === 'Enter' && handleTextSubmit()} placeholder="Type and press Enter"
+            style={{ background: '#1f2937', border: '1px solid #ef4444', color: '#ffffff', padding: '4px 8px', borderRadius: '4px', fontSize: '16px', outline: 'none', width: '200px' }}
           />
         </div>
       )}
