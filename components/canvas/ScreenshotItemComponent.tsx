@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   IconCrop,
   IconCheck,
@@ -46,6 +46,52 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   const headerH = getHeaderHeight(content.frame);
   const renderY = item.y - headerH;
   const renderH = item.height + headerH;
+
+  const cropStartRef = useRef<{
+    scale: number;
+    imageX: number;
+    imageY: number;
+  } | null>(null);
+
+  // Initialize crop start coordinates on entering Crop Mode
+  if (isCropMode && isSelected && !cropStartRef.current) {
+    const scale = item.crop ? item.width / item.crop.w : item.width / item.image.naturalWidth;
+    const cx = item.crop?.x ?? 0;
+    const cy = item.crop?.y ?? 0;
+    const imageX = item.x - cx * scale;
+    const imageY = item.y - cy * scale;
+    cropStartRef.current = { scale, imageX, imageY };
+  }
+  if ((!isCropMode || !isSelected) && cropStartRef.current) {
+    cropStartRef.current = null;
+  }
+
+  const prevCropModeRef = useRef(isCropMode);
+
+  // Commit crop coordinate transformations when exiting Crop Mode
+  useEffect(() => {
+    if (prevCropModeRef.current && !isCropMode) {
+      if (cropStartRef.current) {
+        const { scale, imageX, imageY } = cropStartRef.current;
+        const currentCrop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
+        
+        const nextX = Math.round(imageX + currentCrop.x * scale);
+        const nextY = Math.round(imageY + currentCrop.y * scale);
+        const nextW = Math.round(currentCrop.w * scale);
+        const nextH = Math.round(currentCrop.h * scale);
+        
+        updateScreenshot(item.id, {
+          x: nextX,
+          y: nextY,
+          width: nextW,
+          height: nextH,
+        });
+        
+        cropStartRef.current = null;
+      }
+    }
+    prevCropModeRef.current = isCropMode;
+  }, [isCropMode, item.id, item.crop, updateScreenshot]);
 
   const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
   const scaleX = item.width / crop.w;
@@ -123,7 +169,8 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         updateScreenshot(item.id, { x: nextX, y: nextY, width: nextW, height: nextH });
       } else {
         // Crop Mode calculations in natural pixels
-        const displayToNaturalScale = item.image.naturalWidth / fullW;
+        const displayScale = cropStartRef.current?.scale || 1;
+        const displayToNaturalScale = 1 / displayScale;
         const ndx = dx * displayToNaturalScale;
         const ndy = dy * displayToNaturalScale;
 
@@ -173,19 +220,19 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   if (!url) return null;
 
   // Visual layout if cropping
-  if (isSelected && isCropMode && !isPreview) {
-    const editorX = item.x + offsetX;
-    const editorY = item.y + offsetY;
+  if (isSelected && isCropMode && !isPreview && cropStartRef.current) {
+    const { scale: displayScale, imageX, imageY } = cropStartRef.current;
+    const currentCrop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
 
     return (
       <div
         data-testid="screenshot-crop-editor"
         style={{
           position: 'absolute',
-          left: `${(editorX / doc.canvas.width) * 100}%`,
-          top: `${(editorY / doc.canvas.height) * 100}%`,
-          width: `${(fullW / doc.canvas.width) * 100}%`,
-          height: `${(fullH / doc.canvas.height) * 100}%`,
+          left: `${(imageX / doc.canvas.width) * 100}%`,
+          top: `${(imageY / doc.canvas.height) * 100}%`,
+          width: `${((item.image.naturalWidth * displayScale) / doc.canvas.width) * 100}%`,
+          height: `${((item.image.naturalHeight * displayScale) / doc.canvas.height) * 100}%`,
           zIndex: 100,
           pointerEvents: 'auto',
         }}
@@ -210,10 +257,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
           onMouseDown={(e) => handleDragStart(e, 'crop-move')}
           style={{
             position: 'absolute',
-            left: `${-offsetX}px`,
-            top: `${-offsetY}px`,
-            width: `${item.width}px`,
-            height: `${item.height}px`,
+            left: `${currentCrop.x * displayScale}px`,
+            top: `${currentCrop.y * displayScale}px`,
+            width: `${currentCrop.w * displayScale}px`,
+            height: `${currentCrop.h * displayScale}px`,
             outline: '2px solid #818cf8',
             boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
             cursor: 'move',
@@ -226,10 +273,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
             alt=""
             style={{
               position: 'absolute',
-              left: `${offsetX}px`,
-              top: `${offsetY}px`,
-              width: `${fullW}px`,
-              height: `${fullH}px`,
+              left: `${-currentCrop.x * displayScale}px`,
+              top: `${-currentCrop.y * displayScale}px`,
+              width: `${item.image.naturalWidth * displayScale}px`,
+              height: `${item.image.naturalHeight * displayScale}px`,
               maxWidth: 'none',
               maxHeight: 'none',
               userSelect: 'none',
@@ -242,10 +289,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         <div
           style={{
             position: 'absolute',
-            left: `${-offsetX}px`,
-            top: `${-offsetY}px`,
-            width: `${item.width}px`,
-            height: `${item.height}px`,
+            left: `${currentCrop.x * displayScale}px`,
+            top: `${currentCrop.y * displayScale}px`,
+            width: `${currentCrop.w * displayScale}px`,
+            height: `${currentCrop.h * displayScale}px`,
             pointerEvents: 'none',
           }}
         >
@@ -313,8 +360,8 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
           className="hide-on-export"
           style={{
             position: 'absolute',
-            left: `${-offsetX + item.width / 2}px`,
-            top: `${-offsetY + item.height + 16}px`,
+            left: `${(currentCrop.x + currentCrop.w / 2) * displayScale}px`,
+            top: `${(currentCrop.y + currentCrop.h) * displayScale + 16}px`,
             transform: 'translateX(-50%)',
             background: 'rgba(15, 17, 21, 0.85)',
             backdropFilter: 'blur(8px)',
