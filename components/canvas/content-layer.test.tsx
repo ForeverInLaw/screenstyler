@@ -39,7 +39,7 @@ describe('ContentLayer', () => {
     await blobStore.put('shot-1', new Blob(['x'], { type: 'image/png' }));
     renderWithQueryClient(<ContentLayer content={content} />);
     const wrapper = screen.getByTestId('content-layer');
-    expect(wrapper.style.padding).toBe('80px');
+    expect(wrapper.style.paddingLeft).toBe('80px');
     const shot = await waitFor(() => screen.getByTestId('screenshot'));
     expect(shot.style.borderRadius).toBe('16px');
     expect(shot.style.boxShadow).toContain('rgba(0, 0, 0, 0.3)');
