@@ -44,4 +44,27 @@ describe('ContentLayer', () => {
     expect(shot.style.borderRadius).toBe('16px');
     expect(shot.style.boxShadow).toContain('rgba(0, 0, 0, 0.3)');
   });
+
+  it('renders multiple screenshots with their z-index matching their index in the array', async () => {
+    await blobStore.put('shot-1', new Blob(['x'], { type: 'image/png' }));
+    await blobStore.put('shot-2', new Blob(['y'], { type: 'image/png' }));
+
+    const screenshots = [
+      { id: 's1', image: { id: 'i1', blobKey: 'shot-1', naturalWidth: 800, naturalHeight: 500 }, x: 10, y: 10, width: 800, height: 500 },
+      { id: 's2', image: { id: 'i2', blobKey: 'shot-2', naturalWidth: 800, naturalHeight: 500 }, x: 20, y: 20, width: 800, height: 500 },
+    ];
+
+    renderWithQueryClient(
+      <ContentLayer content={{ ...content, screenshots }} />
+    );
+
+    const items = await waitFor(() => {
+      const result = screen.getAllByTestId('screenshot-item');
+      expect(result).toHaveLength(2);
+      return result;
+    });
+
+    expect(items[0].style.zIndex).toBe('0');
+    expect(items[1].style.zIndex).toBe('1');
+  });
 });

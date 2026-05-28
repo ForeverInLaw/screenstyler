@@ -416,9 +416,12 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         if (isPreview) return;
         e.stopPropagation();
         setSelectedScreenshotId(item.id);
+        reorderScreenshot(item.id, 'front');
       }}
       onMouseDown={(e) => {
         if (isPreview || e.button === 1) return;
+        setSelectedScreenshotId(item.id);
+        reorderScreenshot(item.id, 'front');
         handleDragStart(e, 'move');
       }}
       style={{
@@ -429,7 +432,11 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         height: `${(renderH / doc.canvas.height) * 100}%`,
         cursor: 'default',
         pointerEvents: 'auto',
-        zIndex: isSelected ? 10 : 2,
+        zIndex: (() => {
+          const screenshots = content.screenshots || [];
+          const idx = screenshots.findIndex((s) => s.id === item.id);
+          return idx >= 0 ? idx : 0;
+        })(),
         boxSizing: 'border-box',
       }}
     >
