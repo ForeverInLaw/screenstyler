@@ -44,9 +44,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification:
+      !sqliteMode &&
       process.env.NODE_ENV !== 'test' &&
       process.env.E2E_SKIP_EMAIL_VERIFICATION !== '1',
     sendResetPassword: async ({ user, url }) => {
+
       if (!resend || !process.env.RESEND_FROM) return;
       await resend.emails.send({
         from: process.env.RESEND_FROM,
