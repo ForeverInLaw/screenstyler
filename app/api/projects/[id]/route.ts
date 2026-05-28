@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { getDb, ensureSchema } from '@/lib/db/client';
-import { projects } from '@/lib/db/schema';
+import { projects } from '@/lib/db/active-schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 import { deleteObject } from '@/lib/blob/r2-server';
 

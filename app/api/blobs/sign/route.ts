@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 import { signGet, signPut } from '@/lib/blob/r2-server';
 import { getDb, ensureSchema } from '@/lib/db/client';
-import { projects } from '@/lib/db/schema';
+import { projects } from '@/lib/db/active-schema';
 
 const body = z.object({
   key: z.string().min(1),

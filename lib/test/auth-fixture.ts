@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { getDb, resetDbForTests, markSchemaReadyForTests } from '@/lib/db/client';
 import { applyMigrations } from '@/lib/db/migrate';
-import { users } from '@/lib/db/schema';
+import { users } from '@/lib/db/active-schema';
 import * as authServer from '@/lib/auth/server';
 
 export async function setupTestDb(): Promise<void> {

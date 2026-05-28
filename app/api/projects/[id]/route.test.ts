@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GET, PATCH, DELETE } from './route';
 import { setupTestDb, seedUser, mockSession } from '@/lib/test/auth-fixture';
 import { getDb } from '@/lib/db/client';
-import { projects } from '@/lib/db/schema';
+import { projects } from '@/lib/db/active-schema';
 
 vi.mock('@/lib/blob/r2-server', () => ({
   signPut: vi.fn(async (key: string) => `https://r2/${key}?sig=put`),

@@ -1,8 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { Resend } from 'resend';
-import { getDb } from '@/lib/db/client';
+import { getDb, isSqliteMode } from '@/lib/db/client';
 import * as schema from '@/lib/db/schema';
+import * as sqliteSchema from '@/lib/db/schema-sqlite';
 
 if (
   process.env.NODE_ENV === 'production' &&
@@ -14,16 +15,25 @@ if (
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const db = getDb();
+const sqliteMode = isSqliteMode();
+
 export const auth = betterAuth({
-  database: drizzleAdapter(getDb(), {
-    provider: 'pg',
-    schema: {
+  database: drizzleAdapter(db, {
+    provider: sqliteMode ? 'sqlite' : 'pg',
+    schema: sqliteMode ? {
+      user: sqliteSchema.users,
+      session: sqliteSchema.sessions,
+      account: sqliteSchema.accounts,
+      verification: sqliteSchema.verifications,
+    } : {
       user: schema.users,
       session: schema.sessions,
       account: schema.accounts,
       verification: schema.verifications,
     },
   }),
+
   advanced: {
     database: {
       generateId: 'uuid' as const,

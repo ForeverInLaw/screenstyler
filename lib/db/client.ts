@@ -1,20 +1,38 @@
 import { drizzle as drizzleNeon, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglite';
+import { drizzle as drizzleSqlite, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { neon } from '@neondatabase/serverless';
 import { PGlite } from '@electric-sql/pglite';
+import Database from 'better-sqlite3';
 import * as schema from './schema';
+import * as sqliteSchema from './schema-sqlite';
 
-type Db = NeonHttpDatabase<typeof schema> | PgliteDatabase<typeof schema>;
+type Db = 
+  | NeonHttpDatabase<typeof schema> 
+  | PgliteDatabase<typeof schema>
+  | BetterSQLite3Database<typeof sqliteSchema>;
 
 let cached: Db | null = null;
 let schemaReady: Promise<void> | null = null;
 
+export function isSqliteMode(): boolean {
+  return !process.env.NEON_DATABASE_URL && process.env.NODE_ENV !== 'test';
+}
+
 function isPgliteMode(): boolean {
-  return process.env.NODE_ENV === 'test' || !process.env.NEON_DATABASE_URL;
+  return process.env.NODE_ENV === 'test';
 }
 
 export function getDb(): Db {
   if (cached) return cached;
+  
+  if (isSqliteMode()) {
+    const dbPath = process.env.DATABASE_URL?.replace('sqlite:', '') ?? './local.db';
+    const sqlite = new Database(dbPath);
+    cached = drizzleSqlite(sqlite, { schema: sqliteSchema }) as any;
+    return cached;
+  }
+
   const url = process.env.NEON_DATABASE_URL;
   // Throw only when the variable is absent (undefined) in production at runtime.
   // An explicitly empty string signals an intentional pglite fallback (e.g., e2e).
@@ -26,7 +44,7 @@ export function getDb(): Db {
   ) {
     throw new Error('NEON_DATABASE_URL is required in production');
   }
-  if (process.env.NODE_ENV === 'test' || !url) {
+  if (isPgliteMode() || !url) {
     cached = drizzlePglite(new PGlite(), { schema });
   } else {
     cached = drizzleNeon(neon(url), { schema });
@@ -34,7 +52,17 @@ export function getDb(): Db {
   return cached;
 }
 
+
 export function ensureSchema(): Promise<void> {
+  if (isSqliteMode()) {
+    if (!schemaReady) {
+      schemaReady = (async () => {
+        const { applySQLiteMigrations } = await import('./migrate-sqlite');
+        applySQLiteMigrations();
+      })();
+    }
+    return schemaReady;
+  }
   if (!isPgliteMode()) return Promise.resolve();
   if (!schemaReady) {
     // Lazy-import to avoid circular deps (migrate -> getDb).
@@ -45,6 +73,7 @@ export function ensureSchema(): Promise<void> {
   }
   return schemaReady;
 }
+
 
 export function resetDbForTests(): void {
   cached = null;

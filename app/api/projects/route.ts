@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { getDb, ensureSchema } from '@/lib/db/client';
-import { projects } from '@/lib/db/schema';
+import { projects } from '@/lib/db/active-schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 
 const createBody = z.object({
