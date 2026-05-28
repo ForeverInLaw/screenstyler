@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { requireSession, unauthorized } from '@/lib/auth/session';
-import { signGet, signPut } from '@/lib/blob/r2-server';
+import { serverSignGet, serverSignPut } from '@/lib/blob/server-store';
 import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/active-schema';
 
@@ -42,7 +42,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const url =
     parsed.data.op === 'put'
-      ? await signPut(parsed.data.key, parsed.data.contentType ?? 'application/octet-stream')
-      : await signGet(parsed.data.key);
+      ? await serverSignPut(parsed.data.key, parsed.data.contentType ?? 'application/octet-stream')
+      : await serverSignGet(parsed.data.key);
   return Response.json({ url, expiresIn: 300 });
 }

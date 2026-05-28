@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/active-schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
-import { deleteObject } from '@/lib/blob/r2-server';
+import { serverDeleteObject } from '@/lib/blob/server-store';
 
 const patchBody = z.object({
   doc: z.unknown().optional(),
@@ -70,7 +70,7 @@ export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
   // Fire-and-forget R2 deletions — don't fail the response if R2 errors.
   for (const key of [row.sourceImageKey, row.thumbnailKey]) {
     if (key) {
-      deleteObject(key).catch((e) => console.warn('R2 delete failed', key, e));
+      serverDeleteObject(key).catch((e) => console.warn('R2 delete failed', key, e));
     }
   }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { POST } from './route';
 import { setupTestDb, seedUser, mockSession } from '@/lib/test/auth-fixture';
 
@@ -6,6 +6,12 @@ vi.mock('@/lib/blob/r2-server', () => ({
   signPut: vi.fn(async (key: string) => `https://r2/${key}?sig=put`),
   signGet: vi.fn(async (key: string) => `https://r2/${key}?sig=get`),
 }));
+
+beforeAll(() => {
+  process.env.R2_ENDPOINT = 'http://test';
+  process.env.R2_ACCESS_KEY_ID = 'test';
+  process.env.R2_SECRET_ACCESS_KEY = 'test';
+});
 
 beforeEach(setupTestDb);
 
