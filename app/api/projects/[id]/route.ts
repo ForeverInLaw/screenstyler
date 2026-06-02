@@ -4,6 +4,7 @@ import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/active-schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 import { serverDeleteObject } from '@/lib/blob/server-store';
+import { collectBlobKeys } from '@/lib/document/blob-refs';
 
 const patchBody = z.object({
   doc: z.unknown().optional(),
@@ -56,9 +57,13 @@ export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
   if (!session) return unauthorized();
   const { id } = await ctx.params;
 
-  // Look up the storage keys before deleting so we can clean up R2 objects.
+  // Look up the storage keys before deleting so we can clean up blob objects.
   const [row] = await getDb()
-    .select({ sourceImageKey: projects.sourceImageKey, thumbnailKey: projects.thumbnailKey })
+    .select({
+      doc: projects.doc,
+      sourceImageKey: projects.sourceImageKey,
+      thumbnailKey: projects.thumbnailKey,
+    })
     .from(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)));
   if (!row) return new Response('not found', { status: 404 });
@@ -67,11 +72,16 @@ export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
     .delete(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)));
 
-  // Fire-and-forget R2 deletions — don't fail the response if R2 errors.
-  for (const key of [row.sourceImageKey, row.thumbnailKey]) {
-    if (key) {
-      serverDeleteObject(key).catch((e) => console.warn('R2 delete failed', key, e));
-    }
+  // Sweep every blob the project owns: per-screenshot images + background image
+  // (from the doc), plus the legacy source image and the thumbnail. Dedup so a
+  // key isn't deleted twice. Fire-and-forget — don't fail the response on error.
+  const keys = new Set<string>([
+    ...collectBlobKeys(row.doc),
+    ...(row.sourceImageKey ? [row.sourceImageKey] : []),
+    ...(row.thumbnailKey ? [row.thumbnailKey] : []),
+  ]);
+  for (const key of keys) {
+    serverDeleteObject(key).catch((e) => console.warn('blob delete failed', key, e));
   }
 
   return Response.json({});
