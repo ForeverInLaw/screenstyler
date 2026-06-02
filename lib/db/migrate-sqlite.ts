@@ -72,7 +72,9 @@ CREATE INDEX IF NOT EXISTS "projects_user_updated_idx" ON "projects" ("user_id",
 ];
 
 export function applySQLiteMigrations(): void {
-  const db = getDb();
+  // getDb() is typed to the canonical (pg) Db; in sqlite mode the instance is a
+  // better-sqlite3 driver that exposes synchronous .run(). Narrow to that here.
+  const db = getDb() as unknown as { run: (query: ReturnType<typeof sql.raw>) => void };
   for (const migration of MIGRATIONS) {
     const statements = migration.split(';').map((s) => s.trim()).filter(Boolean);
     for (const stmt of statements) {

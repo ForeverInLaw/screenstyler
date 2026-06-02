@@ -1,16 +1,18 @@
 import { drizzle as drizzleNeon, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglite';
-import { drizzle as drizzleSqlite, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
+import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
 import { neon } from '@neondatabase/serverless';
 import { PGlite } from '@electric-sql/pglite';
 import Database from 'better-sqlite3';
 import * as schema from './schema';
 import * as sqliteSchema from './schema-sqlite';
 
-type Db = 
-  | NeonHttpDatabase<typeof schema> 
-  | PgliteDatabase<typeof schema>
-  | BetterSQLite3Database<typeof sqliteSchema>;
+// All three backends (Neon HTTP, PGlite, better-sqlite3) expose the same
+// query-builder surface for the queries this app runs. Drizzle types them as
+// mutually-incompatible unions, so we pick one canonical type and cast the
+// other two to it — the runtime methods are call-compatible. The matching
+// table-type collapse lives in active-schema.ts.
+type Db = NeonHttpDatabase<typeof schema>;
 
 let cached: Db | null = null;
 let schemaReady: Promise<void> | null = null;
@@ -29,7 +31,7 @@ export function getDb(): Db {
   if (isSqliteMode()) {
     const dbPath = process.env.DATABASE_URL?.replace('sqlite:', '') ?? './local.db';
     const sqlite = new Database(dbPath);
-    cached = drizzleSqlite(sqlite, { schema: sqliteSchema }) as any;
+    cached = drizzleSqlite(sqlite, { schema: sqliteSchema }) as unknown as Db;
     return cached;
   }
 
@@ -45,7 +47,7 @@ export function getDb(): Db {
     throw new Error('NEON_DATABASE_URL is required in production');
   }
   if (isPgliteMode() || !url) {
-    cached = drizzlePglite(new PGlite(), { schema });
+    cached = drizzlePglite(new PGlite(), { schema }) as unknown as Db;
   } else {
     cached = drizzleNeon(neon(url), { schema });
   }
