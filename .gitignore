@@ -24,3 +24,8 @@ next-env.d.ts
 /coverage
 /test-results
 /playwright-report
+
+# Local SQLite dev database + local blob store
+/local.db
+/local.db-*
+/local-blobs/
