@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
 import { useProjectQuery } from '@/lib/projects/use-projects';
-import type { ScreenstylerDoc } from '@/lib/document/schema';
+import type { Frame, ScreenstylerDoc } from '@/lib/document/schema';
 import { backgroundToStyle } from '@/lib/style/css';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 import { blurPreviewFill } from '@/lib/annotations/blurs';
@@ -23,7 +23,6 @@ function formatUpdatedAt(value: number) {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'UTC',
   }).format(new Date(value));
 }
 
@@ -35,15 +34,11 @@ function ProjectScreenshotItem({
   docWidth,
   docHeight,
   frame,
-  shadow,
-  cornerRadius,
 }: {
   item: ScreenshotItem;
   docWidth: number;
   docHeight: number;
-  frame: any;
-  shadow: any;
-  cornerRadius: number;
+  frame: Frame;
 }) {
   const imageUrl = useObjectUrl(item.image.blobKey);
   if (!imageUrl) return null;
@@ -113,7 +108,7 @@ function ProjectScreenshotItem({
               display: 'block',
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: frame.type === 'device' ? 'cover' : 'fill',
             }}
           />
         )}
@@ -136,8 +131,6 @@ function ProjectDocumentPreview({ doc: rawDoc }: { doc: ScreenstylerDoc }) {
       : { width: '100%', aspectRatio: `${doc.canvas.width} / ${doc.canvas.height}` };
 
   const frame = doc.content.frame;
-  const shadow = doc.content.shadow;
-  const cornerRadius = doc.content.cornerRadius;
 
   const scaleX = Math.max(0.1, (doc.canvas.width - 2 * padding) / doc.canvas.width);
   const scaleY = Math.max(0.1, (doc.canvas.height - 2 * padding) / doc.canvas.height);
@@ -187,8 +180,6 @@ function ProjectDocumentPreview({ doc: rawDoc }: { doc: ScreenstylerDoc }) {
                   docWidth={doc.canvas.width}
                   docHeight={doc.canvas.height}
                   frame={frame}
-                  shadow={shadow}
-                  cornerRadius={cornerRadius}
                 />
               ))}
               <svg
