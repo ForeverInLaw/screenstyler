@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth/client';
 import { createBlankDoc } from '@/lib/document/factory';
+import { duplicateDocWithBlobs } from '@/lib/document/clone';
 import { getProjectStoreForUser } from '@/lib/storage/active-stores';
 import type { ProjectMeta } from '@/lib/storage/types';
 
@@ -85,7 +86,8 @@ export function useDuplicateProjectMutation(userId: string | null, projects: Pro
       const store = getProjectStoreForUser(userId);
       const source = projects?.find((p) => p.id === sourceId);
       const doc = await store.load(sourceId);
-      return store.create(`${source?.name ?? 'Untitled'} copy`, doc);
+      const cloned = await duplicateDocWithBlobs(doc, userId);
+      return store.create(`${source?.name ?? 'Untitled'} copy`, cloned);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: projectKeys.all }),
   });

@@ -1,4 +1,4 @@
-import { screenstylerDocSchema, type ScreenstylerDoc } from '@/lib/document/schema';
+import { screenstylerDocSchema, CorruptDocumentError, type ScreenstylerDoc } from '@/lib/document/schema';
 import type { ProjectMeta, ProjectStore } from './types';
 
 async function http<T>(input: string, init?: RequestInit): Promise<T> {
@@ -15,7 +15,11 @@ export class CloudProjectStore implements ProjectStore {
   }
   async load(id: string): Promise<ScreenstylerDoc> {
     const raw = await http<unknown>(`/api/projects/${id}`);
-    return screenstylerDocSchema.parse(raw);
+    try {
+      return screenstylerDocSchema.parse(raw);
+    } catch (err) {
+      throw new CorruptDocumentError(JSON.stringify(raw), err as Error);
+    }
   }
   async create(name: string, doc: ScreenstylerDoc): Promise<string> {
     const { id } = await http<{ id: string }>('/api/projects', {
