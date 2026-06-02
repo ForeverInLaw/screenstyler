@@ -3,6 +3,10 @@ import { temporal } from 'zundo';
 import type { Background, ImageRef, ScreenstylerDoc, Shadow, Frame, Transform3D, Annotation, ScreenshotItem } from './schema';
 import { createBlankDoc } from './factory';
 
+/** Anchor geometry captured when Crop Mode is entered, used to map the final
+ * crop rectangle back onto the item's on-canvas box when the crop is committed. */
+export type CropAnchor = { scale: number; imageX: number; imageY: number };
+
 export function normalizeDoc(rawDoc: unknown): ScreenstylerDoc {
   if (!rawDoc || typeof rawDoc !== 'object') return createBlankDoc();
   // Treat the clone as a fully-shaped doc and backfill any missing pieces below;
@@ -78,6 +82,7 @@ interface DocumentState {
   addScreenshot: (image: ImageRef, x?: number, y?: number) => void;
   removeScreenshot: (id: string) => void;
   updateScreenshot: (id: string, updates: Partial<Omit<ScreenshotItem, 'id' | 'image'>>) => void;
+  commitCrop: (id: string, anchor: CropAnchor) => void;
   reorderScreenshot: (id: string, direction: 'front' | 'back') => void;
   setGridSettings: (grid: Partial<{ visible: boolean; size: number; snap: boolean }>) => void;
   setCanvasSize: (preset: string, width: number, height: number) => void;
@@ -187,6 +192,31 @@ export const useDocumentStore = create<DocumentState>()(
             },
           },
         })),
+      // Map the final crop rectangle back onto the item's on-canvas box. The
+      // anchor was snapshotted at crop entry (item.x/y stay fixed while only
+      // `crop` mutates), so this resizes the bounding box to the cropped region.
+      commitCrop: (id, anchor) =>
+        set((s) => {
+          const screenshots = s.doc.content.screenshots || [];
+          const item = screenshots.find((it) => it.id === id);
+          if (!item) return {};
+          const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
+          const next = {
+            x: Math.round(anchor.imageX + crop.x * anchor.scale),
+            y: Math.round(anchor.imageY + crop.y * anchor.scale),
+            width: Math.round(crop.w * anchor.scale),
+            height: Math.round(crop.h * anchor.scale),
+          };
+          return {
+            doc: {
+              ...s.doc,
+              content: {
+                ...s.doc.content,
+                screenshots: screenshots.map((it) => (it.id === id ? { ...it, ...next } : it)),
+              },
+            },
+          };
+        }),
       reorderScreenshot: (id, direction) =>
         set((s) => {
           const list = [...(s.doc.content.screenshots || [])];

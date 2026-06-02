@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import type { ScreenshotItem, ScreenstylerDoc, Frame } from '@/lib/document/schema';
 import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
@@ -45,7 +45,9 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   const selectedScreenshotId = useEditorUiStore((s) => s.selectedScreenshotId);
   const setSelectedScreenshotId = useEditorUiStore((s) => s.setSelectedScreenshotId);
   const isCropMode = useEditorUiStore((s) => s.isCropMode);
-  const setIsCropMode = useEditorUiStore((s) => s.setIsCropMode);
+  const cropSession = useEditorUiStore((s) => s.cropSession);
+  const beginCropSession = useEditorUiStore((s) => s.beginCrop);
+  const endCropSession = useEditorUiStore((s) => s.endCrop);
 
   const isSelected = selectedScreenshotId === item.id;
   const url = useObjectUrl(item.image.blobKey);
@@ -54,51 +56,19 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   const renderY = item.y - headerH;
   const renderH = item.height + headerH;
 
-  const cropStartRef = useRef<{
-    scale: number;
-    imageX: number;
-    imageY: number;
-  } | null>(null);
+  // Anchor geometry for this item's active crop, if any. The session lives in
+  // the UI store and is committed back onto the item's box when it ends (see
+  // endCrop/commitCrop), so nothing here is snapshotted into render-time refs.
+  const cropStart = cropSession?.itemId === item.id ? cropSession : null;
 
-  // Initialize crop start coordinates on entering Crop Mode
-  if (isCropMode && isSelected && !cropStartRef.current) {
+  // Enter Crop Mode: capture the entry anchor (item.x/y are fixed while only
+  // `crop` mutates, so it can't be re-derived mid-drag) and open the session.
+  const beginCrop = () => {
     const scale = item.crop ? item.width / item.crop.w : item.width / item.image.naturalWidth;
     const cx = item.crop?.x ?? 0;
     const cy = item.crop?.y ?? 0;
-    const imageX = item.x - cx * scale;
-    const imageY = item.y - cy * scale;
-    cropStartRef.current = { scale, imageX, imageY };
-  }
-  if ((!isCropMode || !isSelected) && cropStartRef.current) {
-    cropStartRef.current = null;
-  }
-
-  const prevCropModeRef = useRef(isCropMode);
-
-  // Commit crop coordinate transformations when exiting Crop Mode
-  useEffect(() => {
-    if (prevCropModeRef.current && !isCropMode) {
-      if (cropStartRef.current) {
-        const { scale, imageX, imageY } = cropStartRef.current;
-        const currentCrop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
-        
-        const nextX = Math.round(imageX + currentCrop.x * scale);
-        const nextY = Math.round(imageY + currentCrop.y * scale);
-        const nextW = Math.round(currentCrop.w * scale);
-        const nextH = Math.round(currentCrop.h * scale);
-        
-        updateScreenshot(item.id, {
-          x: nextX,
-          y: nextY,
-          width: nextW,
-          height: nextH,
-        });
-        
-        cropStartRef.current = null;
-      }
-    }
-    prevCropModeRef.current = isCropMode;
-  }, [isCropMode, item.id, item.crop, updateScreenshot]);
+    beginCropSession(item.id, { scale, imageX: item.x - cx * scale, imageY: item.y - cy * scale });
+  };
 
   const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
   const scaleX = item.width / crop.w;
@@ -166,7 +136,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         updateScreenshot(item.id, { x: nextX, y: nextY, width: nextW, height: nextH });
       } else {
         // Crop Mode calculations in natural pixels
-        const displayScale = cropStartRef.current?.scale || 1;
+        const displayScale = cropStart?.scale || 1;
         const displayToNaturalScale = 1 / displayScale;
         const ndx = dx * displayToNaturalScale;
         const ndy = dy * displayToNaturalScale;
@@ -222,16 +192,16 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   if (!url) return null;
 
   // Visual layout if cropping
-  if (isSelected && isCropMode && !isPreview && cropStartRef.current) {
+  if (isSelected && isCropMode && !isPreview && cropStart) {
     return (
       <ScreenshotCropEditor
         url={url}
         item={item}
         canvasWidth={doc.canvas.width}
         canvasHeight={doc.canvas.height}
-        cropStart={cropStartRef.current}
+        cropStart={cropStart}
         onDragStart={handleDragStart}
-        onDone={() => setIsCropMode(false)}
+        onDone={endCropSession}
       />
     );
   }
@@ -326,7 +296,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         <ScreenshotSelectionOverlay
           content={content}
           onDragStart={handleDragStart}
-          onCrop={() => setIsCropMode(true)}
+          onCrop={beginCrop}
           onReorderFront={() => reorderScreenshot(item.id, 'front')}
           onReorderBack={() => reorderScreenshot(item.id, 'back')}
           onDelete={() => {
