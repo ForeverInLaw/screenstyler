@@ -1,18 +1,25 @@
 'use client';
 import React, { useRef, useEffect } from 'react';
-import {
-  IconCrop,
-  IconCheck,
-  IconTrash,
-  IconChevronUp,
-  IconChevronDown,
-} from '@tabler/icons-react';
 import type { ScreenshotItem, ScreenstylerDoc, Frame } from '@/lib/document/schema';
 import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { FrameMockup } from './FrameMockup';
 import { useObjectUrl } from './use-object-url';
+import { ScreenshotCropEditor } from './ScreenshotCropEditor';
+import { ScreenshotSelectionOverlay } from './ScreenshotSelectionOverlay';
 import { shadowToCss } from '@/lib/style/css';
+
+export type ScreenshotDragType =
+  | 'move'
+  | 'resize-tl'
+  | 'resize-tr'
+  | 'resize-bl'
+  | 'resize-br'
+  | 'crop-move'
+  | 'crop-tl'
+  | 'crop-tr'
+  | 'crop-bl'
+  | 'crop-br';
 
 type Props = {
   item: ScreenshotItem;
@@ -102,20 +109,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   const offsetX = -crop.x * scaleX;
   const offsetY = -crop.y * scaleY;
 
-  const handleDragStart = (
-    e: React.MouseEvent,
-    type:
-      | 'move'
-      | 'resize-tl'
-      | 'resize-tr'
-      | 'resize-bl'
-      | 'resize-br'
-      | 'crop-move'
-      | 'crop-tl'
-      | 'crop-tr'
-      | 'crop-bl'
-      | 'crop-br'
-  ) => {
+  const handleDragStart = (e: React.MouseEvent, type: ScreenshotDragType) => {
     if (e.button === 1) return;
     e.preventDefault();
     e.stopPropagation();
@@ -229,182 +223,16 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
 
   // Visual layout if cropping
   if (isSelected && isCropMode && !isPreview && cropStartRef.current) {
-    const { scale: displayScale, imageX, imageY } = cropStartRef.current;
-    const currentCrop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
-
     return (
-      <div
-        data-testid="screenshot-crop-editor"
-        style={{
-          position: 'absolute',
-          left: `${(imageX / doc.canvas.width) * 100}%`,
-          top: `${(imageY / doc.canvas.height) * 100}%`,
-          width: `${((item.image.naturalWidth * displayScale) / doc.canvas.width) * 100}%`,
-          height: `${((item.image.naturalHeight * displayScale) / doc.canvas.height) * 100}%`,
-          zIndex: 100,
-          pointerEvents: 'auto',
-        }}
-      >
-        {/* Dimmed Background Image */}
-        <img
-          src={url}
-          alt=""
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            opacity: 0.35,
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Cropped Active Box */}
-        <div
-          onMouseDown={(e) => handleDragStart(e, 'crop-move')}
-          style={{
-            position: 'absolute',
-            left: `${currentCrop.x * displayScale}px`,
-            top: `${currentCrop.y * displayScale}px`,
-            width: `${currentCrop.w * displayScale}px`,
-            height: `${currentCrop.h * displayScale}px`,
-            outline: '2px solid #818cf8',
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
-            cursor: 'default',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Fully Lit Offset Image */}
-          <img
-            src={url}
-            alt=""
-            style={{
-              position: 'absolute',
-              left: `${-currentCrop.x * displayScale}px`,
-              top: `${-currentCrop.y * displayScale}px`,
-              width: `${item.image.naturalWidth * displayScale}px`,
-              height: `${item.image.naturalHeight * displayScale}px`,
-              maxWidth: 'none',
-              maxHeight: 'none',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
-
-        {/* Crop Bounding Border Overlay with Handles */}
-        <div
-          style={{
-            position: 'absolute',
-            left: `${currentCrop.x * displayScale}px`,
-            top: `${currentCrop.y * displayScale}px`,
-            width: `${currentCrop.w * displayScale}px`,
-            height: `${currentCrop.h * displayScale}px`,
-            pointerEvents: 'none',
-          }}
-        >
-          {/* L-shaped Crop Corners */}
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'crop-tl')}
-            style={{
-              position: 'absolute',
-              left: -4,
-              top: -4,
-              width: 16,
-              height: 16,
-              borderLeft: '4px solid #ffffff',
-              borderTop: '4px solid #ffffff',
-              cursor: 'nwse-resize',
-              pointerEvents: 'auto',
-            }}
-          />
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'crop-tr')}
-            style={{
-              position: 'absolute',
-              right: -4,
-              top: -4,
-              width: 16,
-              height: 16,
-              borderRight: '4px solid #ffffff',
-              borderTop: '4px solid #ffffff',
-              cursor: 'nesw-resize',
-              pointerEvents: 'auto',
-            }}
-          />
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'crop-bl')}
-            style={{
-              position: 'absolute',
-              left: -4,
-              bottom: -4,
-              width: 16,
-              height: 16,
-              borderLeft: '4px solid #ffffff',
-              borderBottom: '4px solid #ffffff',
-              cursor: 'nesw-resize',
-              pointerEvents: 'auto',
-            }}
-          />
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'crop-br')}
-            style={{
-              position: 'absolute',
-              right: -4,
-              bottom: -4,
-              width: 16,
-              height: 16,
-              borderRight: '4px solid #ffffff',
-              borderBottom: '4px solid #ffffff',
-              cursor: 'nwse-resize',
-              pointerEvents: 'auto',
-            }}
-          />
-        </div>
-
-        {/* Floating Done Button */}
-        <div
-          className="hide-on-export"
-          style={{
-            position: 'absolute',
-            left: `${(currentCrop.x + currentCrop.w / 2) * displayScale}px`,
-            top: `${(currentCrop.y + currentCrop.h) * displayScale + 16}px`,
-            transform: 'translateX(-50%)',
-            background: 'rgba(15, 17, 21, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 99,
-            padding: '6px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            color: '#ffffff',
-            fontSize: 12,
-            fontWeight: 'bold',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setIsCropMode(false)}
-            style={{
-              background: '#6366f1',
-              border: 'none',
-              color: '#ffffff',
-              padding: '4px 12px',
-              borderRadius: 20,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <IconCheck size={14} />
-            Done Cropping
-          </button>
-        </div>
-      </div>
+      <ScreenshotCropEditor
+        url={url}
+        item={item}
+        canvasWidth={doc.canvas.width}
+        canvasHeight={doc.canvas.height}
+        cropStart={cropStartRef.current}
+        onDragStart={handleDragStart}
+        onDone={() => setIsCropMode(false)}
+      />
     );
   }
 
@@ -416,12 +244,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         if (isPreview) return;
         e.stopPropagation();
         setSelectedScreenshotId(item.id);
-        reorderScreenshot(item.id, 'front');
       }}
       onMouseDown={(e) => {
         if (isPreview || e.button === 1) return;
         setSelectedScreenshotId(item.id);
-        reorderScreenshot(item.id, 'front');
         handleDragStart(e, 'move');
       }}
       style={{
@@ -453,7 +279,6 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
             position: 'relative',
             overflow: 'hidden',
             borderRadius: content.frame.type === 'none' ? `${content.cornerRadius}px` : 0,
-            aspectRatio: `${item.width} / ${item.height}`,
           }}
         >
           {item.crop ? (
@@ -485,7 +310,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
                 display: 'block',
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
+                objectFit: content.frame.type === 'device' ? 'cover' : 'fill',
                 userSelect: 'none',
                 pointerEvents: 'none',
                 borderRadius: content.frame.type === 'none' ? `${content.cornerRadius}px` : undefined,
@@ -498,170 +323,17 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
 
       {/* Editor bounds overlay (hidden in preview) */}
       {isSelected && !isPreview && (
-        <>
-          {/* Border highlight */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: -2,
-              border: '2px solid #6366f1',
-              borderRadius: content.frame.type === 'none' ? `${content.cornerRadius + 2}px` : '14px',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Corner Resize Handles */}
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'resize-tl')}
-            style={{
-              position: 'absolute',
-              left: -6,
-              top: -6,
-              width: 12,
-              height: 12,
-              background: '#ffffff',
-              border: '2px solid #6366f1',
-              borderRadius: '50%',
-              cursor: 'nwse-resize',
-            }}
-          />
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'resize-tr')}
-            style={{
-              position: 'absolute',
-              right: -6,
-              top: -6,
-              width: 12,
-              height: 12,
-              background: '#ffffff',
-              border: '2px solid #6366f1',
-              borderRadius: '50%',
-              cursor: 'nesw-resize',
-            }}
-          />
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'resize-bl')}
-            style={{
-              position: 'absolute',
-              left: -6,
-              bottom: -6,
-              width: 12,
-              height: 12,
-              background: '#ffffff',
-              border: '2px solid #6366f1',
-              borderRadius: '50%',
-              cursor: 'nesw-resize',
-            }}
-          />
-          <div
-            onMouseDown={(e) => handleDragStart(e, 'resize-br')}
-            style={{
-              position: 'absolute',
-              right: -6,
-              bottom: -6,
-              width: 12,
-              height: 12,
-              background: '#ffffff',
-              border: '2px solid #6366f1',
-              borderRadius: '50%',
-              cursor: 'nwse-resize',
-            }}
-          />
-
-          {/* Floating Actions Toolbar (Glassmorphism layout) */}
-          <div
-            className="hide-on-export"
-            onMouseDown={(e) => e.stopPropagation()} // Prevent dragging from starting when clicking toolbar buttons
-            onClick={(e) => e.stopPropagation()} // Prevent resetting selection and crop mode when clicking buttons
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: -50,
-              transform: 'translateX(-50%)',
-              background: 'rgba(23, 25, 35, 0.85)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: 12,
-              padding: '6px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-              zIndex: 1000,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setIsCropMode(true)}
-              title="Crop image"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#e5e7eb',
-                cursor: 'pointer',
-                padding: 4,
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-              }}
-            >
-              <IconCrop size={15} />
-              <span>Crop</span>
-            </button>
-            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
-            <button
-              type="button"
-              onClick={() => reorderScreenshot(item.id, 'front')}
-              title="Bring to Front"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#e5e7eb',
-                cursor: 'pointer',
-                padding: 4,
-                borderRadius: 6,
-              }}
-            >
-              <IconChevronUp size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => reorderScreenshot(item.id, 'back')}
-              title="Send to Back"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#e5e7eb',
-                cursor: 'pointer',
-                padding: 4,
-                borderRadius: 6,
-              }}
-            >
-              <IconChevronDown size={15} />
-            </button>
-            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
-            <button
-              type="button"
-              onClick={() => {
-                removeScreenshot(item.id);
-                setSelectedScreenshotId(null);
-              }}
-              title="Delete screenshot"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#f87171',
-                cursor: 'pointer',
-                padding: 4,
-                borderRadius: 6,
-              }}
-            >
-              <IconTrash size={15} />
-            </button>
-          </div>
-        </>
+        <ScreenshotSelectionOverlay
+          content={content}
+          onDragStart={handleDragStart}
+          onCrop={() => setIsCropMode(true)}
+          onReorderFront={() => reorderScreenshot(item.id, 'front')}
+          onReorderBack={() => reorderScreenshot(item.id, 'back')}
+          onDelete={() => {
+            removeScreenshot(item.id);
+            setSelectedScreenshotId(null);
+          }}
+        />
       )}
     </div>
   );
