@@ -36,5 +36,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+  // Defer revoke: revoking synchronously after click() can cancel the download
+  // in some browsers before it has started.
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
