@@ -47,8 +47,13 @@ export async function PUT(req: NextRequest): Promise<Response> {
   if (!(await isAllowedKey(key, session.user.id))) return new Response('forbidden', { status: 403 });
 
   const contentType = req.headers.get('content-type') ?? 'application/octet-stream';
-  const body = await req.arrayBuffer();
   const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+  // Reject by declared length before buffering the whole body into memory.
+  const declaredLength = Number(req.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_SIZE) {
+    return new Response('payload too large', { status: 413 });
+  }
+  const body = await req.arrayBuffer();
   if (body.byteLength > MAX_SIZE) {
     return new Response('payload too large', { status: 413 });
   }

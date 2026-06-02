@@ -18,6 +18,21 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const db = getDb();
 const sqliteMode = isSqliteMode();
 
+// Fail loud at boot rather than silently locking users out: when email
+// verification is enforced (prod, non-sqlite) but no email transport is
+// configured, verification mails never send and signups can never complete.
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.NEXT_PHASE !== 'phase-production-build' &&
+  !sqliteMode &&
+  process.env.E2E_SKIP_EMAIL_VERIFICATION !== '1' &&
+  (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM)
+) {
+  throw new Error(
+    'RESEND_API_KEY and RESEND_FROM are required in production: email verification is enabled but no email transport is configured',
+  );
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: sqliteMode ? 'sqlite' : 'pg',
