@@ -50,8 +50,8 @@ describe('ContentLayer', () => {
     await blobStore.put('shot-2', new Blob(['y'], { type: 'image/png' }));
 
     const screenshots = [
-      { id: 's1', image: { id: 'i1', blobKey: 'shot-1', naturalWidth: 800, naturalHeight: 500 }, x: 10, y: 10, width: 800, height: 500 },
-      { id: 's2', image: { id: 'i2', blobKey: 'shot-2', naturalWidth: 800, naturalHeight: 500 }, x: 20, y: 20, width: 800, height: 500 },
+      { id: 's1', image: { id: 'i1', blobKey: 'shot-1', naturalWidth: 800, naturalHeight: 500 }, x: 10, y: 10, width: 800, height: 500, scale: 1 },
+      { id: 's2', image: { id: 'i2', blobKey: 'shot-2', naturalWidth: 800, naturalHeight: 500 }, x: 20, y: 20, width: 800, height: 500, scale: 1 },
     ];
 
     renderWithQueryClient(

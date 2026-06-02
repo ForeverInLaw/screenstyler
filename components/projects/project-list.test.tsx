@@ -48,6 +48,6 @@ describe('ProjectList', () => {
     renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={() => {}} onRename={(project) => { renamed = project; }} />);
     const firstCard = screen.getByText('First').closest('li')!;
     await userEvent.click(within(firstCard).getByRole('button', { name: /rename/i }));
-    expect(renamed?.id).toBe('a');
+    expect((renamed as ProjectMeta | null)?.id).toBe('a');
   });
 });

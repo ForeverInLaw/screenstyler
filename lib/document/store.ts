@@ -3,9 +3,11 @@ import { temporal } from 'zundo';
 import type { Background, ImageRef, ScreenstylerDoc, Shadow, Frame, Transform3D, Annotation, ScreenshotItem } from './schema';
 import { createBlankDoc } from './factory';
 
-export function normalizeDoc(rawDoc: any): ScreenstylerDoc {
-  if (!rawDoc) return createBlankDoc();
-  const doc = structuredClone(rawDoc) as any;
+export function normalizeDoc(rawDoc: unknown): ScreenstylerDoc {
+  if (!rawDoc || typeof rawDoc !== 'object') return createBlankDoc();
+  // Treat the clone as a fully-shaped doc and backfill any missing pieces below;
+  // every access is guarded before use, so the optimistic type is safe.
+  const doc = structuredClone(rawDoc) as ScreenstylerDoc;
   if (!doc.version) doc.version = 1;
   if (!doc.canvas) {
     doc.canvas = { preset: 'free', width: 1600, height: 1000, background: { type: 'solid', color: '#0f1115' } };

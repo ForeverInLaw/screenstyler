@@ -61,7 +61,7 @@ export function AnnotationsLayer({
     const frameEl = document.querySelector('[data-testid="document-frame"]');
     const scale = frameEl ? frameEl.getBoundingClientRect().width / canvasWidth : 1;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
       const dx = (moveEvent.clientX - startX) / scale;
       const dy = (moveEvent.clientY - startY) / scale;
 
