@@ -24,6 +24,7 @@ function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
   const queryClient = useQueryClient();
   const frameRef = useRef<HTMLDivElement>(null);
+  const lastThumbAtRef = useRef(0);
   const doc = useDocumentStore((s) => s.doc);
   const loadDoc = useDocumentStore((s) => s.loadDoc);
   const addScreenshot = useDocumentStore((s) => s.addScreenshot);
@@ -47,7 +48,11 @@ function EditorPage() {
     mutationFn: async ({ id: pid, doc: d }: { id: string; doc: typeof doc }) => {
       let thumbnailKey: string | null = null;
       const hasScreenshots = d.content.screenshots && d.content.screenshots.length > 0;
-      if (frameRef.current && hasScreenshots) {
+      // exportPng (full snapdom raster) is expensive; throttle it so a burst of
+      // edits doesn't re-rasterize the canvas on every 800ms autosave tick.
+      const THUMB_INTERVAL_MS = 15000;
+      const now = Date.now();
+      if (frameRef.current && hasScreenshots && now - lastThumbAtRef.current > THUMB_INTERVAL_MS) {
         try {
           const blob = await exportPng(frameRef.current, 1);
           const userId = project.userId;
@@ -55,6 +60,7 @@ function EditorPage() {
           const key = userId ? `users/${userId}/${baseKey}` : baseKey;
           await getBlobStoreForUser(userId).put(key, blob);
           thumbnailKey = key;
+          lastThumbAtRef.current = now;
         } catch (err) {
           console.warn('Thumbnail generation skipped:', err);
         }
@@ -212,14 +218,22 @@ function EditorPage() {
               onDrop={(e) => {
                 e.preventDefault();
                 const files = Array.from(e.dataTransfer.files);
+                let rejected = false;
                 files.forEach((file) => {
                   const validation = validateImageFile(file);
                   if (validation.ok) {
                     ingestImageFile(file, project.userId)
                       .then((img) => addScreenshot(img))
-                      .catch(() => {});
+                      .catch(() =>
+                        window.alert('Could not read that image. It may be corrupt — try another file.'),
+                      );
+                  } else {
+                    rejected = true;
                   }
                 });
+                if (rejected) {
+                  window.alert('Some files were skipped. Use PNG, JPG, or WebP images under 25 MB.');
+                }
               }}
               style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}
             >
