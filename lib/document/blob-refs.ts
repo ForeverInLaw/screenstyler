@@ -21,3 +21,21 @@ export function collectBlobKeys(doc: unknown): string[] {
 
   return keys;
 }
+
+/**
+ * Return the first blob key that provably belongs to a *different* tenant, or
+ * null if none do. A key is foreign only when it carries an explicit
+ * `users/<id>/` ownership prefix for some `<id>` other than `userId`. Unprefixed
+ * legacy keys (e.g. `thumbnail_<projectId>`) aren't attributable to a tenant, so
+ * they're left for the storage layer to resolve rather than rejected.
+ *
+ * Used to reject writes (create/update) that would persist cross-tenant blob
+ * references — defense-in-depth behind the ownership-filtered delete sweep.
+ */
+export function findForeignBlobKey(keys: Iterable<string>, userId: string): string | null {
+  const ownPrefix = `users/${userId}/`;
+  for (const key of keys) {
+    if (key.startsWith('users/') && !key.startsWith(ownPrefix)) return key;
+  }
+  return null;
+}

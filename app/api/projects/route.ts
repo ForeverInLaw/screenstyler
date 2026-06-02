@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm';
 import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/active-schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
+import { collectBlobKeys, findForeignBlobKey } from '@/lib/document/blob-refs';
 
 const createBody = z.object({
   name: z.string().min(1),
@@ -42,6 +43,18 @@ export async function POST(req: Request): Promise<Response> {
   if (!session) return unauthorized();
   const parsed = createBody.safeParse(await req.json());
   if (!parsed.success) return new Response('bad request', { status: 400 });
+
+  // Reject creates that would persist a reference to another tenant's blob.
+  const incomingKeys = [
+    ...collectBlobKeys(parsed.data.doc),
+    ...(parsed.data.sourceImageKey ? [parsed.data.sourceImageKey] : []),
+  ];
+  const foreign = findForeignBlobKey(incomingKeys, session.user.id);
+  if (foreign) {
+    console.warn('rejecting POST with foreign blob key', foreign);
+    return new Response('forbidden', { status: 403 });
+  }
+
   const [row] = await getDb()
     .insert(projects)
     .values({

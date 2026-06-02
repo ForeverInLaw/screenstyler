@@ -4,7 +4,7 @@ import { getDb, ensureSchema } from '@/lib/db/client';
 import { projects } from '@/lib/db/active-schema';
 import { requireSession, unauthorized } from '@/lib/auth/session';
 import { serverDeleteObject } from '@/lib/blob/server-store';
-import { collectBlobKeys } from '@/lib/document/blob-refs';
+import { collectBlobKeys, findForeignBlobKey } from '@/lib/document/blob-refs';
 
 const patchBody = z.object({
   doc: z.unknown().optional(),
@@ -36,6 +36,17 @@ export async function PATCH(req: Request, ctx: Ctx): Promise<Response> {
   const { id } = await ctx.params;
   const parsed = patchBody.safeParse(await req.json());
   if (!parsed.success) return new Response('bad request', { status: 400 });
+
+  // Reject writes that would persist a reference to another tenant's blob.
+  const incomingKeys = [
+    ...(parsed.data.doc !== undefined ? collectBlobKeys(parsed.data.doc) : []),
+    ...(parsed.data.meta?.thumbnailKey ? [parsed.data.meta.thumbnailKey] : []),
+  ];
+  const foreign = findForeignBlobKey(incomingKeys, session.user.id);
+  if (foreign) {
+    console.warn('rejecting PATCH with foreign blob key', foreign);
+    return new Response('forbidden', { status: 403 });
+  }
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.doc !== undefined) updates.doc = parsed.data.doc;

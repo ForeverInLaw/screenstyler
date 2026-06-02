@@ -66,4 +66,45 @@ describe('POST /api/projects', () => {
     }));
     expect(res.status).toBe(400);
   });
+
+  it('rejects a doc referencing another tenant blob with 403', async () => {
+    const attacker = await seedUser('attacker@a');
+    const victim = await seedUser('victim@v');
+    mockSession(attacker);
+    const body = JSON.stringify({
+      name: 'P',
+      doc: { content: { image: { blobKey: `users/${victim.id}/secret.png` } } },
+    });
+    const res = await POST(new Request('http://x/api/projects', {
+      method: 'POST', body, headers: { 'content-type': 'application/json' },
+    }));
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects a foreign sourceImageKey with 403', async () => {
+    const attacker = await seedUser('attacker@a');
+    const victim = await seedUser('victim@v');
+    mockSession(attacker);
+    const body = JSON.stringify({
+      name: 'P', doc: { version: 1 }, sourceImageKey: `users/${victim.id}/img.png`,
+    });
+    const res = await POST(new Request('http://x/api/projects', {
+      method: 'POST', body, headers: { 'content-type': 'application/json' },
+    }));
+    expect(res.status).toBe(403);
+  });
+
+  it('accepts owned and unprefixed legacy keys', async () => {
+    const u = await seedUser();
+    mockSession(u);
+    const body = JSON.stringify({
+      name: 'P',
+      doc: { content: { image: { blobKey: `users/${u.id}/img.png` } } },
+      sourceImageKey: 'thumbnail_legacy',
+    });
+    const res = await POST(new Request('http://x/api/projects', {
+      method: 'POST', body, headers: { 'content-type': 'application/json' },
+    }));
+    expect(res.status).toBe(200);
+  });
 });

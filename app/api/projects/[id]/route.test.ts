@@ -61,6 +61,41 @@ describe('project [id] routes', () => {
     expect(loaded).toEqual({ v: 2 });
   });
 
+  it('PATCH 403 when the doc references another tenant blob', async () => {
+    const attacker = await seedUser('attacker@a');
+    const victim = await seedUser('victim@v');
+    const [p] = await getDb()
+      .insert(projects)
+      .values({ userId: attacker.id, name: 'P', doc: { v: 1 } })
+      .returning();
+    mockSession(attacker);
+    const body = JSON.stringify({
+      doc: { content: { image: { blobKey: `users/${victim.id}/secret.png` } } },
+    });
+    const res = await PATCH(new Request('http://x', {
+      method: 'PATCH', body, headers: { 'content-type': 'application/json' },
+    }), await ctx(p.id));
+    expect(res.status).toBe(403);
+    // The original doc must be untouched.
+    const loaded = await (await GET(new Request('http://x'), await ctx(p.id))).json();
+    expect(loaded).toEqual({ v: 1 });
+  });
+
+  it('PATCH 403 for a foreign thumbnailKey', async () => {
+    const attacker = await seedUser('attacker@a');
+    const victim = await seedUser('victim@v');
+    const [p] = await getDb()
+      .insert(projects)
+      .values({ userId: attacker.id, name: 'P', doc: { v: 1 } })
+      .returning();
+    mockSession(attacker);
+    const body = JSON.stringify({ meta: { thumbnailKey: `users/${victim.id}/thumb.png` } });
+    const res = await PATCH(new Request('http://x', {
+      method: 'PATCH', body, headers: { 'content-type': 'application/json' },
+    }), await ctx(p.id));
+    expect(res.status).toBe(403);
+  });
+
   it('PATCH 404 for a foreign project', async () => {
     const a = await seedUser('a@a');
     const b = await seedUser('b@b');
