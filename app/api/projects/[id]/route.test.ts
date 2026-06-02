@@ -83,7 +83,7 @@ describe('project [id] routes', () => {
     expect(after.status).toBe(404);
   });
 
-  it('DELETE calls deleteObject for non-null R2 keys', async () => {
+  it('DELETE calls deleteObject for owned R2 keys', async () => {
     const { deleteObject } = await import('@/lib/blob/r2-server');
     const u = await seedUser();
     const [p] = await getDb()
@@ -92,8 +92,8 @@ describe('project [id] routes', () => {
         userId: u.id,
         name: 'P',
         doc: {},
-        sourceImageKey: 'users/u/img.png',
-        thumbnailKey: 'users/u/thumb.png',
+        sourceImageKey: `users/${u.id}/img.png`,
+        thumbnailKey: `users/${u.id}/thumb.png`,
       })
       .returning();
     mockSession(u);
@@ -101,7 +101,32 @@ describe('project [id] routes', () => {
     expect(del.status).toBe(200);
     // Give fire-and-forget promises a tick to resolve.
     await new Promise((r) => setTimeout(r, 0));
-    expect(deleteObject).toHaveBeenCalledWith('users/u/img.png');
-    expect(deleteObject).toHaveBeenCalledWith('users/u/thumb.png');
+    expect(deleteObject).toHaveBeenCalledWith(`users/${u.id}/img.png`);
+    expect(deleteObject).toHaveBeenCalledWith(`users/${u.id}/thumb.png`);
+  });
+
+  it('DELETE never deletes blob keys owned by another tenant', async () => {
+    const { deleteObject } = await import('@/lib/blob/r2-server');
+    vi.mocked(deleteObject).mockClear();
+    const victim = await seedUser('victim@v');
+    const attacker = await seedUser('attacker@a');
+    // Attacker's project references the victim's blobs in its (user-controlled)
+    // doc, sourceImageKey, and thumbnailKey.
+    const foreignKey = `users/${victim.id}/secret.png`;
+    const [p] = await getDb()
+      .insert(projects)
+      .values({
+        userId: attacker.id,
+        name: 'P',
+        doc: { content: { image: { blobKey: foreignKey } } },
+        sourceImageKey: foreignKey,
+        thumbnailKey: foreignKey,
+      })
+      .returning();
+    mockSession(attacker);
+    const del = await DELETE(new Request('http://x', { method: 'DELETE' }), await ctx(p.id));
+    expect(del.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(deleteObject).not.toHaveBeenCalledWith(foreignKey);
   });
 });

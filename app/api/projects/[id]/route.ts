@@ -72,16 +72,28 @@ export async function DELETE(req: Request, ctx: Ctx): Promise<Response> {
     .delete(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, session.user.id)));
 
-  // Sweep every blob the project owns: per-screenshot images + background image
-  // (from the doc), plus the legacy source image and the thumbnail. Dedup so a
-  // key isn't deleted twice. Fire-and-forget — don't fail the response on error.
-  const keys = new Set<string>([
+  // Candidate blob keys: per-screenshot images + background (from the doc),
+  // plus the legacy source image and thumbnail. ALL of these come from
+  // user-controlled inputs (doc/sourceImageKey/thumbnailKey are set verbatim by
+  // the client), so a malicious doc could reference another tenant's keys.
+  // Filter to keys this user provably owns before deleting — anything else is
+  // skipped and logged. Owned = the `users/<id>/` prefix the blob routes
+  // enforce, or the legacy `thumbnail_<projectId>` format for THIS project,
+  // which we already confirmed belongs to the session user above.
+  const ownedPrefix = `users/${session.user.id}/`;
+  const legacyThumbKey = `thumbnail_${id}`;
+  const candidates = new Set<string>([
     ...collectBlobKeys(row.doc),
     ...(row.sourceImageKey ? [row.sourceImageKey] : []),
     ...(row.thumbnailKey ? [row.thumbnailKey] : []),
   ]);
-  for (const key of keys) {
-    serverDeleteObject(key).catch((e) => console.warn('blob delete failed', key, e));
+  for (const key of candidates) {
+    if (key.startsWith(ownedPrefix) || key === legacyThumbKey) {
+      // Fire-and-forget — don't fail the response on a blob cleanup error.
+      serverDeleteObject(key).catch((e) => console.warn('blob delete failed', key, e));
+    } else {
+      console.warn('skipping foreign blob key on project delete', key);
+    }
   }
 
   return Response.json({});
