@@ -1,0 +1,41 @@
+node_modules
+.next
+.git
+.gitignore
+
+# Secrets never enter the image; env is injected at runtime via compose env_file.
+.env
+.env.*
+!.env.example
+
+# Local dev database + blob store
+local.db
+local.db-*
+local-blobs
+
+# Tests, reports, build info
+e2e
+test-results
+playwright-report
+coverage
+*.tsbuildinfo
+**/*.test.ts
+**/*.test.tsx
+
+# Tooling / editor / agent dirs
+.claude
+.codegraph
+.continuum
+.serena
+.vscode
+.idea
+
+# Docs (keep README for image provenance)
+docs
+*.md
+!README.md
+
+# Docker artifacts
+Dockerfile
+docker-compose.yml
+.dockerignore

@@ -79,6 +79,37 @@ Set `BETTER_AUTH_URL` to the same origin when changing ports.
 
 ---
 
+## Docker
+
+The app ships as a multi-stage Docker image built on Next.js `output: "standalone"`.
+Postgres (Neon) and object storage (R2) are external managed services, so the
+image runs only the Next.js server — there is no bundled database container.
+
+### Build and run
+
+```bash
+docker compose up --build -d
+```
+
+This builds `screenstyler:latest`, injects credentials from `.env` at runtime
+(`.env` is never copied into the image), and serves on
+[http://localhost:3000](http://localhost:3000). A `/api/health` endpoint backs
+the container healthcheck.
+
+For production set `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+(your public origin), and the `R2_*` values in `.env`.
+
+### Database migrations
+
+`drizzle-kit` is a dev dependency and is **not** present in the runtime image.
+Apply the schema to your Neon database from a full install before first deploy:
+
+```bash
+npm run db:migrate
+```
+
+---
+
 ## Testing
 
 ScreenStyler features a comprehensive test suite covering database queries, local fallback stores, store undo/redo functionality, and UI components.
