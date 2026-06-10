@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
 import { useProjectQuery } from '@/lib/projects/use-projects';
-import type { Frame, ScreenstylerDoc } from '@/lib/document/schema';
+import type { Frame, ScreenstylerDoc, ScreenshotItem } from '@/lib/document/schema';
 import { backgroundToStyle } from '@/lib/style/css';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 import { blurPreviewFill } from '@/lib/annotations/blurs';
@@ -27,7 +27,6 @@ function formatUpdatedAt(value: number) {
 }
 
 import { normalizeDoc } from '@/lib/document/store';
-import type { ScreenshotItem } from '@/lib/document/schema';
 
 function ProjectScreenshotItem({
   item,
