@@ -101,8 +101,14 @@ For production set `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
 
 ### Database migrations
 
-`drizzle-kit` is a dev dependency and is **not** present in the runtime image.
-Apply the schema to your Neon database from a full install before first deploy:
+The container applies pending Neon migrations automatically on startup via
+`instrumentation.ts`, which runs once before the server accepts requests. The
+migration SQL ships in the image under `lib/db/migrations`, and drizzle records
+applied migrations in the database, so restarts are no-ops.
+
+This is intended for a single container. If you scale to multiple instances,
+run migrations as a separate one-shot step instead to avoid concurrent runs.
+Outside Docker you can still apply the schema manually:
 
 ```bash
 npm run db:migrate

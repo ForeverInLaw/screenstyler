@@ -31,6 +31,9 @@ ENV NODE_ENV=production \
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
+# Migration SQL is read from disk at runtime (instrumentation applies pending
+# Neon migrations on boot); the standalone trace does not include these files.
+COPY --from=builder --chown=node:node /app/lib/db/migrations ./lib/db/migrations
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
