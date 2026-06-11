@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS "verifications" (
   "identifier" text NOT NULL,
   "value" text NOT NULL,
   "expires_at" integer NOT NULL,
-  "created_at" integer NOT NULL
+  "created_at" integer NOT NULL,
+  "updated_at" integer NOT NULL
 );
 CREATE INDEX IF NOT EXISTS "verifications_identifier_idx" ON "verifications" ("identifier");
 

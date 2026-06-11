@@ -79,6 +79,7 @@ export const verifications = sqliteTable(
     value: text('value').notNull(),
     expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   },
   (t) => ({
     identifierIdx: index('verifications_identifier_idx').on(t.identifier),
