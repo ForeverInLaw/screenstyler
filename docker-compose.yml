@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Build-time flag: NEXT_PUBLIC_* must be baked at build, not runtime.
+      # Resolved from the host .env on the build machine (compose interpolation).
+      args:
+        NEXT_PUBLIC_LOCAL_ONLY: ${NEXT_PUBLIC_LOCAL_ONLY:-false}
     image: screenstyler:latest
     restart: unless-stopped
     ports:

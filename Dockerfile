@@ -15,6 +15,11 @@ RUN npm ci
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* is inlined into the client bundle and prerendered pages at build
+# time, so it must be present here — the runtime .env (compose env_file) is too
+# late. It is a public flag, not a secret, so baking it into the image is fine.
+ARG NEXT_PUBLIC_LOCAL_ONLY
+ENV NEXT_PUBLIC_LOCAL_ONLY=$NEXT_PUBLIC_LOCAL_ONLY
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
