@@ -2,6 +2,7 @@ import { LocalProjectStore } from './local-project-store';
 import { IdbBlobStore } from './idb-blob-store';
 import { CloudProjectStore } from './cloud-project-store';
 import { R2BlobStore } from './r2-blob-store';
+import { isLocalOnly } from '../config/runtime';
 import type { ProjectStore, BlobStore } from './types';
 
 const localProject: ProjectStore = new LocalProjectStore();
@@ -12,7 +13,7 @@ const cloudBlob: BlobStore = new R2BlobStore();
 let activeUser: { userId: string } | null = null;
 
 export function setActiveAuth(state: { userId: string } | null): void {
-  activeUser = state;
+  activeUser = isLocalOnly() ? null : state;
 }
 
 export function getProjectStore(): ProjectStore {
@@ -20,7 +21,7 @@ export function getProjectStore(): ProjectStore {
 }
 
 export function getProjectStoreForUser(userId: string | null): ProjectStore {
-  return userId ? cloudProject : localProject;
+  return userId && !isLocalOnly() ? cloudProject : localProject;
 }
 
 export function getBlobStore(): BlobStore {
@@ -28,11 +29,11 @@ export function getBlobStore(): BlobStore {
 }
 
 export function getBlobStoreForUser(userId: string | null): BlobStore {
-  return userId ? cloudBlob : localBlob;
+  return userId && !isLocalOnly() ? cloudBlob : localBlob;
 }
 
 export function blobStoreScopeForKey(userId: string | null, blobKey: string | null): 'cloud' | 'local' {
-  if (!userId || !blobKey) return 'local';
+  if (isLocalOnly() || !userId || !blobKey) return 'local';
   if (blobKey.startsWith(`users/${userId}/`)) return 'cloud';
   if (blobKey.startsWith('thumbnail_')) return 'cloud';
   return 'local';

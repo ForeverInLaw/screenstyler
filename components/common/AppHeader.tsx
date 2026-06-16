@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AuthButton } from '@/components/auth/AuthButton';
+import { isLocalOnly } from '@/lib/config/runtime';
 
 type NavKey = 'home' | 'projects';
 
@@ -43,7 +44,7 @@ export function AppHeader({ active = 'home' }: Props) {
           })}
         </nav>
 
-        <AuthButton />
+        {!isLocalOnly() && <AuthButton />}
       </div>
     </header>
   );

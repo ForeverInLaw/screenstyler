@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { AppHeader } from '@/components/common/AppHeader';
+import { isLocalOnly } from '@/lib/config/runtime';
 
 const workflow = ['Upload', 'Frame', 'Annotate', 'Export'];
 
 export default function Home() {
+  const localOnly = isLocalOnly();
   return (
     <main className="min-h-dvh bg-stone-50 text-zinc-950">
       <AppHeader active="home" />
@@ -28,12 +30,14 @@ export default function Home() {
             >
               Open projects
             </Link>
-            <Link
-              href="/?auth=login"
-              className="rounded-md border border-zinc-300 bg-white px-5 py-3 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
-            >
-              Sign in for cloud sync
-            </Link>
+            {!localOnly && (
+              <Link
+                href="/?auth=login"
+                className="rounded-md border border-zinc-300 bg-white px-5 py-3 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+              >
+                Sign in for cloud sync
+              </Link>
+            )}
           </div>
 
           <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-zinc-200 pt-6 text-sm">
@@ -46,8 +50,10 @@ export default function Home() {
               <dd className="mt-1 text-zinc-600">Ready for docs and socials.</dd>
             </div>
             <div>
-              <dt className="font-semibold text-zinc-950">Cloud sync</dt>
-              <dd className="mt-1 text-zinc-600">Sign in before editing.</dd>
+              <dt className="font-semibold text-zinc-950">{localOnly ? 'Private' : 'Cloud sync'}</dt>
+              <dd className="mt-1 text-zinc-600">
+                {localOnly ? 'Stays in your browser.' : 'Sign in before editing.'}
+              </dd>
             </div>
           </dl>
         </div>
@@ -163,9 +169,11 @@ export default function Home() {
           ))}
         </div>
       </section>
-      <Suspense fallback={null}>
-        <AuthModal />
-      </Suspense>
+      {!localOnly && (
+        <Suspense fallback={null}>
+          <AuthModal />
+        </Suspense>
+      )}
     </main>
   );
 }

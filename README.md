@@ -24,6 +24,7 @@ cp .env.example .env
 
 Open `.env` and configure the values you need:
 
+- `NEXT_PUBLIC_LOCAL_ONLY`: Set to `true` for a zero-cloud self-host build. Auth, Neon, and R2 are bypassed entirely — projects and screenshots live only in the visitor's browser (IndexedDB), and the sign-in UI is hidden. Leave empty for the full cloud mode. Because it is a build-time `NEXT_PUBLIC_*` flag, rebuild after changing it.
 - `NEON_DATABASE_URL`: PostgreSQL connection string for Neon-backed auth and cloud projects. If left empty, local API routes fall back to PGlite for tests and lightweight local development.
 - `BETTER_AUTH_SECRET`: Secret key for session hashing. Generate one with:
 

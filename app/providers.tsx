@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from '@/components/auth/SessionProvider';
 import { AuthSync } from '@/components/auth/AuthSync';
+import { isLocalOnly } from '@/lib/config/runtime';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -11,7 +12,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <SessionProvider>
-        <AuthSync />
+        {!isLocalOnly() && <AuthSync />}
         {children}
       </SessionProvider>
     </QueryClientProvider>

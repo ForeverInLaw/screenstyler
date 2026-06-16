@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   blobStoreScopeForKey,
   getActiveUserId,
@@ -50,5 +50,26 @@ describe('active stores', () => {
   it('keeps legacy cloud thumbnails on the cloud store for signed-in users', () => {
     expect(blobStoreScopeForKey('u1', 'thumbnail_p1')).toBe('cloud');
     expect(getBlobStoreForKey('thumbnail_p1', 'u1')).toBeInstanceOf(R2BlobStore);
+  });
+});
+
+describe('active stores — local-only mode', () => {
+  beforeEach(() => vi.stubEnv('NEXT_PUBLIC_LOCAL_ONLY', 'true'));
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    setActiveAuth(null);
+  });
+
+  it('forces local + idb even when a session is set', () => {
+    setActiveAuth({ userId: 'u1' });
+    expect(getProjectStore()).toBeInstanceOf(LocalProjectStore);
+    expect(getBlobStore()).toBeInstanceOf(IdbBlobStore);
+    expect(getActiveUserId()).toBeNull();
+  });
+
+  it('routes owned cloud keys to the local store', () => {
+    expect(blobStoreScopeForKey('u1', 'users/u1/img')).toBe('local');
+    expect(getBlobStoreForKey('users/u1/img', 'u1')).toBeInstanceOf(IdbBlobStore);
+    expect(blobStoreScopeForKey('u1', 'thumbnail_p1')).toBe('local');
   });
 });
