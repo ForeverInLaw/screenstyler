@@ -47,7 +47,8 @@ export const useEditorUiStore = create<EditorUiState>((set, get) => ({
   },
   setSelectedScreenshotIds: (ids) => {
     get().endCrop();
-    set({ selectedScreenshotIds: [...new Set(ids)], selectedAnnotationId: null });
+    const existing = new Set(useDocumentStore.getState().doc.content.screenshots?.map((item) => item.id));
+    set({ selectedScreenshotIds: [...new Set(ids)].filter((id) => existing.has(id)), selectedAnnotationId: null });
   },
   toggleScreenshot: (id) => {
     const ids = get().selectedScreenshotIds;

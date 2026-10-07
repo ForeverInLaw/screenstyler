@@ -12,14 +12,10 @@ import { ScreenshotActionsToolbar } from './ScreenshotActionsToolbar';
 import { imageCropToStyle, shadowToCss } from '@/lib/style/css';
 import { useInteractionStore } from '@/lib/editor/interaction-store';
 import { screenshotRect, screenshotRectStyle } from '@/lib/editor/screenshot-geometry';
-import { startScreenshotDrag } from '@/lib/editor/screenshot-drag';
+import { startScreenshotDrag, type ScreenshotTransform } from '@/lib/editor/screenshot-drag';
 
 export type ScreenshotDragType =
-  | 'move'
-  | 'resize-tl'
-  | 'resize-tr'
-  | 'resize-bl'
-  | 'resize-br'
+  | ScreenshotTransform
   | 'crop-move'
   | 'crop-tl'
   | 'crop-tr'
@@ -41,7 +37,8 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
   const reorderScreenshot = useDocumentStore((s) => s.reorderScreenshot);
 
   const isSelected = useEditorUiStore((s) => s.selectedScreenshotIds.includes(item.id));
-  const isSingleSelection = useEditorUiStore((s) => s.selectedScreenshotIds.length === 1);
+  const isSingleSelection = useEditorUiStore((s) =>
+    doc.content.screenshots?.filter((screenshot) => s.selectedScreenshotIds.includes(screenshot.id)).length === 1);
   const toggleScreenshot = useEditorUiStore((s) => s.toggleScreenshot);
   const setSelectedScreenshotId = useEditorUiStore((s) => s.setSelectedScreenshotId);
   const isCropMode = useEditorUiStore((s) => s.isCropMode);

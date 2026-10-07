@@ -58,6 +58,29 @@ test('Shift selection moves and deletes only the selected screenshots with one U
   for (const index of [0, 1, 2]) expectSameBox(await bounds(images.nth(index)), original[index]);
 });
 
+test('Undo of an upload keeps single-image actions available after Shift selection', async ({ page }) => {
+  await newCanvas(page);
+  const files = await solidImageFixtures(page, ['#dc2626', '#2563eb']);
+  const images = page.getByTestId('screenshot-item');
+  await page.setInputFiles('input[type=file]', files[0]);
+  await expect(images).toHaveCount(1);
+  await page.getByTestId('document-frame').evaluate((element, file) => {
+    const bytes = Uint8Array.from(atob(file.base64), (char) => char.charCodeAt(0));
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([bytes], file.name, { type: 'image/png' }));
+    element.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: transfer }));
+  }, { name: files[1].name, base64: files[1].buffer.toString('base64') });
+  await expect(images).toHaveCount(2);
+  await images.nth(1).click();
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(images).toHaveCount(1);
+  await images.first().click({ modifiers: ['Shift'] });
+  await expect(page.getByTitle('Crop image')).toBeVisible();
+  await page.getByTitle('Crop image').click();
+  await expect(page.getByTestId('screenshot-crop-editor')).toBeVisible();
+  await page.getByRole('button', { name: 'Done Cropping', exact: true }).click();
+});
+
 test('Escape cancels a drag preview without adding a document history step', async ({ page }) => {
   const images = await scene(page);
   await selectPair(page, images);
