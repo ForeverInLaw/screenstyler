@@ -14,6 +14,7 @@ export function startScreenshotDrag(event: ReactMouseEvent, type: ScreenshotTran
   if (!box?.width || !box.height) return;
   event.preventDefault();
   event.stopPropagation();
+  event.currentTarget.closest<HTMLElement>('[data-testid="document-frame"]')?.focus({ preventScroll: true });
 
   const { doc } = useDocumentStore.getState();
   const ids = useEditorUiStore.getState().selectedScreenshotIds;

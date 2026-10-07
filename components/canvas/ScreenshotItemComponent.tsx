@@ -169,6 +169,7 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
         if (e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();
+          e.currentTarget.closest<HTMLElement>('[data-testid="document-frame"]')?.focus({ preventScroll: true });
           toggleScreenshot(item.id);
           return;
         }

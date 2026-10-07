@@ -158,3 +158,35 @@ test('a selected pair advances one layer without reversing its internal order', 
   expect(await colourAt(page, lower)).toEqual([22, 163, 74]);
   expect(await colourAt(page, common)).toEqual([234, 179, 8]);
 });
+
+test('marquee selection and keyboard shortcuts preserve unselected images and editable controls', async ({ page }) => {
+  const images = await scene(page);
+  const red = await bounds(images.nth(0));
+  const green = await bounds(images.nth(1));
+  const blue = await bounds(images.nth(2));
+  await page.keyboard.press('Escape');
+  const start = { x: green.x - 12, y: green.y - 12 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(blue.x + blue.width + 12, red.y - 12, { steps: 5 });
+  await expect(page.getByTestId('selection-marquee')).toBeVisible();
+  await page.mouse.up();
+  await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveText('2 selected');
+  expectSameBox(await bounds(images.nth(0)), red);
+
+  await page.getByRole('slider', { name: 'Padding', exact: true }).focus();
+  await page.keyboard.press('Control+a');
+  await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveText('2 selected');
+  await page.getByRole('button', { name: 'Select', exact: true }).click();
+  await page.keyboard.press('Control+a');
+  await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveText('3 selected');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveCount(0);
+
+  await selectPair(page, images);
+  await page.keyboard.press('Delete');
+  await expect(images).toHaveCount(1);
+  expectSameBox(await bounds(images.first()), red);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(images).toHaveCount(3);
+});
