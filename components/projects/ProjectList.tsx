@@ -5,7 +5,7 @@ import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
 import { useProjectQuery } from '@/lib/projects/use-projects';
 import type { Frame, ScreenstylerDoc, ScreenshotItem } from '@/lib/document/schema';
-import { backgroundToStyle } from '@/lib/style/css';
+import { backgroundToStyle, imageCropToStyle } from '@/lib/style/css';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 import { blurPreviewFill } from '@/lib/annotations/blurs';
 import { getTextFontFamily } from '@/lib/annotations/text';
@@ -47,12 +47,6 @@ function ProjectScreenshotItem({
     (frame.type === 'window' && frame.variant === 'macos-dark') ||
     (frame.type === 'browser' && frame.theme === 'dark');
 
-  const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
-  const left = `${(-crop.x / crop.w) * 100}%`;
-  const top = `${(-crop.y / crop.h) * 100}%`;
-  const width = `${(item.image.naturalWidth / crop.w) * 100}%`;
-  const height = `${(item.image.naturalHeight / crop.h) * 100}%`;
-
   return (
     <div
       style={{
@@ -91,10 +85,7 @@ function ProjectScreenshotItem({
             alt=""
             style={{
               position: 'absolute',
-              left,
-              top,
-              width,
-              height,
+              ...imageCropToStyle(item.image, item.crop),
               maxWidth: 'none',
               maxHeight: 'none',
             }}

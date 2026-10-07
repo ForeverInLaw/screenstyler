@@ -7,7 +7,7 @@ import { FrameMockup } from './FrameMockup';
 import { useObjectUrl } from './use-object-url';
 import { ScreenshotCropEditor } from './ScreenshotCropEditor';
 import { ScreenshotSelectionOverlay } from './ScreenshotSelectionOverlay';
-import { shadowToCss } from '@/lib/style/css';
+import { imageCropToStyle, shadowToCss } from '@/lib/style/css';
 
 export type ScreenshotDragType =
   | 'move'
@@ -70,15 +70,6 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
     beginCropSession(item.id, { scale, imageX: item.x - cx * scale, imageY: item.y - cy * scale });
   };
 
-  const crop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
-  const scaleX = item.width / crop.w;
-  const scaleY = item.height / crop.h;
-
-  const fullW = item.image.naturalWidth * scaleX;
-  const fullH = item.image.naturalHeight * scaleY;
-  const offsetX = -crop.x * scaleX;
-  const offsetY = -crop.y * scaleY;
-
   const handleDragStart = (e: React.MouseEvent, type: ScreenshotDragType) => {
     if (e.button === 1) return;
     e.preventDefault();
@@ -94,6 +85,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
 
     const frameEl = document.querySelector('[data-testid="document-frame"]');
     const scale = frameEl ? frameEl.getBoundingClientRect().width / doc.canvas.width : 1;
+    const cropBounds = e.currentTarget.closest('[data-testid="screenshot-crop-editor"]')?.getBoundingClientRect();
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const dx = (moveEvent.clientX - startX) / scale;
@@ -135,11 +127,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         const nextY = initialItem.y + (initialItem.height - nextH);
         updateScreenshot(item.id, { x: nextX, y: nextY, width: nextW, height: nextH });
       } else {
-        // Crop Mode calculations in natural pixels
-        const displayScale = cropStart?.scale || 1;
-        const displayToNaturalScale = 1 / displayScale;
-        const ndx = dx * displayToNaturalScale;
-        const ndy = dy * displayToNaturalScale;
+        // Convert from the rendered source image, including padding and zoom.
+        if (!cropBounds?.width || !cropBounds.height) return;
+        const ndx = ((moveEvent.clientX - startX) / cropBounds.width) * item.image.naturalWidth;
+        const ndy = ((moveEvent.clientY - startY) / cropBounds.height) * item.image.naturalHeight;
 
         let cx = initialCrop.x;
         let cy = initialCrop.y;
@@ -258,10 +249,7 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
               alt=""
               style={{
                 position: 'absolute',
-                left: `${offsetX}px`,
-                top: `${offsetY}px`,
-                width: `${fullW}px`,
-                height: `${fullH}px`,
+                ...imageCropToStyle(item.image, item.crop),
                 maxWidth: 'none',
                 maxHeight: 'none',
                 display: 'block',

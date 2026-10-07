@@ -69,15 +69,15 @@ describe('useDocumentStore', () => {
     // imageX/Y = the full image's on-canvas origin (item.x/y, crop was null).
     useDocumentStore.getState().commitCrop('s1', { scale: 0.5, imageX: 100, imageY: 50 });
 
-    const item = useDocumentStore.getState().doc.content.screenshots[0];
-    expect({ x: item.x, y: item.y, width: item.width, height: item.height }).toEqual({
+    const item = useDocumentStore.getState().doc.content.screenshots?.[0];
+    expect(item).toMatchObject({
       x: 200, // 100 + 200*0.5
       y: 125, // 50 + 150*0.5
       width: 200, // 400*0.5
       height: 150, // 300*0.5
     });
     // The crop itself is preserved — only the bounding box is remapped.
-    expect(item.crop).toEqual({ x: 200, y: 150, w: 400, h: 300 });
+    expect(item?.crop).toEqual({ x: 200, y: 150, w: 400, h: 300 });
   });
 
   it('commitCrop is a no-op for an unknown id', () => {
@@ -110,4 +110,3 @@ describe('useDocumentStore', () => {
     expect(docAfterUndo.content.frame).toEqual({ type: 'none' });
   });
 });
-
