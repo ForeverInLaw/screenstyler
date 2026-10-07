@@ -6,16 +6,6 @@ import { runMigration, MIGRATED_FLAG } from '@/lib/migration/run-migration';
 import { LocalProjectStore } from '@/lib/storage/local-project-store';
 import { IdbBlobStore } from '@/lib/storage/idb-blob-store';
 
-const banner: React.CSSProperties = {
-  position: 'fixed',
-  bottom: 16,
-  right: 16,
-  padding: '8px 12px',
-  background: '#1e293b',
-  color: '#e5e7eb',
-  borderRadius: 8,
-};
-
 type MigrationState = 'idle' | 'done' | 'err';
 
 export function MigrationRunner() {
@@ -48,11 +38,24 @@ export function MigrationRunner() {
 
   // Derive running: userId is set, flag absent, and migration hasn't resolved yet.
   const isRunning =
-    !!userId &&
-    state === 'idle' &&
-    (typeof window === 'undefined' || !localStorage.getItem(MIGRATED_FLAG));
+    !!userId && state === 'idle' && (typeof window === 'undefined' || !localStorage.getItem(MIGRATED_FLAG));
 
   if (state === 'done' || (!isRunning && state === 'idle')) return null;
-  if (isRunning) return <div style={banner}>Migrating local projects…</div>;
-  return <div style={{ ...banner, background: '#7f1d1d' }}>Some projects failed to migrate. They remain in this browser.</div>;
+  if (isRunning)
+    return (
+      <div
+        role="status"
+        className="notice fixed bottom-4 right-4 z-40 max-w-sm border border-border bg-surface"
+      >
+        Migrating local projects...
+      </div>
+    );
+  return (
+    <div
+      role="alert"
+      className="notice notice-error fixed bottom-4 right-4 z-40 max-w-sm border border-border"
+    >
+      Some projects failed to migrate. They remain in this browser.
+    </div>
+  );
 }

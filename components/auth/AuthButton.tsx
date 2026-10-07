@@ -26,19 +26,11 @@ export function AuthButton() {
   }, [isMenuOpen]);
 
   if (isPending) {
-    return (
-      <span
-        aria-hidden="true"
-        className="h-9 w-20 rounded-md bg-zinc-200/80"
-      />
-    );
+    return <span aria-hidden="true" className="h-10 w-20 rounded-lg bg-well" />;
   }
   if (!data?.user) {
     return (
-      <Link
-        href="/?auth=login"
-        className="rounded-md bg-zinc-950 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
-      >
+      <Link href="/?auth=login" className="button button-primary">
         Sign in
       </Link>
     );
@@ -54,7 +46,7 @@ export function AuthButton() {
         aria-expanded={isMenuOpen}
         aria-haspopup="menu"
         aria-label="Open profile menu"
-        className="grid size-9 place-items-center rounded-full border border-zinc-300 bg-white text-sm font-bold uppercase text-zinc-900 shadow-sm transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+        className="grid size-10 place-items-center rounded-full border border-border bg-well font-mono text-sm font-semibold uppercase text-accent hover:bg-accent-soft"
       >
         {avatarLabel}
       </button>
@@ -63,16 +55,16 @@ export function AuthButton() {
         <div
           role="menu"
           aria-label="Profile menu"
-          className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl shadow-zinc-950/10"
+          className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-surface"
         >
-          <div className="border-b border-zinc-100 px-4 py-3">
+          <div className="border-b border-border px-4 py-4">
             <div className="flex items-center gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-950 text-sm font-bold uppercase text-white">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft font-mono text-sm font-semibold uppercase text-accent">
                 {avatarLabel}
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Signed in as</p>
-                <p className="mt-1 truncate text-sm font-semibold text-zinc-950">{email}</p>
+                <p className="eyebrow">Signed in as</p>
+                <p className="mt-1 truncate text-sm font-medium text-foreground">{email}</p>
               </div>
             </div>
           </div>
@@ -80,7 +72,7 @@ export function AuthButton() {
             type="button"
             role="menuitem"
             onClick={() => signOut()}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-red-700"
+            className="flex min-h-12 w-full items-center gap-2 px-4 py-3 text-left text-sm text-danger hover:bg-danger-soft"
           >
             <IconLogout size={18} stroke={1.8} aria-hidden="true" />
             Sign out
