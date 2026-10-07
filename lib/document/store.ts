@@ -83,7 +83,7 @@ interface DocumentState {
   removeScreenshot: (id: string) => void;
   updateScreenshot: (id: string, updates: Partial<Omit<ScreenshotItem, 'id' | 'image'>>) => void;
   commitCrop: (id: string, anchor: CropAnchor) => void;
-  reorderScreenshot: (id: string, direction: 'front' | 'back') => void;
+  reorderScreenshot: (id: string, direction: 'forward' | 'backward') => void;
   setGridSettings: (grid: Partial<{ visible: boolean; size: number; snap: boolean }>) => void;
   setCanvasSize: (preset: string, width: number, height: number) => void;
   setTransform3d: (transform3d: Transform3D) => void;
@@ -221,13 +221,9 @@ export const useDocumentStore = create<DocumentState>()(
         set((s) => {
           const list = [...(s.doc.content.screenshots || [])];
           const idx = list.findIndex((item) => item.id === id);
-          if (idx === -1) return {};
-          const [item] = list.splice(idx, 1);
-          if (direction === 'front') {
-            list.push(item);
-          } else {
-            list.unshift(item);
-          }
+          const nextIdx = idx + (direction === 'forward' ? 1 : -1);
+          if (idx === -1 || nextIdx < 0 || nextIdx >= list.length) return s;
+          [list[idx], list[nextIdx]] = [list[nextIdx], list[idx]];
           return {
             doc: {
               ...s.doc,
@@ -295,4 +291,3 @@ export const useDocumentStore = create<DocumentState>()(
     { limit: 100, partialize: (s) => ({ doc: s.doc }) },
   ),
 );
-

@@ -1,5 +1,6 @@
 'use client';
-import React from 'react';
+import React, { type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import type { ScreenshotItem, ScreenstylerDoc, Frame } from '@/lib/document/schema';
 import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
@@ -7,6 +8,7 @@ import { FrameMockup } from './FrameMockup';
 import { useObjectUrl } from './use-object-url';
 import { ScreenshotCropEditor } from './ScreenshotCropEditor';
 import { ScreenshotSelectionOverlay } from './ScreenshotSelectionOverlay';
+import { ScreenshotActionsToolbar } from './ScreenshotActionsToolbar';
 import { imageCropToStyle, shadowToCss } from '@/lib/style/css';
 
 export type ScreenshotDragType =
@@ -25,6 +27,7 @@ type Props = {
   item: ScreenshotItem;
   content: ScreenstylerDoc['content'];
   isPreview?: boolean;
+  toolbarLayer?: HTMLElement | null;
 };
 
 function getHeaderHeight(frame: Frame) {
@@ -36,7 +39,7 @@ function getHeaderHeight(frame: Frame) {
   return 0;
 }
 
-export function ScreenshotItemComponent({ item, content, isPreview = false }: Props) {
+export function ScreenshotItemComponent({ item, content, isPreview = false, toolbarLayer = null }: Props) {
   const doc = useDocumentStore((s) => s.doc);
   const updateScreenshot = useDocumentStore((s) => s.updateScreenshot);
   const removeScreenshot = useDocumentStore((s) => s.removeScreenshot);
@@ -198,6 +201,15 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
   }
 
   // Normal / Render mode
+  const screenshots = content.screenshots || [];
+  const layerIndex = screenshots.findIndex((screenshot) => screenshot.id === item.id);
+  const screenshotStyle: CSSProperties = {
+    position: 'absolute',
+    left: `${(item.x / doc.canvas.width) * 100}%`,
+    top: `${(renderY / doc.canvas.height) * 100}%`,
+    width: `${(item.width / doc.canvas.width) * 100}%`,
+    height: `${(renderH / doc.canvas.height) * 100}%`,
+  };
   return (
     <div
       data-testid="screenshot-item"
@@ -212,18 +224,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         handleDragStart(e, 'move');
       }}
       style={{
-        position: 'absolute',
-        left: `${(item.x / doc.canvas.width) * 100}%`,
-        top: `${(renderY / doc.canvas.height) * 100}%`,
-        width: `${(item.width / doc.canvas.width) * 100}%`,
-        height: `${(renderH / doc.canvas.height) * 100}%`,
+        ...screenshotStyle,
         cursor: 'default',
         pointerEvents: 'auto',
-        zIndex: (() => {
-          const screenshots = content.screenshots || [];
-          const idx = screenshots.findIndex((s) => s.id === item.id);
-          return idx >= 0 ? idx : 0;
-        })(),
+        zIndex: Math.max(0, layerIndex),
         boxSizing: 'border-box',
       }}
     >
@@ -284,14 +288,23 @@ export function ScreenshotItemComponent({ item, content, isPreview = false }: Pr
         <ScreenshotSelectionOverlay
           content={content}
           onDragStart={handleDragStart}
-          onCrop={beginCrop}
-          onReorderFront={() => reorderScreenshot(item.id, 'front')}
-          onReorderBack={() => reorderScreenshot(item.id, 'back')}
-          onDelete={() => {
-            removeScreenshot(item.id);
-            setSelectedScreenshotId(null);
-          }}
         />
+      )}
+      {isSelected && !isPreview && toolbarLayer && createPortal(
+        <div style={{ ...screenshotStyle, pointerEvents: 'none' }}>
+          <ScreenshotActionsToolbar
+            onCrop={beginCrop}
+            onMoveForward={layerIndex >= 0 && layerIndex < screenshots.length - 1
+              ? () => reorderScreenshot(item.id, 'forward') : undefined}
+            onMoveBackward={layerIndex > 0
+              ? () => reorderScreenshot(item.id, 'backward') : undefined}
+            onDelete={() => {
+              removeScreenshot(item.id);
+              setSelectedScreenshotId(null);
+            }}
+          />
+        </div>,
+        toolbarLayer,
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 'use client';
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { ScreenstylerDoc, ScreenshotItem } from '@/lib/document/schema';
 import { ScreenshotItemComponent } from './ScreenshotItemComponent';
 
@@ -12,6 +12,7 @@ type Props = {
 };
 
 export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000, isPreview = false, children }: Props) {
+  const [toolbarLayer, setToolbarLayer] = useState<HTMLDivElement | null>(null);
   const { rotateX, rotateY, rotateZ, perspective, scale } = content.transform3d;
   const has3d = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
 
@@ -98,9 +99,17 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
               item={item}
               content={content}
               isPreview={isPreview}
+              toolbarLayer={toolbarLayer}
             />
           ))}
           {children}
+          {!isPreview && (
+            <div
+              ref={setToolbarLayer}
+              className="hide-on-export"
+              style={{ position: 'absolute', inset: 0, zIndex: screenshots.length, pointerEvents: 'none' }}
+            />
+          )}
         </div>
       </div>
     </div>
