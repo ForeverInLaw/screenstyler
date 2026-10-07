@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useDocumentStore } from './store';
+import { normalizeDoc, useDocumentStore } from './store';
 import { createBlankDoc } from './factory';
 
 beforeEach(() => {
@@ -48,6 +48,38 @@ describe('useDocumentStore', () => {
     useDocumentStore.getState().removeAnnotation('a1');
     expect(useDocumentStore.getState().doc.annotations).toEqual([]);
   });
+
+  for (const source of ['migrated', 'setImage']) {
+    for (const grouped of [false, true]) {
+      it(`deletes the last ${grouped ? 'group' : 'screenshot'} in a ${source} document across reload and Undo`, () => {
+        const image = { id: 'legacy-image', blobKey: 'legacy-blob', naturalWidth: 800, naturalHeight: 600 };
+        if (source === 'setImage') useDocumentStore.getState().setImage(image);
+        else {
+          const legacy = createBlankDoc();
+          legacy.content.image = image;
+          useDocumentStore.getState().loadDoc(legacy);
+        }
+        if (grouped) useDocumentStore.getState().addScreenshot({ ...image, id: 'second-image', blobKey: 'second-blob' });
+        const original = useDocumentStore.getState().doc;
+        const screenshots = original.content.screenshots ?? [];
+        expect(screenshots).toHaveLength(grouped ? 2 : 1);
+        const ids = screenshots.map((item) => item.id);
+        useDocumentStore.temporal.getState().clear();
+
+        if (grouped) useDocumentStore.getState().removeScreenshots(ids);
+        else useDocumentStore.getState().removeScreenshot(ids[0]);
+        const deleted = useDocumentStore.getState().doc;
+        expect(normalizeDoc(deleted).content.screenshots).toEqual([]);
+        expect(deleted.content.image).toBeNull();
+
+        useDocumentStore.temporal.getState().undo();
+        expect(useDocumentStore.getState().doc).toEqual(original);
+        useDocumentStore.temporal.getState().redo();
+        useDocumentStore.getState().loadDoc(useDocumentStore.getState().doc);
+        expect(useDocumentStore.getState().doc.content.screenshots).toEqual([]);
+      });
+    }
+  }
 
   it('commitCrop maps the crop rectangle back onto the item box', () => {
     const doc = createBlankDoc();

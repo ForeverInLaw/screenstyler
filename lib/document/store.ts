@@ -181,7 +181,9 @@ export const useDocumentStore = create<DocumentState>()(
         const screenshots = s.doc.content.screenshots || [];
         const remaining = screenshots.filter((item) => !selected.has(item.id));
         if (remaining.length === screenshots.length) return s;
-        return { doc: { ...s.doc, content: { ...s.doc.content, screenshots: remaining } } };
+        return { doc: { ...s.doc, content: { ...s.doc.content,
+          screenshots: remaining, image: remaining.length ? s.doc.content.image : null,
+        } } };
       }),
       updateScreenshot: (id, updates) => get().updateScreenshots([{ id, updates }]),
       updateScreenshots: (updates) => set((s) => {
