@@ -2,6 +2,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from './ui-store';
 import { useInteractionStore } from './interaction-store';
+import { frameHeaderHeight, selectionRect } from './screenshot-geometry';
 
 export type ScreenshotTransform = 'move' | 'resize-tl' | 'resize-tr' | 'resize-bl' | 'resize-br';
 
@@ -17,7 +18,8 @@ export function startScreenshotDrag(event: ReactMouseEvent, type: ScreenshotTran
   const { doc } = useDocumentStore.getState();
   const ids = useEditorUiStore.getState().selectedScreenshotIds;
   const items = (doc.content.screenshots || []).filter((item) => ids.includes(item.id));
-  if (!items.length) return;
+  const selection = selectionRect(items, doc.content.frame);
+  if (!selection) return;
   const start = { x: event.clientX, y: event.clientY };
   let preview = items;
   let moved = false;
@@ -29,16 +31,23 @@ export function startScreenshotDrag(event: ReactMouseEvent, type: ScreenshotTran
     const dy = (move.clientY - start.y) * doc.canvas.height / box.height;
     const snap = (value: number) => doc.canvas.grid?.snap && !move.ctrlKey && !move.metaKey
       ? Math.round(value / doc.canvas.grid.size) * doc.canvas.grid.size : Math.round(value);
-    preview = items.map((item) => {
-      if (type === 'move') return {
-        ...item, x: item.x + snap(items[0].x + dx) - items[0].x, y: item.y + snap(items[0].y + dy) - items[0].y,
-      };
+    if (type === 'move') {
+      preview = items.map((item) => ({
+        ...item, x: item.x + snap(selection.x + dx) - selection.x, y: item.y + snap(selection.y + dy) - selection.y,
+      }));
+    } else {
       const left = type === 'resize-tl' || type === 'resize-bl';
       const top = type === 'resize-tl' || type === 'resize-tr';
-      const width = Math.max(40, snap(item.width + (left ? -dx : dx)));
-      const height = Math.round(width * item.height / item.width);
-      return { ...item, width, height, x: item.x + (left ? item.width - width : 0), y: item.y + (top ? item.height - height : 0) };
-    });
+      const factor = Math.max(...items.map((item) => 40 / item.width), snap(selection.w + (left ? -dx : dx)) / selection.w);
+      const pivot = { x: selection.x + (left ? selection.w : 0), y: selection.y + (top ? selection.h : 0) };
+      const header = frameHeaderHeight(doc.content.frame);
+      preview = items.map((item) => ({
+        ...item,
+        x: Math.round(pivot.x + (item.x - pivot.x) * factor),
+        y: Math.round(pivot.y + (item.y - header - pivot.y) * factor + header),
+        width: Math.round(item.width * factor), height: Math.round(item.height * factor),
+      }));
+    }
     useInteractionStore.getState().setPreviewItems(preview);
   };
 

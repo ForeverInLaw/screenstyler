@@ -1,11 +1,11 @@
 'use client';
 import React from 'react';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
-import type { ScreenshotDragType } from './ScreenshotItemComponent';
+import type { ScreenshotTransform } from '@/lib/editor/screenshot-drag';
 
 type Props = {
   content: ScreenstylerDoc['content'];
-  onDragStart?: (e: React.MouseEvent, type: ScreenshotDragType) => void;
+  onDragStart?: (e: React.MouseEvent, type: ScreenshotTransform) => void;
 };
 
 /**
@@ -45,6 +45,7 @@ export function ScreenshotSelectionOverlay({
           border: '2px solid #6366f1',
           borderRadius: '50%',
           cursor: 'nwse-resize',
+          pointerEvents: 'auto',
         }}
       />
       <div
@@ -60,6 +61,7 @@ export function ScreenshotSelectionOverlay({
           border: '2px solid #6366f1',
           borderRadius: '50%',
           cursor: 'nesw-resize',
+          pointerEvents: 'auto',
         }}
       />
       <div
@@ -75,6 +77,7 @@ export function ScreenshotSelectionOverlay({
           border: '2px solid #6366f1',
           borderRadius: '50%',
           cursor: 'nesw-resize',
+          pointerEvents: 'auto',
         }}
       />
       <div
@@ -90,6 +93,7 @@ export function ScreenshotSelectionOverlay({
           border: '2px solid #6366f1',
           borderRadius: '50%',
           cursor: 'nwse-resize',
+          pointerEvents: 'auto',
         }}
       />
       </>}

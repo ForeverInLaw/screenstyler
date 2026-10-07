@@ -15,7 +15,7 @@ async function drag(page: Page, from: { x: number; y: number }, delta: { x: numb
   await page.mouse.up();
 }
 
-async function scene(page: Page) {
+async function scene(page: Page, count = 3) {
   await page.goto('/projects');
   await page.getByRole('button', { name: 'New project' }).click();
   await page.getByRole('button', { name: 'Create', exact: true }).click();
@@ -24,7 +24,7 @@ async function scene(page: Page) {
   await page.getByRole('slider', { name: 'Shadow opacity', exact: true }).press('Home');
 
   const files = [];
-  for (const [index, colour] of ['#dc2626', '#16a34a', '#2563eb'].entries()) {
+  for (const [index, colour] of ['#dc2626', '#16a34a', '#2563eb', '#eab308'].slice(0, count).entries()) {
     const png = await page.evaluate((fill) => {
       const canvas = document.createElement('canvas');
       canvas.width = 800;
@@ -39,11 +39,13 @@ async function scene(page: Page) {
   }
   await page.setInputFiles('input[type=file]', files);
   const images = page.getByTestId('screenshot-item');
-  await expect(images).toHaveCount(3);
+  await expect(images).toHaveCount(count);
   await page.keyboard.down('Control');
-  for (const [index, dx] of [[2, 100], [1, -100]]) {
+  const placements = [{ index: 2, dx: 100, dy: -80 }, { index: 1, dx: -100, dy: -80 }];
+  if (count === 4) placements.unshift({ index: 3, dx: 40, dy: -120 });
+  for (const { index, dx, dy } of placements) {
     const box = await bounds(images.nth(index));
-    await drag(page, { x: box.x + 8, y: box.y + box.height * 0.6 }, { x: dx, y: -80 });
+    await drag(page, { x: box.x + 8, y: box.y + box.height * 0.6 }, { x: dx, y: dy });
   }
   await page.keyboard.up('Control');
   return images;
@@ -61,6 +63,21 @@ function expectSameBox(actual: Awaited<ReturnType<typeof bounds>>, expected: Awa
   for (const key of ['x', 'y', 'width', 'height'] as const) {
     expect(Math.abs(actual[key] - expected[key]), `Preserve ${key}`).toBeLessThan(1.5);
   }
+}
+
+async function colourAt(page: Page, point: { x: number; y: number }) {
+  const png = await page.screenshot({ clip: { x: Math.floor(point.x), y: Math.floor(point.y), width: 1, height: 1 } });
+  return page.evaluate(async (base64) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${base64}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas context unavailable');
+    context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+  }, png.toString('base64'));
 }
 
 test('Shift selection moves and deletes only the selected screenshots with one Undo per edit', async ({ page }) => {
@@ -84,4 +101,60 @@ test('Shift selection moves and deletes only the selected screenshots with one U
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(images).toHaveCount(3);
   for (const index of [0, 1, 2]) expectSameBox(await bounds(images.nth(index)), original[index]);
+});
+
+test('resizing a selection preserves image proportions and spacing and Undo restores it', async ({ page }) => {
+  const images = await scene(page);
+  await selectPair(page, images);
+  const original = await Promise.all([0, 1, 2].map((index) => bounds(images.nth(index))));
+  const group = await bounds(page.getByTestId('screenshot-group-selection'));
+  const factor = 1.15;
+  await drag(page, { x: group.x + group.width, y: group.y + group.height }, {
+    x: group.width * (factor - 1), y: group.height * (factor - 1),
+  });
+  expectSameBox(await bounds(images.nth(0)), original[0]);
+  for (const index of [1, 2]) {
+    expectSameBox(await bounds(images.nth(index)), {
+      x: group.x + (original[index].x - group.x) * factor,
+      y: group.y + (original[index].y - group.y) * factor,
+      width: original[index].width * factor,
+      height: original[index].height * factor,
+    });
+  }
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  for (const index of [0, 1, 2]) expectSameBox(await bounds(images.nth(index)), original[index]);
+});
+
+test('a selected pair advances one layer without reversing its internal order', async ({ page }) => {
+  const images = await scene(page, 4);
+  const red = await bounds(images.nth(0));
+  const green = await bounds(images.nth(1));
+  const blue = await bounds(images.nth(2));
+  const yellow = await bounds(images.nth(3));
+  const common = { x: red.x + red.width * 0.6, y: red.y + red.height * 0.2 };
+  const lower = { x: common.x, y: (yellow.y + yellow.height + blue.y + blue.height) / 2 };
+  await images.nth(0).click({ position: { x: red.width / 2, y: red.height - 12 } });
+  await images.nth(1).click({ position: { x: 8, y: green.height * 0.6 }, modifiers: ['Shift'] });
+  await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveText('2 selected');
+  const forward = page.getByRole('button', { name: 'Bring forward one layer', exact: true });
+  const backward = page.getByRole('button', { name: 'Send backward one layer', exact: true });
+
+  expect(await colourAt(page, lower)).toEqual([37, 99, 235]);
+  expect(await colourAt(page, common)).toEqual([234, 179, 8]);
+  await expect(forward).toBeEnabled();
+  await forward.click();
+  expect(await colourAt(page, lower)).toEqual([22, 163, 74]);
+  expect(await colourAt(page, common)).toEqual([234, 179, 8]);
+  await forward.click();
+  expect(await colourAt(page, common)).toEqual([22, 163, 74]);
+  await expect(forward).toBeDisabled();
+  await backward.click();
+  expect(await colourAt(page, common)).toEqual([234, 179, 8]);
+  expect(await colourAt(page, lower)).toEqual([22, 163, 74]);
+  await backward.click();
+  expect(await colourAt(page, lower)).toEqual([37, 99, 235]);
+  await expect(backward).toBeDisabled();
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  expect(await colourAt(page, lower)).toEqual([22, 163, 74]);
+  expect(await colourAt(page, common)).toEqual([234, 179, 8]);
 });

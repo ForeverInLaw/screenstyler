@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { Background, ImageRef, ScreenstylerDoc, Shadow, Frame, Transform3D, Annotation, ScreenshotItem } from './schema';
 import { createBlankDoc } from './factory';
+import { moveScreenshotLayers, type LayerDirection } from './screenshot-layers';
 
 /** Anchor geometry captured when Crop Mode is entered, used to map the final
  * crop rectangle back onto the item's on-canvas box when the crop is committed. */
@@ -86,7 +87,8 @@ interface DocumentState {
   updateScreenshot: (id: string, updates: ScreenshotUpdates) => void;
   updateScreenshots: (updates: readonly { id: string; updates: ScreenshotUpdates }[]) => void;
   commitCrop: (id: string, anchor: CropAnchor) => void;
-  reorderScreenshot: (id: string, direction: 'forward' | 'backward') => void;
+  reorderScreenshot: (id: string, direction: LayerDirection) => void;
+  reorderScreenshots: (ids: readonly string[], direction: LayerDirection) => void;
   setGridSettings: (grid: Partial<{ visible: boolean; size: number; snap: boolean }>) => void;
   setCanvasSize: (preset: string, width: number, height: number) => void;
   setTransform3d: (transform3d: Transform3D) => void;
@@ -216,19 +218,18 @@ export const useDocumentStore = create<DocumentState>()(
             },
           };
         }),
-      reorderScreenshot: (id, direction) =>
+      reorderScreenshot: (id, direction) => get().reorderScreenshots([id], direction),
+      reorderScreenshots: (ids, direction) =>
         set((s) => {
-          const list = [...(s.doc.content.screenshots || [])];
-          const idx = list.findIndex((item) => item.id === id);
-          const nextIdx = idx + (direction === 'forward' ? 1 : -1);
-          if (idx === -1 || nextIdx < 0 || nextIdx >= list.length) return s;
-          [list[idx], list[nextIdx]] = [list[nextIdx], list[idx]];
+          const list = s.doc.content.screenshots || [];
+          const reordered = moveScreenshotLayers(list, ids, direction);
+          if (reordered === list) return s;
           return {
             doc: {
               ...s.doc,
               content: {
                 ...s.doc.content,
-                screenshots: list,
+                screenshots: [...reordered],
               },
             },
           };
