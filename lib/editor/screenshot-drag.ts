@@ -50,9 +50,15 @@ export function startScreenshotDrag(event: ReactMouseEvent, type: ScreenshotTran
     } else {
       const left = type === 'resize-tl' || type === 'resize-bl';
       const top = type === 'resize-tl' || type === 'resize-tr';
-      const factor = Math.max(...items.map((item) => 40 / item.width), snap(selection.w + (left ? -dx : dx)) / selection.w);
-      const pivot = { x: selection.x + (left ? selection.w : 0), y: selection.y + (top ? selection.h : 0) };
       const header = frameHeaderHeight(doc.content.frame);
+      const scalableHeight = selection.h - header;
+      const dw = left ? -dx : dx;
+      const dh = top ? -dy : dy;
+      // The larger proportional delta drives the aspect-locked corner; frame headers stay fixed.
+      const requested = Math.abs(dw / selection.w) >= Math.abs(dh / scalableHeight)
+        ? snap(selection.w + dw) / selection.w : snap(scalableHeight + dh) / scalableHeight;
+      const factor = Math.max(...items.map((item) => 40 / item.width), requested);
+      const pivot = { x: selection.x + (left ? selection.w : 0), y: selection.y + (top ? selection.h : 0) };
       const headerOffset = top ? 0 : header;
       preview = items.map((item) => ({
         ...item,
