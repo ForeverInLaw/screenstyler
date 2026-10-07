@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import type { ScreenstylerDoc, ScreenshotItem } from '@/lib/document/schema';
 import { ScreenshotItemComponent } from './ScreenshotItemComponent';
+import { ScreenshotGroupSelection } from './ScreenshotGroupSelection';
 
 type Props = {
   content: ScreenstylerDoc['content'];
@@ -84,6 +85,7 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
       >
         {/* Tilting & scaling container */}
         <div
+          data-screenshot-layout
           style={{
             position: 'relative',
             width: '100%',
@@ -108,7 +110,9 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
               ref={setToolbarLayer}
               className="hide-on-export"
               style={{ position: 'absolute', inset: 0, zIndex: screenshots.length, pointerEvents: 'none' }}
-            />
+            >
+              <ScreenshotGroupSelection content={content} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
+            </div>
           )}
         </div>
       </div>

@@ -2,14 +2,16 @@
 import { IconCrop, IconTrash, IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 
 type Props = {
-  onCrop: () => void;
+  selectionCount?: number;
+  onCrop?: () => void;
   onMoveForward?: () => void;
   onMoveBackward?: () => void;
   onDelete: () => void;
 };
 
 /** Actions anchored above the selected screenshot in the editor overlay layer. */
-export function ScreenshotActionsToolbar({ onCrop, onMoveForward, onMoveBackward, onDelete }: Props) {
+export function ScreenshotActionsToolbar({ selectionCount = 1, onCrop, onMoveForward, onMoveBackward, onDelete }: Props) {
+  const deleteLabel = selectionCount === 1 ? 'Delete screenshot' : `Delete ${selectionCount} screenshots`;
   return (
     <div
       className="hide-on-export"
@@ -32,7 +34,12 @@ export function ScreenshotActionsToolbar({ onCrop, onMoveForward, onMoveBackward
         pointerEvents: 'auto',
       }}
     >
-      <button
+      {selectionCount > 1 && (
+        <span role="status" aria-label="Screenshot selection" style={{ color: '#e5e7eb', fontSize: 11, whiteSpace: 'nowrap' }}>
+          {selectionCount} selected
+        </span>
+      )}
+      {onCrop && <button
         type="button"
         onClick={onCrop}
         title="Crop image"
@@ -51,8 +58,8 @@ export function ScreenshotActionsToolbar({ onCrop, onMoveForward, onMoveBackward
       >
         <IconCrop size={15} />
         <span>Crop</span>
-      </button>
-      <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+      </button>}
+      {onCrop && <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />}
       <button
         type="button"
         onClick={onMoveForward}
@@ -93,7 +100,8 @@ export function ScreenshotActionsToolbar({ onCrop, onMoveForward, onMoveBackward
       <button
         type="button"
         onClick={onDelete}
-        title="Delete screenshot"
+        title={deleteLabel}
+        aria-label={deleteLabel}
         style={{
           background: 'transparent',
           border: 'none',

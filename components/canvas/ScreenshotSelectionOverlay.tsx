@@ -5,7 +5,7 @@ import type { ScreenshotDragType } from './ScreenshotItemComponent';
 
 type Props = {
   content: ScreenstylerDoc['content'];
-  onDragStart: (e: React.MouseEvent, type: ScreenshotDragType) => void;
+  onDragStart?: (e: React.MouseEvent, type: ScreenshotDragType) => void;
 };
 
 /**
@@ -31,6 +31,7 @@ export function ScreenshotSelectionOverlay({
       />
 
       {/* Corner Resize Handles */}
+      {onDragStart && <>
       <div
         className="hide-on-export"
         onMouseDown={(e) => onDragStart(e, 'resize-tl')}
@@ -91,6 +92,7 @@ export function ScreenshotSelectionOverlay({
           cursor: 'nwse-resize',
         }}
       />
+      </>}
     </>
   );
 }

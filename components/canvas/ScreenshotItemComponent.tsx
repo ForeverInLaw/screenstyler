@@ -1,7 +1,7 @@
 'use client';
-import React, { type CSSProperties } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
-import type { ScreenshotItem, ScreenstylerDoc, Frame } from '@/lib/document/schema';
+import type { ScreenshotItem, ScreenstylerDoc } from '@/lib/document/schema';
 import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { FrameMockup } from './FrameMockup';
@@ -10,6 +10,9 @@ import { ScreenshotCropEditor } from './ScreenshotCropEditor';
 import { ScreenshotSelectionOverlay } from './ScreenshotSelectionOverlay';
 import { ScreenshotActionsToolbar } from './ScreenshotActionsToolbar';
 import { imageCropToStyle, shadowToCss } from '@/lib/style/css';
+import { useInteractionStore } from '@/lib/editor/interaction-store';
+import { screenshotRect, screenshotRectStyle } from '@/lib/editor/screenshot-geometry';
+import { startScreenshotDrag } from '@/lib/editor/screenshot-drag';
 
 export type ScreenshotDragType =
   | 'move'
@@ -30,34 +33,23 @@ type Props = {
   toolbarLayer?: HTMLElement | null;
 };
 
-function getHeaderHeight(frame: Frame) {
-  if (frame.type === 'window') return 32;
-  if (frame.type === 'browser') {
-    if (frame.variant === 'safari') return 42;
-    if (frame.variant === 'chrome') return 70;
-  }
-  return 0;
-}
-
-export function ScreenshotItemComponent({ item, content, isPreview = false, toolbarLayer = null }: Props) {
+export function ScreenshotItemComponent({ item: sourceItem, content, isPreview = false, toolbarLayer = null }: Props) {
+  const item = useInteractionStore((s) => s.previewItems[sourceItem.id] ?? sourceItem);
   const doc = useDocumentStore((s) => s.doc);
   const updateScreenshot = useDocumentStore((s) => s.updateScreenshot);
   const removeScreenshot = useDocumentStore((s) => s.removeScreenshot);
   const reorderScreenshot = useDocumentStore((s) => s.reorderScreenshot);
 
-  const selectedScreenshotId = useEditorUiStore((s) => s.selectedScreenshotId);
+  const isSelected = useEditorUiStore((s) => s.selectedScreenshotIds.includes(item.id));
+  const isSingleSelection = useEditorUiStore((s) => s.selectedScreenshotIds.length === 1);
+  const toggleScreenshot = useEditorUiStore((s) => s.toggleScreenshot);
   const setSelectedScreenshotId = useEditorUiStore((s) => s.setSelectedScreenshotId);
   const isCropMode = useEditorUiStore((s) => s.isCropMode);
   const cropSession = useEditorUiStore((s) => s.cropSession);
   const beginCropSession = useEditorUiStore((s) => s.beginCrop);
   const endCropSession = useEditorUiStore((s) => s.endCrop);
 
-  const isSelected = selectedScreenshotId === item.id;
   const url = useObjectUrl(item.image.blobKey);
-
-  const headerH = getHeaderHeight(content.frame);
-  const renderY = item.y - headerH;
-  const renderH = item.height + headerH;
 
   // Anchor geometry for this item's active crop, if any. The session lives in
   // the UI store and is committed back onto the item's box when it ends (see
@@ -74,6 +66,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false, tool
   };
 
   const handleDragStart = (e: React.MouseEvent, type: ScreenshotDragType) => {
+    if (type === 'move' || type === 'resize-tl' || type === 'resize-tr' || type === 'resize-bl' || type === 'resize-br') {
+      startScreenshotDrag(e, type, type === 'move' ? item.id : undefined);
+      return;
+    }
     if (e.button === 1) return;
     e.preventDefault();
     e.stopPropagation();
@@ -83,90 +79,47 @@ export function ScreenshotItemComponent({ item, content, isPreview = false, tool
     const startX = e.clientX;
     const startY = e.clientY;
 
-    const initialItem = { ...item };
     const initialCrop = item.crop ? { ...item.crop } : { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
 
-    const frameEl = document.querySelector('[data-testid="document-frame"]');
-    const scale = frameEl ? frameEl.getBoundingClientRect().width / doc.canvas.width : 1;
     const cropBounds = e.currentTarget.closest('[data-testid="screenshot-crop-editor"]')?.getBoundingClientRect();
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      const dx = (moveEvent.clientX - startX) / scale;
-      const dy = (moveEvent.clientY - startY) / scale;
+      // Convert from the rendered source image, including padding and zoom.
+      if (!cropBounds?.width || !cropBounds.height) return;
+      const ndx = ((moveEvent.clientX - startX) / cropBounds.width) * item.image.naturalWidth;
+      const ndy = ((moveEvent.clientY - startY) / cropBounds.height) * item.image.naturalHeight;
 
-      const snap = doc.canvas.grid?.snap;
-      const gridSize = doc.canvas.grid?.size || 20;
+      let cx = initialCrop.x;
+      let cy = initialCrop.y;
+      let cw = initialCrop.w;
+      let ch = initialCrop.h;
 
-      const snapValue = (val: number) => {
-        return snap ? Math.round(val / gridSize) * gridSize : Math.round(val);
-      };
-
-      if (type === 'move') {
-        const nextX = snapValue(initialItem.x + dx);
-        const nextY = snapValue(initialItem.y + dy);
-        updateScreenshot(item.id, { x: nextX, y: nextY });
-      } else if (type === 'resize-br') {
-        const nextW = Math.max(40, snapValue(initialItem.width + dx));
-        const aspect = initialItem.width / initialItem.height;
-        const nextH = Math.round(nextW / aspect);
-        updateScreenshot(item.id, { width: nextW, height: nextH });
-      } else if (type === 'resize-bl') {
-        const nextW = Math.max(40, snapValue(initialItem.width - dx));
-        const aspect = initialItem.width / initialItem.height;
-        const nextH = Math.round(nextW / aspect);
-        const nextX = initialItem.x + (initialItem.width - nextW);
-        updateScreenshot(item.id, { x: nextX, width: nextW, height: nextH });
-      } else if (type === 'resize-tr') {
-        const nextW = Math.max(40, snapValue(initialItem.width + dx));
-        const aspect = initialItem.width / initialItem.height;
-        const nextH = Math.round(nextW / aspect);
-        const nextY = initialItem.y + (initialItem.height - nextH);
-        updateScreenshot(item.id, { y: nextY, width: nextW, height: nextH });
-      } else if (type === 'resize-tl') {
-        const nextW = Math.max(40, snapValue(initialItem.width - dx));
-        const aspect = initialItem.width / initialItem.height;
-        const nextH = Math.round(nextW / aspect);
-        const nextX = initialItem.x + (initialItem.width - nextW);
-        const nextY = initialItem.y + (initialItem.height - nextH);
-        updateScreenshot(item.id, { x: nextX, y: nextY, width: nextW, height: nextH });
-      } else {
-        // Convert from the rendered source image, including padding and zoom.
-        if (!cropBounds?.width || !cropBounds.height) return;
-        const ndx = ((moveEvent.clientX - startX) / cropBounds.width) * item.image.naturalWidth;
-        const ndy = ((moveEvent.clientY - startY) / cropBounds.height) * item.image.naturalHeight;
-
-        let cx = initialCrop.x;
-        let cy = initialCrop.y;
-        let cw = initialCrop.w;
-        let ch = initialCrop.h;
-
-        if (type === 'crop-move') {
-          cx = Math.max(0, Math.min(item.image.naturalWidth - cw, Math.round(initialCrop.x + ndx)));
-          cy = Math.max(0, Math.min(item.image.naturalHeight - ch, Math.round(initialCrop.y + ndy)));
-        } else if (type === 'crop-br') {
-          cw = Math.max(20, Math.min(item.image.naturalWidth - cx, Math.round(initialCrop.w + ndx)));
-          ch = Math.max(20, Math.min(item.image.naturalHeight - cy, Math.round(initialCrop.h + ndy)));
-        } else if (type === 'crop-tl') {
-          const nextCx = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 20, Math.round(initialCrop.x + ndx)));
-          cw = initialCrop.w + (initialCrop.x - nextCx);
-          cx = nextCx;
-          const nextCy = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 20, Math.round(initialCrop.y + ndy)));
-          ch = initialCrop.h + (initialCrop.y - nextCy);
-          cy = nextCy;
-        } else if (type === 'crop-tr') {
-          cw = Math.max(20, Math.min(item.image.naturalWidth - cx, Math.round(initialCrop.w + ndx)));
-          const nextCy = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 20, Math.round(initialCrop.y + ndy)));
-          ch = initialCrop.h + (initialCrop.y - nextCy);
-          cy = nextCy;
-        } else if (type === 'crop-bl') {
-          const nextCx = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 20, Math.round(initialCrop.x + ndx)));
-          cw = initialCrop.w + (initialCrop.x - nextCx);
-          cx = nextCx;
-          ch = Math.max(20, Math.min(item.image.naturalHeight - cy, Math.round(initialCrop.h + ndy)));
-        }
-
-        updateScreenshot(item.id, { crop: { x: cx, y: cy, w: cw, h: ch } });
+      if (type === 'crop-move') {
+        cx = Math.max(0, Math.min(item.image.naturalWidth - cw, Math.round(initialCrop.x + ndx)));
+        cy = Math.max(0, Math.min(item.image.naturalHeight - ch, Math.round(initialCrop.y + ndy)));
+      } else if (type === 'crop-br') {
+        cw = Math.max(20, Math.min(item.image.naturalWidth - cx, Math.round(initialCrop.w + ndx)));
+        ch = Math.max(20, Math.min(item.image.naturalHeight - cy, Math.round(initialCrop.h + ndy)));
+      } else if (type === 'crop-tl') {
+        const nextCx = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 20, Math.round(initialCrop.x + ndx)));
+        cw = initialCrop.w + (initialCrop.x - nextCx);
+        cx = nextCx;
+        const nextCy = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 20, Math.round(initialCrop.y + ndy)));
+        ch = initialCrop.h + (initialCrop.y - nextCy);
+        cy = nextCy;
+      } else if (type === 'crop-tr') {
+        cw = Math.max(20, Math.min(item.image.naturalWidth - cx, Math.round(initialCrop.w + ndx)));
+        const nextCy = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 20, Math.round(initialCrop.y + ndy)));
+        ch = initialCrop.h + (initialCrop.y - nextCy);
+        cy = nextCy;
+      } else if (type === 'crop-bl') {
+        const nextCx = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 20, Math.round(initialCrop.x + ndx)));
+        cw = initialCrop.w + (initialCrop.x - nextCx);
+        cx = nextCx;
+        ch = Math.max(20, Math.min(item.image.naturalHeight - cy, Math.round(initialCrop.h + ndy)));
       }
+
+      updateScreenshot(item.id, { crop: { x: cx, y: cy, w: cw, h: ch } });
     };
 
     const onMouseUp = () => {
@@ -203,24 +156,23 @@ export function ScreenshotItemComponent({ item, content, isPreview = false, tool
   // Normal / Render mode
   const screenshots = content.screenshots || [];
   const layerIndex = screenshots.findIndex((screenshot) => screenshot.id === item.id);
-  const screenshotStyle: CSSProperties = {
-    position: 'absolute',
-    left: `${(item.x / doc.canvas.width) * 100}%`,
-    top: `${(renderY / doc.canvas.height) * 100}%`,
-    width: `${(item.width / doc.canvas.width) * 100}%`,
-    height: `${(renderH / doc.canvas.height) * 100}%`,
-  };
+  const screenshotStyle = screenshotRectStyle(screenshotRect(item, content.frame), doc.canvas.width, doc.canvas.height);
   return (
     <div
       data-testid="screenshot-item"
       onClick={(e) => {
         if (isPreview) return;
         e.stopPropagation();
-        setSelectedScreenshotId(item.id);
       }}
       onMouseDown={(e) => {
-        if (isPreview || e.button === 1) return;
-        setSelectedScreenshotId(item.id);
+        if (isPreview || e.button !== 0) return;
+        if (e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleScreenshot(item.id);
+          return;
+        }
+        if (!isSelected) setSelectedScreenshotId(item.id);
         handleDragStart(e, 'move');
       }}
       style={{
@@ -287,10 +239,10 @@ export function ScreenshotItemComponent({ item, content, isPreview = false, tool
       {isSelected && !isPreview && (
         <ScreenshotSelectionOverlay
           content={content}
-          onDragStart={handleDragStart}
+          onDragStart={isSingleSelection ? handleDragStart : undefined}
         />
       )}
-      {isSelected && !isPreview && toolbarLayer && createPortal(
+      {isSelected && isSingleSelection && !isPreview && toolbarLayer && createPortal(
         <div style={{ ...screenshotStyle, pointerEvents: 'none' }}>
           <ScreenshotActionsToolbar
             onCrop={beginCrop}
