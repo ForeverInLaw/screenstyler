@@ -54,7 +54,7 @@ export const auth = betterAuth({
       generateId: 'uuid' as const,
     },
   },
-  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3100',
   secret: process.env.BETTER_AUTH_SECRET ?? 'dev-insecure-secret-32-chars-______',
   emailAndPassword: {
     enabled: true,

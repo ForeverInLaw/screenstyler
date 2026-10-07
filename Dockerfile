@@ -29,7 +29,7 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
+    PORT=3100 \
     HOSTNAME=0.0.0.0
 # Standalone output bundles only the traced node_modules plus a minimal
 # server.js. public/ and .next/static are not copied by it, so add them here.
@@ -40,7 +40,7 @@ COPY --from=builder --chown=node:node /app/public ./public
 # Neon migrations on boot); the standalone trace does not include these files.
 COPY --from=builder --chown=node:node /app/lib/db/migrations ./lib/db/migrations
 USER node
-EXPOSE 3000
+EXPOSE 3100
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3100)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "server.js"]
