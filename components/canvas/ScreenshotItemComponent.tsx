@@ -235,14 +235,12 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
       </FrameMockup>
 
       {/* Editor bounds overlay (hidden in preview) */}
-      {isSelected && !isPreview && (
-        <ScreenshotSelectionOverlay
-          content={content}
-          onDragStart={isSingleSelection ? handleDragStart : undefined}
-        />
+      {isSelected && !isSingleSelection && !isPreview && (
+        <ScreenshotSelectionOverlay content={content} />
       )}
       {isSelected && isSingleSelection && !isPreview && toolbarLayer && createPortal(
         <div style={{ ...screenshotStyle, pointerEvents: 'none' }}>
+          <ScreenshotSelectionOverlay content={content} onDragStart={handleDragStart} />
           <ScreenshotActionsToolbar
             onCrop={beginCrop}
             onMoveForward={layerIndex >= 0 && layerIndex < screenshots.length - 1

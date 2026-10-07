@@ -110,7 +110,7 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
             <div
               ref={setToolbarLayer}
               className="hide-on-export"
-              style={{ position: 'absolute', inset: 0, zIndex: screenshots.length, pointerEvents: 'none' }}
+              style={{ position: 'absolute', inset: 0, zIndex: Math.max(21, screenshots.length), pointerEvents: 'none' }}
             >
               <ScreenshotGroupSelection content={content} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
               <ScreenshotInteractionOverlay canvasWidth={canvasWidth} canvasHeight={canvasHeight} />

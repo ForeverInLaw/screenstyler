@@ -103,3 +103,25 @@ for (const tilted of [false, true]) {
     await page.getByRole('button', { name: 'Done Cropping', exact: true }).click();
   });
 }
+
+for (const grouped of [false, true]) {
+  test(`overlapping annotations leave ${grouped ? 'group' : 'single-image'} actions and resize handles clickable`, async ({ page }) => {
+    const images = await scene(page, grouped);
+    const original = await bounds(images.first());
+    await page.getByRole('button', { name: 'Highlight', exact: true }).click();
+    await drag(page, { x: original.x - 15, y: original.y - 60 }, { x: original.width + 30, y: original.height + 80 });
+    await page.getByRole('button', { name: 'Select', exact: true }).click();
+    await page.keyboard.press('Control+a');
+    const selection = grouped ? page.getByTestId('screenshot-group-selection') : images.first();
+    const deleteButton = page.getByRole('button', { name: grouped ? 'Delete 2 screenshots' : 'Delete screenshot', exact: true });
+    await deleteButton.click({ trial: true });
+    const grip = await pointOn(selection, { x: 1, y: 1 });
+    await drag(page, grip, { x: 40, y: 30 });
+    expect((await bounds(images.first())).width).toBeGreaterThan(original.width + 20);
+    await deleteButton.click();
+    await expect(images).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(images).toHaveCount(grouped ? 2 : 1);
+    expect((await bounds(images.first())).width).toBeGreaterThan(original.width + 20);
+  });
+}
