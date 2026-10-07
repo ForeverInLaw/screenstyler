@@ -16,6 +16,7 @@ import type { ArrowVariant, BlurVariant } from '@/lib/document/schema';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { withAlpha } from '@/lib/style/css';
+import { Select } from '@/components/ui/Select';
 
 import type { EditorTool } from '@/lib/editor/workspace-store';
 
@@ -180,18 +181,14 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
 
       {effectiveTool === 'text' && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Text options">
-          <select
-            className="field max-w-40"
-            aria-label="Text font"
+          <Select
+            className="w-40"
+            label="Text font"
+            hideLabel
             value={textFontFamily}
-            onChange={(event) => handleTextFontFamilyChange(event.target.value)}
-          >
-            {textFontOptions.map((font) => (
-              <option key={font.id} value={font.id}>
-                {font.label}
-              </option>
-            ))}
-          </select>
+            onValueChange={handleTextFontFamilyChange}
+            options={textFontOptions.map((font) => ({ value: font.id, label: font.label }))}
+          />
           <input
             className="max-w-24"
             type="range"
@@ -245,18 +242,14 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
 
       {effectiveTool === 'blur' && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Blur options">
-          <select
-            className="field max-w-40"
-            aria-label="Blur type"
+          <Select
+            className="w-40"
+            label="Blur type"
+            hideLabel
             value={blurVariant}
-            onChange={(event) => handleBlurVariantChange(event.target.value as BlurVariant)}
-          >
-            {blurVariants.map((variant) => (
-              <option key={variant.id} value={variant.id}>
-                {variant.label}
-              </option>
-            ))}
-          </select>
+            onValueChange={handleBlurVariantChange}
+            options={blurVariants.map((variant) => ({ value: variant.id, label: variant.label }))}
+          />
           <input
             className="max-w-24"
             type="range"

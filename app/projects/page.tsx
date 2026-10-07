@@ -7,6 +7,7 @@ import { MigrationRunner } from '@/components/migration/MigrationRunner';
 import { AppHeader } from '@/components/common/AppHeader';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
+import { Select } from '@/components/ui/Select';
 import {
   useCreateProjectMutation,
   useDeleteProjectMutation,
@@ -103,15 +104,17 @@ export default function ProjectsPage() {
                 className="field pl-9"
               />
             </label>
-            <select
-              aria-label="Sort projects"
+            <Select
+              label="Sort projects"
+              hideLabel
               value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="field w-auto"
-            >
-              <option value="recent">Last edited</option>
-              <option value="name">Name A–Z</option>
-            </select>
+              onValueChange={setSort}
+              className="w-36 shrink-0"
+              options={[
+                { value: 'recent', label: 'Last edited' },
+                { value: 'name', label: 'Name A–Z' },
+              ]}
+            />
           </div>
         </div>
         {loading && (

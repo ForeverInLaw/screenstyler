@@ -142,16 +142,7 @@ function EditorPage() {
     function handleKeyDown(event: KeyboardEvent) {
       if (isPreview) return;
 
-      // Ignore shortcuts if user is typing in input, textarea, or contenteditable
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
-          activeEl.getAttribute('contenteditable') === 'true')
-      ) {
-        return;
-      }
+      if (event.defaultPrevented || isEditablePasteTarget(event.target)) return;
       if (handleScreenshotShortcut(event)) return;
 
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;

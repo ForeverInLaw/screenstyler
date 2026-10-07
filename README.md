@@ -91,6 +91,11 @@ and editor visibility in `lib/editor/workspace-store.ts`. Account requests and
 export progress use TanStack Query hooks. Document data, undo, and storage formats
 are unchanged by the redesign.
 
+Selects, checkboxes, and the account menu use [Base UI](https://base-ui.com/) behind
+shared styled components. Their popups share the studio palette, selection marks,
+and Tabler icons, with library-managed keyboard navigation and focus restoration.
+Editor shortcuts leave these controls alone, including when their popups are open.
+
 ## Editor controls
 
 - Click a screenshot to select it. Shift+click adds or removes a screenshot.

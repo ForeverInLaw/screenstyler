@@ -30,7 +30,10 @@ for (const mode of ['single', 'group', 'framed group'] as const) {
     test(`vertical-only resize changes a ${mode} from its ${corner.name} corner`, async ({ page }) => {
       const grouped = mode !== 'single';
       const images = await scene(page, grouped);
-      if (mode === 'framed group') await page.getByRole('combobox', { name: 'Type:', exact: true }).selectOption('window');
+      if (mode === 'framed group') {
+        await page.getByRole('combobox', { name: 'Type:', exact: true }).click();
+        await page.getByRole('option', { name: 'Window Frame', exact: true }).click();
+      }
       const selection = grouped ? page.getByTestId('screenshot-group-selection') : images.first();
       const original = await bounds(selection);
       const originals = await Promise.all([0, ...(grouped ? [1] : [])].map((index) => bounds(images.nth(index))));

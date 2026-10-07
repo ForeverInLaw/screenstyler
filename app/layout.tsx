@@ -35,7 +35,9 @@ export default function RootLayout({
       className={`${studioSans.variable} ${studioDisplay.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <div className="isolate flex min-h-full flex-1 flex-col">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );

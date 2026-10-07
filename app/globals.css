@@ -51,6 +51,7 @@
 }
 
 body {
+  position: relative;
   background: var(--graphite);
   color: var(--chalk);
   font-family: var(--font-studio-sans), sans-serif;
@@ -201,6 +202,81 @@ input[type='color'] {
   .control-row select,
   .control-row input[type='text'] {
     max-width: 180px;
+  }
+  .studio-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    user-select: none;
+  }
+  .studio-select:hover:not(:disabled),
+  .studio-select[data-popup-open] {
+    border-color: var(--frame-line-strong);
+    background: var(--graphite-well);
+  }
+  .studio-popup {
+    max-width: calc(100vw - 16px);
+    overflow: hidden;
+    border: 1px solid var(--frame-line-strong);
+    border-radius: 12px;
+    background: var(--graphite-raised);
+    color: var(--chalk);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 28%);
+    outline: none;
+  }
+  .studio-option {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+  }
+  .studio-option[data-highlighted] {
+    background: var(--graphite-well);
+  }
+  .studio-option[data-selected] {
+    color: var(--studio-accent);
+    background: var(--studio-accent-soft);
+  }
+  .studio-option[data-variant='danger'] {
+    color: var(--danger);
+  }
+  .studio-option[data-variant='danger'][data-highlighted] {
+    background: var(--danger-soft);
+  }
+  .studio-option[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  .studio-select-scroll {
+    display: flex;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    background: var(--graphite-raised);
+    color: var(--silver-secondary);
+  }
+  .studio-checkbox {
+    display: grid;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    place-items: center;
+    border: 1px solid var(--frame-line-strong);
+    border-radius: 5px;
+    background: var(--control-fill);
+  }
+  .studio-checkbox[data-checked] {
+    border-color: var(--studio-accent);
+    background: var(--studio-accent);
+    color: var(--on-accent);
   }
   .notice {
     padding: 12px 16px;

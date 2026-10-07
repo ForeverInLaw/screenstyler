@@ -1,5 +1,50 @@
 # Screenstyler roadmap
 
+## Studio form controls
+
+Use Base UI 1.8 for select, checkbox, and account-menu interaction, styled with the
+existing graphite surfaces, 40px controls, amber selection, and Tabler icons.
+Shared wrappers encapsulate presentation and accessibility; panels only supply
+typed values and callbacks. Keep modules under 500 lines. Document/UI state stays
+in Zustand selectors, server state stays in TanStack Query, and no animation or
+document-format changes are required.
+
+- [x] Add styled select and checkbox components and migrate every existing use.
+- [x] Replace manual account-menu listeners with Base UI focus/dismissal behavior.
+- [x] Verify keyboard, undo, desktop/mobile appearance, and existing checks.
+- [x] Document the shared controls and commit the verified change.
+
+### Controls verification
+
+- 141 unit/integration tests passed, including profile-menu keyboard focus and
+  custom-control shortcut isolation. TypeScript and production builds passed;
+  ESLint has no errors and the same six existing image-element warnings.
+- All 34 existing Chromium scenarios passed. The five-scenario studio rerun
+  also passed with two added desktop/mobile keyboard, checkbox, and Undo cases,
+  covering 36 distinct scenarios. The new cases use the existing 800 × 600 image
+  fixture because a 1 × 1 image has a subpixel click target after canvas fitting.
+- Open selectors, checked boxes, and profile menus were visually inspected at
+  1440 × 1000 and 390 × 844. Popups fit the viewport; keyboard focus returns on
+  dismissal; the production browser reported no JavaScript errors. Browser
+  automation was limited to Chromium. Existing blob-store tracing and standalone
+  startup warnings remain outside this change.
+- The only new direct dependency is `@base-ui/react`; existing locked package
+  versions remain unchanged. Selects infer document enum values, account-menu
+  listeners were removed, and shared shortcut guards protect custom controls.
+
+### Controls changed files
+
+- `components/ui/Select.tsx`, `components/ui/Checkbox.tsx`,
+  `components/ui/DropdownMenu.tsx`
+- `components/panels/FramePanel.tsx`, `components/panels/GridPanel.tsx`,
+  `components/panels/BackgroundPanel.tsx`
+- `components/editor/AnnotationOptions.tsx`, `components/editor/toolbar.test.tsx`
+- `components/auth/AuthButton.tsx`, `components/auth/AuthButton.test.tsx`
+- `app/editor/page.tsx`, `app/projects/page.tsx`, `app/layout.tsx`, `app/globals.css`
+- `lib/upload/clipboard.ts`, `lib/upload/clipboard.test.ts`
+- `e2e/studio.spec.ts`, `e2e/selection.spec.ts`, `e2e/review-fixes.spec.ts`
+- `package.json`, `package-lock.json`, `README.md`, `roadmap.md`
+
 ## UI overhaul
 
 Build a consistent dark screenshot studio across the overview, projects, editor,

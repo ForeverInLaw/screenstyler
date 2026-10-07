@@ -26,8 +26,25 @@ describe('AuthButton', () => {
     await userEvent.click(screen.getByRole('button', { name: /open profile menu/i }));
 
     expect(signOut).not.toHaveBeenCalled();
-    expect(screen.getByText('werrygoodtest@gmail.com')).toBeInTheDocument();
+    expect(await screen.findByText('werrygoodtest@gmail.com')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }));
     expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens from the keyboard and restores focus after Escape', async () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { email: 'keyboard@test.local' } },
+      isPending: false,
+    } as ReturnType<typeof useSession>);
+
+    render(<AuthButton />);
+    const trigger = screen.getByRole('button', { name: /open profile menu/i });
+    trigger.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(await screen.findByRole('menuitem', { name: /sign out/i })).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(signOut).not.toHaveBeenCalled();
   });
 });

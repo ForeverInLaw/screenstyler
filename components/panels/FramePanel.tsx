@@ -2,6 +2,7 @@
 import { IconBrowser } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
 import { PanelSection } from '@/components/ui/PanelSection';
+import { Select } from '@/components/ui/Select';
 import type { Frame } from '@/lib/document/schema';
 
 export function FramePanel() {
@@ -23,53 +24,40 @@ export function FramePanel() {
   return (
     <PanelSection icon={IconBrowser} title="Frame Mockup">
       <div className="grid gap-3">
-        <label className="control-row">
-          <span>Type:</span>
-          <select
-            className="field"
-            value={frame.type}
-            onChange={(e) => handleTypeChange(e.target.value as Frame['type'])}
-          >
-            <option value="none">None (Standard)</option>
-            <option value="window">Window Frame</option>
-            <option value="browser">Browser Frame</option>
-            <option value="device">Device Bezel</option>
-          </select>
-        </label>
+        <Select
+          label="Type:"
+          value={frame.type}
+          onValueChange={handleTypeChange}
+          options={[
+            { value: 'none', label: 'None (Standard)' },
+            { value: 'window', label: 'Window Frame' },
+            { value: 'browser', label: 'Browser Frame' },
+            { value: 'device', label: 'Device Bezel' },
+          ]}
+        />
         {frame.type === 'window' && (
-          <label className="control-row">
-            <span>Style:</span>
-            <select
-              className="field"
-              value={frame.variant}
-              onChange={(e) =>
-                setFrame({ type: 'window', variant: e.target.value as 'macos' | 'macos-dark' })
-              }
-            >
-              <option value="macos">macOS Light</option>
-              <option value="macos-dark">macOS Dark</option>
-            </select>
-          </label>
+          <Select
+            label="Style:"
+            value={frame.variant}
+            onValueChange={(variant) => setFrame({ type: 'window', variant })}
+            options={[
+              { value: 'macos', label: 'macOS Light' },
+              { value: 'macos-dark', label: 'macOS Dark' },
+            ]}
+          />
         )}
         {frame.type === 'browser' && (
           <>
-            <label className="control-row">
-              <span>Variant:</span>
-              <select
-                className="field"
-                value={frame.variant}
-                onChange={(e) =>
-                  setFrame({
-                    ...frame,
-                    variant: e.target.value as 'safari' | 'chrome' | 'arc',
-                  })
-                }
-              >
-                <option value="safari">Safari</option>
-                <option value="chrome">Google Chrome</option>
-                <option value="arc">Arc Browser</option>
-              </select>
-            </label>
+            <Select
+              label="Variant:"
+              value={frame.variant}
+              onValueChange={(variant) => setFrame({ ...frame, variant })}
+              options={[
+                { value: 'safari', label: 'Safari' },
+                { value: 'chrome', label: 'Google Chrome' },
+                { value: 'arc', label: 'Arc Browser' },
+              ]}
+            />
 
             {frame.variant !== 'arc' && (
               <>
@@ -84,41 +72,30 @@ export function FramePanel() {
                   />
                 </label>
 
-                <label className="control-row">
-                  <span>Theme:</span>
-                  <select
-                    className="field"
-                    value={frame.theme}
-                    onChange={(e) =>
-                      setFrame({
-                        ...frame,
-                        theme: e.target.value as 'light' | 'dark',
-                      })
-                    }
-                  >
-                    <option value="light">Light Theme</option>
-                    <option value="dark">Dark Theme</option>
-                  </select>
-                </label>
+                <Select
+                  label="Theme:"
+                  value={frame.theme ?? 'light'}
+                  onValueChange={(theme) => setFrame({ ...frame, theme })}
+                  options={[
+                    { value: 'light', label: 'Light Theme' },
+                    { value: 'dark', label: 'Dark Theme' },
+                  ]}
+                />
               </>
             )}
           </>
         )}
         {frame.type === 'device' && (
-          <label className="control-row">
-            <span>Device:</span>
-            <select
-              className="field"
-              value={frame.variant}
-              onChange={(e) =>
-                setFrame({ type: 'device', variant: e.target.value as 'iphone' | 'macbook' | 'ipad' })
-              }
-            >
-              <option value="iphone">iPhone Mockup</option>
-              <option value="ipad">iPad Mockup</option>
-              <option value="macbook">MacBook Mockup</option>
-            </select>
-          </label>
+          <Select
+            label="Device:"
+            value={frame.variant}
+            onValueChange={(variant) => setFrame({ type: 'device', variant })}
+            options={[
+              { value: 'iphone', label: 'iPhone Mockup' },
+              { value: 'ipad', label: 'iPad Mockup' },
+              { value: 'macbook', label: 'MacBook Mockup' },
+            ]}
+          />
         )}
       </div>
     </PanelSection>

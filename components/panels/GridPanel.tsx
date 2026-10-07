@@ -3,6 +3,7 @@ import { IconGridDots } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
 import { DocumentSlider } from '@/components/ui/DocumentSlider';
 import { PanelSection } from '@/components/ui/PanelSection';
+import { Checkbox } from '@/components/ui/Checkbox';
 
 export function GridPanel() {
   const grid = useDocumentStore((s) => s.doc.canvas.grid);
@@ -10,24 +11,16 @@ export function GridPanel() {
   return (
     <PanelSection icon={IconGridDots} title="Grid & Alignment">
       <div className="grid gap-2">
-        <label className="control-row min-h-10 cursor-pointer">
-          <span>Show Grid lines</span>
-          <input
-            type="checkbox"
-            className="size-4"
-            checked={grid?.visible ?? false}
-            onChange={(e) => setGridSettings({ visible: e.target.checked })}
-          />
-        </label>
-        <label className="control-row min-h-10 cursor-pointer">
-          <span>Snap elements to Grid</span>
-          <input
-            type="checkbox"
-            className="size-4"
-            checked={grid?.snap ?? false}
-            onChange={(e) => setGridSettings({ snap: e.target.checked })}
-          />
-        </label>
+        <Checkbox
+          label="Show Grid lines"
+          checked={grid?.visible ?? false}
+          onCheckedChange={(visible) => setGridSettings({ visible })}
+        />
+        <Checkbox
+          label="Snap elements to Grid"
+          checked={grid?.snap ?? false}
+          onCheckedChange={(snap) => setGridSettings({ snap })}
+        />
         <DocumentSlider
           label="Grid size"
           value={grid?.size ?? 20}

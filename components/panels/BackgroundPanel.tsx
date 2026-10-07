@@ -3,6 +3,7 @@ import { IconPalette } from '@tabler/icons-react';
 import { PanelSection } from '@/components/ui/PanelSection';
 import { DocumentSlider } from '@/components/ui/DocumentSlider';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { useRef, useState } from 'react';
 import { useSession } from '@/lib/auth/client';
 import { useDocumentStore } from '@/lib/document/store';
@@ -153,17 +154,15 @@ export function BackgroundPanel() {
           )}
         </div>
         {background.type === 'image' && (
-          <label className="control-row">
-            <span>Image Fit:</span>
-            <select
-              className="field"
-              value={background.fit}
-              onChange={(e) => setBackground({ ...background, fit: e.target.value as 'cover' | 'contain' })}
-            >
-              <option value="cover">Cover (Fill)</option>
-              <option value="contain">Contain (Fit inside)</option>
-            </select>
-          </label>
+          <Select
+            label="Image Fit:"
+            value={background.fit}
+            onValueChange={(fit) => setBackground({ ...background, fit })}
+            options={[
+              { value: 'cover', label: 'Cover (Fill)' },
+              { value: 'contain', label: 'Contain (Fit inside)' },
+            ]}
+          />
         )}
       </div>
     </PanelSection>

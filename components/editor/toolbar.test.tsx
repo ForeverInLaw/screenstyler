@@ -54,7 +54,8 @@ describe('Toolbar', () => {
   it('updates text drawing defaults', async () => {
     render(<Toolbar projectName="P" onExport={() => {}} activeTool="text" />);
 
-    await userEvent.selectOptions(screen.getByLabelText('Text font'), 'mono');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Text font' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Mono' }));
     fireEvent.change(screen.getByLabelText('Text size'), { target: { value: '40' } });
 
     expect(useAnnotationStyleStore.getState()).toMatchObject({
@@ -78,7 +79,8 @@ describe('Toolbar', () => {
   it('updates blur drawing defaults', async () => {
     render(<Toolbar projectName="P" onExport={() => {}} activeTool="blur" />);
 
-    await userEvent.selectOptions(screen.getByLabelText('Blur type'), 'frosted');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Blur type' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Frosted blur' }));
     fireEvent.change(screen.getByLabelText('Blur intensity'), { target: { value: '18' } });
 
     expect(useAnnotationStyleStore.getState()).toMatchObject({
