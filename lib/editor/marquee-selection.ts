@@ -3,14 +3,15 @@ import { useDocumentStore } from '@/lib/document/store';
 import { useEditorUiStore } from './ui-store';
 import { useInteractionStore } from './interaction-store';
 import { screenshotRect } from './screenshot-geometry';
+import { createContentCoordinates } from './content-coordinates';
 
 /** Select screenshots intersecting a rectangle drawn from empty canvas. */
 export function startMarqueeSelection(event: ReactMouseEvent<HTMLDivElement>) {
   if (event.button !== 0) return;
   if (event.target instanceof Element && event.target.closest('[data-testid="screenshot-crop-editor"]')) return;
   const layout = event.currentTarget.querySelector<HTMLElement>('[data-screenshot-layout]');
-  const box = layout?.getBoundingClientRect();
-  if (!box?.width || !box.height) return;
+  const coordinates = layout && createContentCoordinates(layout, useDocumentStore.getState().doc.canvas);
+  if (!coordinates) return;
   event.preventDefault();
   event.currentTarget.focus({ preventScroll: true });
   const ui = useEditorUiStore.getState();
@@ -18,10 +19,7 @@ export function startMarqueeSelection(event: ReactMouseEvent<HTMLDivElement>) {
   const { doc } = useDocumentStore.getState();
   const original = ui.selectedScreenshotIds;
   const base = event.shiftKey ? original : [];
-  const point = (x: number, y: number) => ({
-    x: (x - box.x) * doc.canvas.width / box.width,
-    y: (y - box.y) * doc.canvas.height / box.height,
-  });
+  const { point } = coordinates;
   const start = point(event.clientX, event.clientY);
   let moved = false;
   ui.setSelectedScreenshotIds(base);

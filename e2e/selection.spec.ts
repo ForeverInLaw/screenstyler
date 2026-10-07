@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { bounds, colourAt, drag, newCanvas, solidImageFixtures } from './canvas-fixtures';
+import { bounds, colourAt, drag, newCanvas, pointOn, solidImageFixtures } from './canvas-fixtures';
 
 test.use({ viewport: { width: 1440, height: 1000 } });
 
@@ -207,6 +207,43 @@ test('marquee selection and keyboard shortcuts preserve unselected images and ed
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(images).toHaveCount(3);
 });
+
+for (const tilted of [false, true]) {
+  test(`marquee and group movement follow the pointer on a ${tilted ? 'perspective' : 'rotated'} canvas`, async ({ page }) => {
+    const images = await scene(page);
+    await page.getByRole('slider', { name: 'Scale', exact: true }).press('Home');
+    await page.getByRole('slider', { name: 'Rotate Z', exact: true }).press('End');
+    if (tilted) {
+      await page.getByRole('slider', { name: 'Rotate X', exact: true }).press('End');
+      await page.getByRole('slider', { name: 'Rotate Y', exact: true }).press('End');
+    }
+    await page.keyboard.press('Escape');
+    await images.nth(2).screenshot();
+    const start = await pointOn(images.nth(1), { x: -0.04, y: -0.04 });
+    const end = await pointOn(images.nth(2), { x: 1.04, y: 0.15 });
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 5 });
+    const marquee = page.getByTestId('selection-marquee');
+    await expect(marquee).toBeVisible();
+    for (const [position, expected] of [[{ x: 0, y: 0 }, start], [{ x: 1, y: 1 }, end]] as const) {
+      const actual = await pointOn(marquee, position);
+      expect(Math.hypot(actual.x - expected.x, actual.y - expected.y)).toBeLessThan(1.5);
+    }
+    await page.mouse.up();
+    await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveText('2 selected');
+    const grip = { x: 0.1, y: 0.1 };
+    const original = await pointOn(images.nth(1), grip);
+    await page.keyboard.down('Control');
+    await drag(page, original, { x: 40, y: 30 });
+    await page.keyboard.up('Control');
+    const moved = await pointOn(images.nth(1), grip);
+    expect(Math.hypot(moved.x - original.x - 40, moved.y - original.y - 30)).toBeLessThan(1.5);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    const restored = await pointOn(images.nth(1), grip);
+    expect(Math.hypot(restored.x - original.x, restored.y - original.y)).toBeLessThan(1.5);
+  });
+}
 
 for (const zoomed of [false, true]) {
   test(`alignment guides snap edges and group centres${zoomed ? ' with padding and zoom' : ''}`, async ({ page }) => {

@@ -6,6 +6,21 @@ export async function bounds(locator: Locator) {
   return box;
 }
 
+/** Measure a point on the rendered plane, including CSS tilt and perspective. */
+export async function pointOn(locator: Locator, point: { x: number; y: number }) {
+  return locator.evaluate((element, position) => {
+    const marker = document.createElement('span');
+    Object.assign(marker.style, {
+      position: 'absolute', left: `${position.x * 100}%`, top: `${position.y * 100}%`,
+      width: '0', height: '0', pointerEvents: 'none',
+    });
+    element.append(marker);
+    const box = marker.getBoundingClientRect();
+    marker.remove();
+    return { x: box.x, y: box.y };
+  }, point);
+}
+
 export async function newCanvas(page: Page) {
   await page.goto('/projects');
   await page.getByRole('button', { name: 'New project' }).click();

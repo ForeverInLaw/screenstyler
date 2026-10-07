@@ -4,6 +4,7 @@ import { useEditorUiStore } from './ui-store';
 import { useInteractionStore } from './interaction-store';
 import { frameHeaderHeight, selectionRect, screenshotRect } from './screenshot-geometry';
 import { alignScreenshotSelection, type AlignmentGuide } from './screenshot-alignment';
+import { createContentCoordinates } from './content-coordinates';
 
 export type ScreenshotTransform = 'move' | 'resize-tl' | 'resize-tr' | 'resize-bl' | 'resize-br';
 
@@ -11,35 +12,35 @@ export type ScreenshotTransform = 'move' | 'resize-tl' | 'resize-tr' | 'resize-b
 export function startScreenshotDrag(event: ReactMouseEvent, type: ScreenshotTransform, clickedId?: string) {
   if (event.button !== 0) return;
   const layout = event.currentTarget.closest<HTMLElement>('[data-screenshot-layout]');
-  const box = layout?.getBoundingClientRect();
-  if (!box?.width || !box.height) return;
+  const { doc } = useDocumentStore.getState();
+  const coordinates = layout && createContentCoordinates(layout, doc.canvas);
+  if (!coordinates) return;
   event.preventDefault();
   event.stopPropagation();
   event.currentTarget.closest<HTMLElement>('[data-testid="document-frame"]')?.focus({ preventScroll: true });
 
-  const { doc } = useDocumentStore.getState();
   const ids = useEditorUiStore.getState().selectedScreenshotIds;
   const items = (doc.content.screenshots || []).filter((item) => ids.includes(item.id));
   const selection = selectionRect(items, doc.content.frame);
   if (!selection) return;
   const targets = (doc.content.screenshots || []).filter((item) => !ids.includes(item.id)).map((item) => screenshotRect(item, doc.content.frame));
   const start = { x: event.clientX, y: event.clientY };
+  const origin = coordinates.point(start.x, start.y);
   let preview = items;
   let moved = false;
 
   const onMove = (move: MouseEvent) => {
     if (Math.hypot(move.clientX - start.x, move.clientY - start.y) < 3 && !moved) return;
     moved = true;
-    const dx = (move.clientX - start.x) * doc.canvas.width / box.width;
-    const dy = (move.clientY - start.y) * doc.canvas.height / box.height;
+    const pointer = coordinates.point(move.clientX, move.clientY);
+    const dx = pointer.x - origin.x;
+    const dy = pointer.y - origin.y;
     const snap = (value: number) => doc.canvas.grid?.snap && !move.ctrlKey && !move.metaKey
       ? Math.round(value / doc.canvas.grid.size) * doc.canvas.grid.size : Math.round(value);
     let guides: AlignmentGuide[] = [];
     if (type === 'move') {
       const alignment = move.ctrlKey || move.metaKey ? { delta: { x: dx, y: dy }, guides: [] }
-        : alignScreenshotSelection(selection, targets, { x: dx, y: dy }, {
-          x: 8 * doc.canvas.width / box.width, y: 8 * doc.canvas.height / box.height,
-        });
+        : alignScreenshotSelection(selection, targets, { x: dx, y: dy }, coordinates.tolerance(move.clientX, move.clientY, 8));
       guides = alignment.guides;
       const alignedX = guides.some((guide) => guide.axis === 'x') ? alignment.delta.x : snap(selection.x + dx) - selection.x;
       const alignedY = guides.some((guide) => guide.axis === 'y') ? alignment.delta.y : snap(selection.y + dy) - selection.y;
