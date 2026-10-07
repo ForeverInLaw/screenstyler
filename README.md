@@ -78,6 +78,24 @@ npm run dev -- -p 8080
 
 Set `BETTER_AUTH_URL` to the same origin when changing ports.
 
+## Editor controls
+
+- Click a screenshot to select it. Shift+click adds or removes a screenshot.
+- Drag from empty canvas to select screenshots intersecting the rectangle.
+  Shift+drag adds to the current selection. Ctrl/Cmd+A selects all screenshots.
+- Drag a selected image to move the selection. Corner handles resize it
+  proportionally. Each move or resize is one Undo step.
+- The selection toolbar deletes the selection or moves it one layer at a time,
+  keeping its internal order. Crop is available when one image is selected.
+- Escape clears the selection or cancels a drag. Delete/Backspace removes the
+  selected screenshots. Shortcuts leave editable controls alone.
+- Pink guides snap edges and centres to other screenshots within eight screen
+  pixels. Hold Ctrl/Cmd while dragging to bypass snapping. The threshold stays
+  the same when zooming; image alignment takes priority over the optional grid.
+
+See [the selection and alignment architecture](roadmap.md) for the state model
+and verification plan.
+
 ---
 
 ## Docker
