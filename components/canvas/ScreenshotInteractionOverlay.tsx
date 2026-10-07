@@ -15,7 +15,7 @@ export function ScreenshotInteractionOverlay({ canvasWidth, canvasHeight }: Prop
           style={{
             ...screenshotRectStyle(marquee, canvasWidth, canvasHeight),
             border: '1px solid var(--studio-accent)',
-            background: 'var(--studio-accent-soft)',
+            background: 'color-mix(in srgb, var(--studio-accent) 12%, transparent)',
             boxSizing: 'border-box',
           }}
         />
