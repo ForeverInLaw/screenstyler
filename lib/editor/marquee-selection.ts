@@ -7,6 +7,7 @@ import { screenshotRect } from './screenshot-geometry';
 /** Select screenshots intersecting a rectangle drawn from empty canvas. */
 export function startMarqueeSelection(event: ReactMouseEvent<HTMLDivElement>) {
   if (event.button !== 0) return;
+  if (event.target instanceof Element && event.target.closest('[data-testid="screenshot-crop-editor"]')) return;
   const layout = event.currentTarget.querySelector<HTMLElement>('[data-screenshot-layout]');
   const box = layout?.getBoundingClientRect();
   if (!box?.width || !box.height) return;

@@ -103,6 +103,27 @@ test('Shift selection moves and deletes only the selected screenshots with one U
   for (const index of [0, 1, 2]) expectSameBox(await bounds(images.nth(index)), original[index]);
 });
 
+test('Escape cancels a drag preview without adding a document history step', async ({ page }) => {
+  const images = await scene(page);
+  await selectPair(page, images);
+  const original = await Promise.all([0, 1, 2].map((index) => bounds(images.nth(index))));
+  const start = { x: original[1].x + 8, y: original[1].y + original[1].height * 0.6 };
+  await page.keyboard.down('Control');
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 40, start.y + 30, { steps: 5 });
+  expect((await bounds(images.nth(1))).x).toBeGreaterThan(original[1].x + 20);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await page.keyboard.up('Control');
+  for (const index of [0, 1, 2]) expectSameBox(await bounds(images.nth(index)), original[index]);
+  await expect(page.getByRole('status', { name: 'Screenshot selection' })).toHaveCount(0);
+  await expect(page.getByTestId('alignment-guide')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  expectSameBox(await bounds(images.nth(1)), original[0]);
+  expectSameBox(await bounds(images.nth(2)), original[2]);
+});
+
 test('resizing a selection preserves image proportions and spacing and Undo restores it', async ({ page }) => {
   const images = await scene(page);
   await selectPair(page, images);
@@ -124,6 +145,24 @@ test('resizing a selection preserves image proportions and spacing and Undo rest
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   for (const index of [0, 1, 2]) expectSameBox(await bounds(images.nth(index)), original[index]);
 });
+
+for (const grouped of [false, true]) {
+  test(`resizing framed ${grouped ? 'selections' : 'screenshots'} keeps the opposite corner fixed`, async ({ page }) => {
+    const images = await scene(page);
+    await page.getByRole('combobox', { name: 'Type:', exact: true }).selectOption('window');
+    if (grouped) await selectPair(page, images);
+    else await images.nth(2).click({ position: { x: 20, y: 100 } });
+    const selection = grouped ? page.getByTestId('screenshot-group-selection') : images.nth(2);
+    const original = await bounds(selection);
+    await drag(page, { x: original.x, y: original.y }, { x: original.width * 0.15, y: original.height * 0.15 });
+    const resized = await bounds(selection);
+    expect(resized.width).toBeLessThan(original.width - 10);
+    expect(Math.abs(resized.x + resized.width - original.x - original.width)).toBeLessThan(1.5);
+    expect(Math.abs(resized.y + resized.height - original.y - original.height)).toBeLessThan(1.5);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    expectSameBox(await bounds(selection), original);
+  });
+}
 
 test('a selected pair advances one layer without reversing its internal order', async ({ page }) => {
   const images = await scene(page, 4);
@@ -190,3 +229,73 @@ test('marquee selection and keyboard shortcuts preserve unselected images and ed
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(images).toHaveCount(3);
 });
+
+for (const zoomed of [false, true]) {
+  test(`alignment guides snap edges and group centres${zoomed ? ' with padding and zoom' : ''}`, async ({ page }) => {
+    const images = await scene(page);
+    if (zoomed) {
+      await page.getByRole('slider', { name: 'Padding', exact: true }).press('PageUp');
+      await page.getByRole('slider', { name: 'Scale', exact: true }).press('ArrowLeft');
+      await images.nth(2).hover();
+      await page.keyboard.down('Alt');
+      await page.mouse.wheel(0, -80);
+      await page.keyboard.up('Alt');
+      await images.nth(0).screenshot();
+    }
+    const red = await bounds(images.nth(0));
+    const original = await bounds(images.nth(2));
+    const start = { x: original.x + original.width - 20, y: original.y + original.height * 0.6 };
+    const nearTop = { x: start.x, y: start.y + red.y - original.y + 6 };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(nearTop.x, nearTop.y, { steps: 5 });
+    await expect(page.getByTestId('alignment-guide').first()).toBeVisible();
+    expect(Math.abs((await bounds(images.nth(2))).y - red.y)).toBeLessThan(1.5);
+    await page.mouse.up();
+    await expect(page.getByTestId('alignment-guide')).toHaveCount(0);
+    expect(Math.abs((await bounds(images.nth(2))).y - red.y)).toBeLessThan(1.5);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    expectSameBox(await bounds(images.nth(2)), original);
+
+    await page.keyboard.down('Control');
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(nearTop.x, nearTop.y, { steps: 5 });
+    await expect(page.getByTestId('alignment-guide')).toHaveCount(0);
+    expect(Math.abs((await bounds(images.nth(2))).y - red.y - 6)).toBeLessThan(1.5);
+    await page.mouse.up();
+    await page.keyboard.up('Control');
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+
+    const blue = await bounds(images.nth(2));
+    await images.nth(2).click({ position: { x: blue.width - 20, y: blue.height * 0.6 } });
+    await drag(page, { x: blue.x + blue.width, y: blue.y + blue.height }, { x: -blue.width * 0.3, y: -blue.height * 0.3 });
+    const small = await bounds(images.nth(2));
+    const lowerStart = { x: small.x + small.width - 20, y: small.y + small.height * 0.6 };
+    await page.mouse.move(lowerStart.x, lowerStart.y);
+    await page.mouse.down();
+    await page.mouse.move(lowerStart.x, lowerStart.y + red.y + red.height - small.y - small.height + 6, { steps: 5 });
+    await expect(page.getByTestId('alignment-guide').first()).toBeVisible();
+    const atBottom = await bounds(images.nth(2));
+    expect(Math.abs(atBottom.y + atBottom.height - red.y - red.height)).toBeLessThan(1.5);
+    await page.mouse.up();
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+
+    await selectPair(page, images);
+    const group = await bounds(page.getByTestId('screenshot-group-selection'));
+    const green = await bounds(images.nth(1));
+    const groupStart = { x: green.x + 8, y: green.y + green.height * 0.6 };
+    await page.mouse.move(groupStart.x, groupStart.y);
+    await page.mouse.down();
+    await page.mouse.move(groupStart.x + red.x + red.width / 2 - group.x - group.width / 2 + 6,
+      groupStart.y + red.y - group.y + 6, { steps: 5 });
+    await expect(page.getByTestId('alignment-guide')).toHaveCount(2);
+    const aligned = await bounds(page.getByTestId('screenshot-group-selection'));
+    expect(Math.abs(aligned.x + aligned.width / 2 - red.x - red.width / 2)).toBeLessThan(1.5);
+    expect(Math.abs(aligned.y - red.y)).toBeLessThan(1.5);
+    await page.mouse.up();
+    await expect(page.getByTestId('alignment-guide')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    expectSameBox(await bounds(page.getByTestId('screenshot-group-selection')), group);
+  });
+}

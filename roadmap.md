@@ -32,7 +32,7 @@ TanStack Query paths. No new animation or network request is needed.
 - [x] Shift selection, shared movement, delete, and atomic Undo through editor UI.
 - [x] Proportional group resize and stable one-layer moves.
 - [x] Marquee selection and keyboard controls.
-- [ ] Alignment snapping and visible guides for single images and groups.
+- [x] Alignment snapping and visible guides for single images and groups.
 - [ ] Full tests, Standards and Spec reviews, documentation, and atomic commits.
 
 ## References
