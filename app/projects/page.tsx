@@ -1,9 +1,12 @@
 'use client';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { IconPlus, IconSearch, IconFolder, IconArrowUpRight } from '@tabler/icons-react';
 import { ProjectList } from '@/components/projects/ProjectList';
 import { MigrationRunner } from '@/components/migration/MigrationRunner';
 import { AppHeader } from '@/components/common/AppHeader';
+import { Button } from '@/components/ui/Button';
+import { Dialog } from '@/components/ui/Dialog';
 import {
   useCreateProjectMutation,
   useDeleteProjectMutation,
@@ -13,244 +16,243 @@ import {
 } from '@/lib/projects/use-projects';
 import type { ProjectMeta } from '@/lib/storage/types';
 
+type ProjectDialog =
+  { type: 'create' } | { type: 'rename'; project: ProjectMeta } | { type: 'delete'; project: ProjectMeta };
+
 export default function ProjectsPage() {
   const router = useRouter();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [projectName, setProjectName] = useState('');
-  const [renameTarget, setRenameTarget] = useState<ProjectMeta | null>(null);
-  const [renameName, setRenameName] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<ProjectMeta | null>(null);
+  const [dialog, setDialog] = useState<ProjectDialog | null>(null);
+  const [name, setName] = useState('');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('recent');
   const projects = useProjectsQuery();
-  const createProject = useCreateProjectMutation(projects.userId, (id) => router.push(`/editor?id=${id}`));
-  const deleteProject = useDeleteProjectMutation(projects.userId);
-  const duplicateProject = useDuplicateProjectMutation(projects.userId, projects.data);
-  const renameProject = useRenameProjectMutation(projects.userId);
-  const isProjectsPending = projects.isAuthPending || projects.isLoading;
+  const create = useCreateProjectMutation(projects.userId, (id) => router.push(`/editor?id=${id}`));
+  const remove = useDeleteProjectMutation(projects.userId);
+  const duplicate = useDuplicateProjectMutation(projects.userId, projects.data);
+  const rename = useRenameProjectMutation(projects.userId);
+  const loading = projects.isAuthPending || projects.isLoading;
+  const mutating = create.isPending || rename.isPending || remove.isPending || duplicate.isPending;
+  const filtered = (projects.data ?? [])
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    .toSorted((a, b) => (sort === 'name' ? a.name.localeCompare(b.name) : b.updatedAt - a.updatedAt));
+  const count = projects.data?.length ?? 0;
 
-  function handleCreateProject(event: FormEvent<HTMLFormElement>) {
+  function openDialog(next: ProjectDialog) {
+    create.reset();
+    rename.reset();
+    remove.reset();
+    setName(next.type === 'rename' ? next.project.name : '');
+    setDialog(next);
+  }
+  function closeDialog() {
+    if (!mutating) setDialog(null);
+  }
+  function saveName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    createProject.mutate(projectName, {
-      onSuccess: () => {
-        setIsCreateOpen(false);
-        setProjectName('');
-      },
-    });
+    if (dialog?.type === 'create') create.mutate(name, { onSuccess: () => setDialog(null) });
+    if (dialog?.type === 'rename')
+      rename.mutate({ id: dialog.project.id, name }, { onSuccess: () => setDialog(null) });
   }
-
-  function openRenameProject(project: ProjectMeta) {
-    setRenameTarget(project);
-    setRenameName(project.name);
-  }
-
-  function handleRenameProject(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!renameTarget) return;
-    renameProject.mutate({ id: renameTarget.id, name: renameName }, {
-      onSuccess: () => {
-        setRenameTarget(null);
-        setRenameName('');
-      },
-    });
-  }
-
-  function closeAllModals() {
-    setIsCreateOpen(false);
-    setProjectName('');
-    setRenameTarget(null);
-    setRenameName('');
-    setDeleteTarget(null);
-  }
-
-  function handleDeleteProject() {
-    if (!deleteTarget) return;
-    deleteProject.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
-  }
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeAllModals();
-    }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   return (
-    <main className="min-h-dvh bg-stone-50 text-zinc-950">
+    <main className="min-h-dvh bg-background text-foreground">
       <AppHeader active="projects" />
-      <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8">
+      <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-10 sm:py-14">
         <MigrationRunner />
-        <header className="mb-8 flex flex-col gap-5 border-b border-zinc-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
+        <header className="mb-10 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-medium text-zinc-500">Workspace</p>
-            <h1 className="mt-2 text-4xl font-semibold tracking-tight">Projects</h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-600">
-              Keep local drafts moving, duplicate good layouts, and open the editor only when you are ready to work.
+            <p className="eyebrow mb-4">YOUR WORKSPACE</p>
+            <h1 className="text-4xl font-medium tracking-[-.045em] sm:text-5xl">
+              Projects<span className="text-accent">.</span>
+            </h1>
+            <p className="mt-4 text-sm text-secondary">
+              A home for your screenshots and the ideas around them.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            disabled={projects.isAuthPending || createProject.isPending}
-            className="rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+          <Button
+            variant="primary"
+            onClick={() => openDialog({ type: 'create' })}
+            disabled={projects.isAuthPending || mutating}
+            className="min-h-12 self-start px-5"
           >
+            <IconPlus size={18} />
             New project
-          </button>
+          </Button>
         </header>
-
-        {isCreateOpen && (
-          <div
-            className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/45 px-4 backdrop-blur-sm"
-            onClick={() => {
-              setIsCreateOpen(false);
-              setProjectName('');
-            }}
-          >
-            <form
-              onSubmit={handleCreateProject}
-              onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5 shadow-2xl shadow-zinc-950/20"
-            >
-              <h2 className="text-lg font-semibold tracking-tight text-zinc-950">New project</h2>
-              <label className="mt-4 grid gap-1.5 text-sm font-medium text-zinc-700">
-                Project name
-                <input
-                  autoFocus
-                  value={projectName}
-                  onChange={(event) => setProjectName(event.target.value)}
-                  placeholder="Untitled"
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-950 shadow-sm outline-none transition focus:border-zinc-950 focus:ring-2 focus:ring-zinc-950/10"
-                />
-              </label>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false);
-                    setProjectName('');
-                  }}
-                  className="rounded-md border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createProject.isPending}
-                  className="rounded-md bg-zinc-950 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {createProject.isPending ? 'Creating...' : 'Create'}
-                </button>
-              </div>
-            </form>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-y border-border py-4">
+          <div className="flex items-center gap-3">
+            <IconFolder size={17} stroke={1.6} className="text-tertiary" />
+            <h2 className="text-sm font-semibold">All projects</h2>
+            <span className="rounded bg-well px-2 py-1 font-mono text-[10px] tabular-nums text-secondary">
+              {loading ? '...' : count}
+            </span>
           </div>
-        )}
-
-        {renameTarget && (
-          <div
-            className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/45 px-4 backdrop-blur-sm"
-            onClick={() => {
-              setRenameTarget(null);
-              setRenameName('');
-            }}
-          >
-            <form
-              onSubmit={handleRenameProject}
-              onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5 shadow-2xl shadow-zinc-950/20"
+          <div className="flex w-full items-center gap-3 sm:w-auto">
+            <label className="relative min-w-0 flex-1 sm:w-60">
+              <IconSearch
+                size={16}
+                className="pointer-events-none absolute left-3 top-3 text-tertiary"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                aria-label="Search projects"
+                placeholder="Find a project..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="field pl-9"
+              />
+            </label>
+            <select
+              aria-label="Sort projects"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="field w-auto"
             >
-              <h2 className="text-lg font-semibold tracking-tight text-zinc-950">Rename project</h2>
-              <label className="mt-4 grid gap-1.5 text-sm font-medium text-zinc-700">
-                Project name
-                <input
-                  autoFocus
-                  value={renameName}
-                  onChange={(event) => setRenameName(event.target.value)}
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-950 shadow-sm outline-none transition focus:border-zinc-950 focus:ring-2 focus:ring-zinc-950/10"
-                />
-              </label>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRenameTarget(null);
-                    setRenameName('');
-                  }}
-                  className="rounded-md border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={renameProject.isPending}
-                  className="rounded-md bg-zinc-950 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {renameProject.isPending ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </form>
+              <option value="recent">Last edited</option>
+              <option value="name">Name A–Z</option>
+            </select>
           </div>
-        )}
-
-        {deleteTarget && (
+        </div>
+        {loading && (
           <div
-            className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/45 px-4 backdrop-blur-sm"
-            onClick={() => setDeleteTarget(null)}
+            role="status"
+            aria-label="Loading projects"
+            className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
           >
-            <div
-              onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5 shadow-2xl shadow-zinc-950/20"
-            >
-              <h2 className="text-lg font-semibold tracking-tight text-zinc-950">Delete project</h2>
-              <p className="mt-3 text-sm leading-6 text-zinc-600">
-                Delete <strong className="text-zinc-950">{deleteTarget.name}</strong>? This permanently
-                removes the project and its images. This can&apos;t be undone.
-              </p>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(null)}
-                  className="rounded-md border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteProject}
-                  disabled={deleteProject.isPending}
-                  className="rounded-md bg-red-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deleteProject.isPending ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isProjectsPending && (
-          <div className="grid gap-4 md:grid-cols-3">
-            {[0, 1, 2].map((item) => (
-              <div key={item} className="h-64 rounded-lg bg-white shadow-sm ring-1 ring-zinc-200">
-                <div className="m-4 h-36 rounded-md bg-zinc-100" />
-                <div className="mx-4 mt-5 h-3 w-32 rounded bg-zinc-200" />
+            {[0, 1, 2].map((i) => (
+              <div key={i}>
+                <div className="aspect-[16/10] rounded-lg bg-well" />
+                <div className="mt-4 h-4 w-32 rounded bg-well" />
               </div>
             ))}
           </div>
         )}
-
         {projects.isError && (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-900">
-            Could not load projects. Refresh the page and try again.
+          <div role="alert" className="notice notice-error flex flex-wrap items-center justify-between gap-3">
+            <span>Could not load projects. Try again.</span>
+            <Button onClick={() => projects.refetch()}>Retry</Button>
+          </div>
+        )}
+        {!loading &&
+          projects.data &&
+          (search && !filtered.length ? (
+            <div className="py-20 text-center">
+              <h2 className="text-xl font-medium">No matching projects.</h2>
+              <p className="mt-3 text-sm text-secondary">
+                Try another name, or{' '}
+                <button
+                  type="button"
+                  className="text-accent underline underline-offset-4"
+                  onClick={() => setSearch('')}
+                >
+                  clear your search
+                </button>
+                .
+              </p>
+            </div>
+          ) : (
+            <ProjectList
+              projects={filtered}
+              onDelete={(id) => {
+                const project = projects.data.find((p) => p.id === id);
+                if (project) openDialog({ type: 'delete', project });
+              }}
+              onDuplicate={(id) => duplicate.mutate(id)}
+              onRename={(project) => openDialog({ type: 'rename', project })}
+              isBusy={mutating}
+            />
+          ))}
+        {duplicate.isError && (
+          <p role="alert" className="notice notice-error mt-4">
+            Could not duplicate this project. Try again.
           </p>
         )}
-
-        {!isProjectsPending && projects.data && (
-          <ProjectList
-            projects={projects.data}
-            onDelete={(id) => setDeleteTarget(projects.data?.find((p) => p.id === id) ?? null)}
-            onDuplicate={(id) => duplicateProject.mutate(id)}
-            onRename={openRenameProject}
-          />
-        )}
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5 text-xs text-tertiary">
+          <span>
+            {projects.userId ? 'Your cloud workspace' : 'Stored in this browser'} · {count}{' '}
+            {count === 1 ? 'project' : 'projects'}
+          </span>
+          <span className="flex items-center gap-2">
+            Made for the details
+            <IconArrowUpRight size={13} />
+          </span>
+        </footer>
       </div>
+      {dialog && (
+        <Dialog
+          title={
+            dialog.type === 'create'
+              ? 'New project'
+              : dialog.type === 'rename'
+                ? 'Rename project'
+                : 'Delete project'
+          }
+          description={
+            dialog.type === 'create' ? 'Start a fresh canvas for your next screenshot.' : undefined
+          }
+          onDismiss={closeDialog}
+        >
+          {dialog.type === 'delete' ? (
+            <>
+              <p className="text-sm leading-6 text-secondary">
+                Delete <strong className="text-foreground">{dialog.project.name}</strong>? This permanently
+                removes the project and its images. This can&apos;t be undone.
+              </p>
+              {remove.isError && (
+                <p role="alert" className="notice notice-error mt-4">
+                  Could not delete the project. Try again.
+                </p>
+              )}
+              <div className="mt-6 flex justify-end gap-2">
+                <Button onClick={closeDialog} disabled={mutating}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => remove.mutate(dialog.project.id, { onSuccess: () => setDialog(null) })}
+                  disabled={mutating}
+                >
+                  {remove.isPending ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={saveName}>
+              <label className="grid gap-2 text-sm text-secondary">
+                Project name
+                <input
+                  autoFocus
+                  data-autofocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Untitled"
+                  className="field"
+                />
+              </label>
+              {(create.isError || rename.isError) && (
+                <p role="alert" className="notice notice-error mt-4">
+                  Could not save the project. Try again.
+                </p>
+              )}
+              <div className="mt-6 flex justify-end gap-2">
+                <Button onClick={closeDialog} disabled={mutating}>
+                  Cancel
+                </Button>
+                <Button variant="primary" type="submit" disabled={mutating}>
+                  {dialog.type === 'create'
+                    ? create.isPending
+                      ? 'Creating...'
+                      : 'Create'
+                    : rename.isPending
+                      ? 'Saving...'
+                      : 'Save'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </Dialog>
+      )}
     </main>
   );
 }

@@ -78,6 +78,19 @@ npm run dev -- -p 8080
 
 Set `BETTER_AUTH_URL` to the same origin when changing ports.
 
+## Studio interface
+
+The overview, project gallery, editor, and account screens share a graphite
+palette with an amber action accent. Projects support name search and sorting by
+last edit or name. The inspector has visual style previews and can be collapsed
+with the sidebar button, including on mobile. The footer provides zoom and fit
+controls; export shows progress and is available once a screenshot is loaded.
+
+Shared UI controls live in `components/ui`, theme tokens in `app/globals.css`,
+and editor visibility in `lib/editor/workspace-store.ts`. Account requests and
+export progress use TanStack Query hooks. Document data, undo, and storage formats
+are unchanged by the redesign.
+
 ## Editor controls
 
 - Click a screenshot to select it. Shift+click adds or removes a screenshot.
@@ -89,7 +102,7 @@ Set `BETTER_AUTH_URL` to the same origin when changing ports.
   keeping its internal order. Crop is available when one image is selected.
 - Escape clears the selection or cancels a drag. Delete/Backspace removes the
   selected screenshots. Shortcuts leave editable controls alone.
-- Pink guides snap edges and centres to other screenshots within eight screen
+- Amber guides snap edges and centres to other screenshots within eight screen
   pixels. Hold Ctrl/Cmd while dragging to bypass snapping. The threshold stays
   the same when zooming; image alignment takes priority over the optional grid.
 
