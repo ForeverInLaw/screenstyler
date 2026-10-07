@@ -13,6 +13,7 @@ import { imageCropToStyle, shadowToCss } from '@/lib/style/css';
 import { useInteractionStore } from '@/lib/editor/interaction-store';
 import { screenshotRect, screenshotRectStyle } from '@/lib/editor/screenshot-geometry';
 import { startScreenshotDrag, type ScreenshotTransform } from '@/lib/editor/screenshot-drag';
+import { createContentCoordinates } from '@/lib/editor/content-coordinates';
 
 export type ScreenshotDragType =
   | ScreenshotTransform
@@ -67,24 +68,24 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
       startScreenshotDrag(e, type, type === 'move' ? item.id : undefined);
       return;
     }
-    if (e.button === 1) return;
+    if (e.button !== 0) return;
+    const layout = e.currentTarget.closest<HTMLElement>('[data-screenshot-layout]');
+    const coordinates = layout && createContentCoordinates(layout, doc.canvas);
+    if (!coordinates || !cropStart) return;
     e.preventDefault();
     e.stopPropagation();
 
     useDocumentStore.temporal.getState().pause();
 
-    const startX = e.clientX;
-    const startY = e.clientY;
+    const origin = coordinates.point(e.clientX, e.clientY);
 
     const initialCrop = item.crop ? { ...item.crop } : { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
 
-    const cropBounds = e.currentTarget.closest('[data-testid="screenshot-crop-editor"]')?.getBoundingClientRect();
-
     const onMouseMove = (moveEvent: MouseEvent) => {
-      // Convert from the rendered source image, including padding and zoom.
-      if (!cropBounds?.width || !cropBounds.height) return;
-      const ndx = ((moveEvent.clientX - startX) / cropBounds.width) * item.image.naturalWidth;
-      const ndy = ((moveEvent.clientY - startY) / cropBounds.height) * item.image.naturalHeight;
+      // Map the content-plane delta into source-image pixels using the crop entry scale.
+      const pointer = coordinates.point(moveEvent.clientX, moveEvent.clientY);
+      const ndx = (pointer.x - origin.x) / cropStart.scale;
+      const ndy = (pointer.y - origin.y) / cropStart.scale;
 
       let cx = initialCrop.x;
       let cy = initialCrop.y;
