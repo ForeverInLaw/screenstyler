@@ -1,5 +1,7 @@
 'use client';
+import { IconBrowser } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
+import { PanelSection } from '@/components/ui/PanelSection';
 import type { Frame } from '@/lib/document/schema';
 
 export function FramePanel() {
@@ -19,26 +21,14 @@ export function FramePanel() {
   }
 
   return (
-    <section style={{ padding: 16, borderBottom: '1px solid #2a2d36', color: '#e5e7eb' }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 'bold' }}>Frame Mockup</h3>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Frame Type Selection */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+    <PanelSection icon={IconBrowser} title="Frame Mockup">
+      <div className="grid gap-3">
+        <label className="control-row">
           <span>Type:</span>
           <select
+            className="field"
             value={frame.type}
             onChange={(e) => handleTypeChange(e.target.value as Frame['type'])}
-            style={{
-              flex: 1,
-              background: '#1f2937',
-              border: '1px solid #2a2d36',
-              color: '#ffffff',
-              borderRadius: '6px',
-              padding: '6px 8px',
-              fontSize: '12px',
-              outline: 'none',
-            }}
           >
             <option value="none">None (Standard)</option>
             <option value="window">Window Frame</option>
@@ -46,37 +36,27 @@ export function FramePanel() {
             <option value="device">Device Bezel</option>
           </select>
         </label>
-
-        {/* Window Specific Controls */}
         {frame.type === 'window' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+          <label className="control-row">
             <span>Style:</span>
             <select
+              className="field"
               value={frame.variant}
-              onChange={(e) => setFrame({ type: 'window', variant: e.target.value as 'macos' | 'macos-dark' })}
-              style={{
-                flex: 1,
-                background: '#1f2937',
-                border: '1px solid #2a2d36',
-                color: '#ffffff',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                outline: 'none',
-              }}
+              onChange={(e) =>
+                setFrame({ type: 'window', variant: e.target.value as 'macos' | 'macos-dark' })
+              }
             >
               <option value="macos">macOS Light</option>
               <option value="macos-dark">macOS Dark</option>
             </select>
           </label>
         )}
-
-        {/* Browser Specific Controls */}
         {frame.type === 'browser' && (
           <>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+            <label className="control-row">
               <span>Variant:</span>
               <select
+                className="field"
                 value={frame.variant}
                 onChange={(e) =>
                   setFrame({
@@ -84,16 +64,6 @@ export function FramePanel() {
                     variant: e.target.value as 'safari' | 'chrome' | 'arc',
                   })
                 }
-                style={{
-                  flex: 1,
-                  background: '#1f2937',
-                  border: '1px solid #2a2d36',
-                  color: '#ffffff',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  outline: 'none',
-                }}
               >
                 <option value="safari">Safari</option>
                 <option value="chrome">Google Chrome</option>
@@ -103,29 +73,21 @@ export function FramePanel() {
 
             {frame.variant !== 'arc' && (
               <>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+                <label className="control-row">
                   <span>URL:</span>
                   <input
+                    className="field"
                     type="text"
                     value={frame.url || ''}
                     onChange={(e) => setFrame({ ...frame, url: e.target.value })}
                     placeholder="screenstyler.com"
-                    style={{
-                      flex: 1,
-                      background: '#1f2937',
-                      border: '1px solid #2a2d36',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
                   />
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+                <label className="control-row">
                   <span>Theme:</span>
                   <select
+                    className="field"
                     value={frame.theme}
                     onChange={(e) =>
                       setFrame({
@@ -133,16 +95,6 @@ export function FramePanel() {
                         theme: e.target.value as 'light' | 'dark',
                       })
                     }
-                    style={{
-                      flex: 1,
-                      background: '#1f2937',
-                      border: '1px solid #2a2d36',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
                   >
                     <option value="light">Light Theme</option>
                     <option value="dark">Dark Theme</option>
@@ -152,24 +104,15 @@ export function FramePanel() {
             )}
           </>
         )}
-
-        {/* Device Specific Controls */}
         {frame.type === 'device' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+          <label className="control-row">
             <span>Device:</span>
             <select
+              className="field"
               value={frame.variant}
-              onChange={(e) => setFrame({ type: 'device', variant: e.target.value as 'iphone' | 'macbook' | 'ipad' })}
-              style={{
-                flex: 1,
-                background: '#1f2937',
-                border: '1px solid #2a2d36',
-                color: '#ffffff',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                outline: 'none',
-              }}
+              onChange={(e) =>
+                setFrame({ type: 'device', variant: e.target.value as 'iphone' | 'macbook' | 'ipad' })
+              }
             >
               <option value="iphone">iPhone Mockup</option>
               <option value="ipad">iPad Mockup</option>
@@ -178,6 +121,6 @@ export function FramePanel() {
           </label>
         )}
       </div>
-    </section>
+    </PanelSection>
   );
 }

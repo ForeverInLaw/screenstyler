@@ -1,55 +1,16 @@
 'use client';
+import { IconRotate3d } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
-
-function Slider(props: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  suffix?: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label style={{ display: 'block', margin: '10px 0' }}>
-      <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', opacity: 0.85 }}>
-        {props.label}
-        <span>
-          {props.value}
-          {props.suffix ?? ''}
-        </span>
-      </span>
-      <input
-        type="range"
-        aria-label={props.label}
-        min={props.min}
-        max={props.max}
-        step={props.step ?? 1}
-        value={props.value}
-        onChange={(e) => props.onChange(Number(e.target.value))}
-        onPointerDown={() => {
-          useDocumentStore.temporal.getState().pause();
-        }}
-        onPointerUp={() => {
-          const temporal = useDocumentStore.temporal.getState();
-          temporal.resume();
-          const state = useDocumentStore.getState();
-          useDocumentStore.setState({ doc: { ...state.doc } });
-        }}
-        style={{ width: '100%', marginTop: '4px', cursor: 'pointer' }}
-      />
-    </label>
-  );
-}
+import { DocumentSlider } from '@/components/ui/DocumentSlider';
+import { PanelSection } from '@/components/ui/PanelSection';
 
 export function Transform3DPanel() {
   const transform3d = useDocumentStore((s) => s.doc.content.transform3d);
   const setTransform3d = useDocumentStore((s) => s.setTransform3d);
 
   return (
-    <section style={{ padding: 16, borderBottom: '1px solid #2a2d36', color: '#e5e7eb' }}>
-      <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 'bold' }}>3D Tilt</h3>
-      <Slider
+    <PanelSection icon={IconRotate3d} title="3D Tilt">
+      <DocumentSlider
         label="Rotate X"
         value={transform3d.rotateX}
         min={-45}
@@ -57,7 +18,7 @@ export function Transform3DPanel() {
         suffix="°"
         onChange={(v) => setTransform3d({ ...transform3d, rotateX: v })}
       />
-      <Slider
+      <DocumentSlider
         label="Rotate Y"
         value={transform3d.rotateY}
         min={-45}
@@ -65,7 +26,7 @@ export function Transform3DPanel() {
         suffix="°"
         onChange={(v) => setTransform3d({ ...transform3d, rotateY: v })}
       />
-      <Slider
+      <DocumentSlider
         label="Rotate Z"
         value={transform3d.rotateZ}
         min={-45}
@@ -73,7 +34,7 @@ export function Transform3DPanel() {
         suffix="°"
         onChange={(v) => setTransform3d({ ...transform3d, rotateZ: v })}
       />
-      <Slider
+      <DocumentSlider
         label="Perspective"
         value={transform3d.perspective}
         min={500}
@@ -82,7 +43,7 @@ export function Transform3DPanel() {
         suffix="px"
         onChange={(v) => setTransform3d({ ...transform3d, perspective: v })}
       />
-      <Slider
+      <DocumentSlider
         label="Scale"
         value={transform3d.scale}
         min={0.5}
@@ -90,6 +51,6 @@ export function Transform3DPanel() {
         step={0.05}
         onChange={(v) => setTransform3d({ ...transform3d, scale: v })}
       />
-    </section>
+    </PanelSection>
   );
 }

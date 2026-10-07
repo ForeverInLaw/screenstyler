@@ -1,5 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { IconPalette } from '@tabler/icons-react';
+import { PanelSection } from '@/components/ui/PanelSection';
+import { DocumentSlider } from '@/components/ui/DocumentSlider';
+import { Button } from '@/components/ui/Button';
+import { useRef, useState } from 'react';
 import { useSession } from '@/lib/auth/client';
 import { useDocumentStore } from '@/lib/document/store';
 import { gradientPresets } from '@/lib/presets/gradients';
@@ -19,6 +23,7 @@ export function BackgroundPanel() {
   const background = useDocumentStore((s) => s.doc.canvas.background);
   const setBackground = useDocumentStore((s) => s.setBackground);
   const { data } = useSession();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -57,159 +62,103 @@ export function BackgroundPanel() {
   }
 
   return (
-    <section style={{ padding: '16px', borderBottom: '1px solid #2a2d36', color: '#e5e7eb' }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 'bold' }}>Background</h3>
-
-      {/* Preset Buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+    <PanelSection icon={IconPalette} title="Background" detail={background.type.toUpperCase()}>
+      <div className="mb-4 grid grid-cols-3 gap-2">
         {gradientPresets.map((preset) => {
-          const isPresetActive =
-            JSON.stringify(preset.background) === JSON.stringify(background);
+          const active = JSON.stringify(preset.background) === JSON.stringify(background);
           return (
             <button
               key={preset.id}
               type="button"
               aria-label={preset.label}
+              aria-pressed={active}
               onClick={() => setBackground(preset.background)}
-              style={{
-                height: 40,
-                borderRadius: 8,
-                border: isPresetActive ? '2px solid #6366f1' : '1px solid #2a2d36',
-                cursor: 'pointer',
-                background: backgroundToCss(preset.background),
-                outline: 'none',
-              }}
-            />
+              className={`relative h-12 rounded-lg border ${active ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-background' : 'border-border hover:ring-2 hover:ring-border'}`}
+              style={{ background: backgroundToCss(preset.background) }}
+            >
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-surface text-[10px] text-accent"
+                >
+                  ✓
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
-
-      {/* Custom Solid Color & Image Upload */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'grid', gap: 10, border: '1px solid #2a2d36', borderRadius: 8, padding: 10 }}>
-          <span style={{ fontSize: '13px', fontWeight: 700 }}>Custom Gradient</span>
-          <label style={{ display: 'grid', gap: 6, fontSize: '13px' }}>
-            Angle: {activeGradient.angle}deg
-            <input
-              type="range"
-              aria-label="Gradient angle"
-              min={0}
-              max={360}
-              value={activeGradient.angle}
-              onChange={(event) => setCustomGradient({ angle: Number(event.target.value) })}
-              onPointerDown={() => {
-                useDocumentStore.temporal.getState().pause();
-              }}
-              onPointerUp={() => {
-                const temporal = useDocumentStore.temporal.getState();
-                temporal.resume();
-                const state = useDocumentStore.getState();
-                useDocumentStore.setState({ doc: { ...state.doc } });
-              }}
-            />
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: '13px' }}>
+      <div className="grid gap-3">
+        <div className="rounded-lg bg-well p-3">
+          <span className="text-xs font-semibold">Custom Gradient</span>
+          <DocumentSlider
+            label="Gradient angle"
+            value={activeGradient.angle}
+            min={0}
+            max={360}
+            suffix="°"
+            onChange={(angle) => setCustomGradient({ angle })}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <label className="control-row">
               Start
               <input
                 type="color"
                 aria-label="Gradient start color"
                 value={gradientStart}
                 onChange={(event) => setCustomGradient({ start: event.target.value })}
-                style={{ width: '100%', height: 32, border: '1px solid #2a2d36', borderRadius: 6, background: 'none', padding: 0, cursor: 'pointer' }}
               />
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: '13px' }}>
+            <label className="control-row">
               End
               <input
                 type="color"
                 aria-label="Gradient end color"
                 value={gradientEnd}
                 onChange={(event) => setCustomGradient({ end: event.target.value })}
-                style={{ width: '100%', height: 32, border: '1px solid #2a2d36', borderRadius: 6, background: 'none', padding: 0, cursor: 'pointer' }}
               />
             </label>
           </div>
         </div>
-
-        {/* Solid Color Picker */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '13px' }}>
-          <span style={{ flex: 1 }}>Custom Solid Color:</span>
+        <label className="control-row">
+          <span>Custom Solid Color:</span>
           <input
             type="color"
             value={activeSolidColor}
             onChange={(e) => setBackground({ type: 'solid', color: e.target.value })}
-            style={{
-              width: '32px',
-              height: '32px',
-              border: '1px solid #2a2d36',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              background: 'none',
-              padding: 0,
-            }}
           />
         </label>
-
-        {/* Custom Image Upload */}
-        <div style={{ fontSize: '13px' }}>
-          <span style={{ display: 'block', marginBottom: 6 }}>Custom Background Image:</span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <label
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '6px 12px',
-                background: '#2a2d36',
-                border: '1px solid #3a3d46',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                color: '#ffffff',
-                transition: 'background 0.2s',
-              }}
-            >
-              {isUploading ? 'Uploading...' : 'Choose image'}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                hidden
-                disabled={isUploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleFileChange(file);
-                }}
-              />
-            </label>
-            {background.type === 'image' && (
-              <span style={{ fontSize: '12px', opacity: 0.7 }}>
-                Image loaded
-              </span>
-            )}
-          </div>
-          {uploadError && <p style={{ color: '#f87171', fontSize: '11px', marginTop: 4 }}>{uploadError}</p>}
+        <div className="grid gap-2 text-xs text-secondary">
+          <span>Custom Background Image:</span>
+          <Button onClick={() => fileRef.current?.click()} disabled={isUploading}>
+            {isUploading ? 'Uploading...' : 'Choose image'}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            hidden
+            disabled={isUploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleFileChange(file);
+              e.target.value = '';
+            }}
+          />
+          {background.type === 'image' && <span className="text-success">Image loaded</span>}
+          {uploadError && (
+            <p role="alert" className="notice notice-error">
+              {uploadError}
+            </p>
+          )}
         </div>
-
-        {/* Background Image Fit Control */}
         {background.type === 'image' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+          <label className="control-row">
             <span>Image Fit:</span>
             <select
+              className="field"
               value={background.fit}
-              onChange={(e) =>
-                setBackground({ ...background, fit: e.target.value as 'cover' | 'contain' })
-              }
-              style={{
-                flex: 1,
-                background: '#1f2937',
-                border: '1px solid #2a2d36',
-                color: '#ffffff',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                outline: 'none',
-              }}
+              onChange={(e) => setBackground({ ...background, fit: e.target.value as 'cover' | 'contain' })}
             >
               <option value="cover">Cover (Fill)</option>
               <option value="contain">Contain (Fit inside)</option>
@@ -217,6 +166,6 @@ export function BackgroundPanel() {
           </label>
         )}
       </div>
-    </section>
+    </PanelSection>
   );
 }

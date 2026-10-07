@@ -1,35 +1,8 @@
 'use client';
+import { IconShadow } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
-
-function Slider(props: {
-  label: string; value: number; min: number; max: number; onChange: (v: number) => void;
-}) {
-  return (
-    <label style={{ display: 'block', margin: '12px 0' }}>
-      <span style={{ display: 'flex', justifyContent: 'space-between' }}>
-        {props.label}<span>{props.value}</span>
-      </span>
-      <input
-        type="range"
-        aria-label={props.label}
-        min={props.min}
-        max={props.max}
-        value={props.value}
-        onChange={(e) => props.onChange(Number(e.target.value))}
-        onPointerDown={() => {
-          useDocumentStore.temporal.getState().pause();
-        }}
-        onPointerUp={() => {
-          const temporal = useDocumentStore.temporal.getState();
-          temporal.resume();
-          const state = useDocumentStore.getState();
-          useDocumentStore.setState({ doc: { ...state.doc } });
-        }}
-        style={{ width: '100%' }}
-      />
-    </label>
-  );
-}
+import { DocumentSlider } from '@/components/ui/DocumentSlider';
+import { PanelSection } from '@/components/ui/PanelSection';
 
 export function StylePanel() {
   const padding = useDocumentStore((s) => s.doc.content.padding);
@@ -38,17 +11,33 @@ export function StylePanel() {
   const setPadding = useDocumentStore((s) => s.setPadding);
   const setCornerRadius = useDocumentStore((s) => s.setCornerRadius);
   const setShadow = useDocumentStore((s) => s.setShadow);
-
   return (
-    <section style={{ padding: 16 }}>
-      <h3 style={{ margin: '0 0 8px' }}>Style</h3>
-      <Slider label="Padding" value={padding} min={0} max={400} onChange={setPadding} />
-      <Slider label="Corner radius" value={cornerRadius} min={0} max={80}
-        onChange={setCornerRadius} />
-      <Slider label="Shadow blur" value={shadow.blur} min={0} max={200}
-        onChange={(v) => setShadow({ ...shadow, blur: v })} />
-      <Slider label="Shadow opacity" value={Math.round(shadow.opacity * 100)} min={0} max={100}
-        onChange={(v) => setShadow({ ...shadow, opacity: v / 100 })} />
-    </section>
+    <PanelSection icon={IconShadow} title="Spacing & shadow">
+      <DocumentSlider label="Padding" value={padding} min={0} max={400} suffix=" px" onChange={setPadding} />
+      <DocumentSlider
+        label="Corner radius"
+        value={cornerRadius}
+        min={0}
+        max={80}
+        suffix=" px"
+        onChange={setCornerRadius}
+      />
+      <DocumentSlider
+        label="Shadow blur"
+        value={shadow.blur}
+        min={0}
+        max={200}
+        suffix=" px"
+        onChange={(blur) => setShadow({ ...shadow, blur })}
+      />
+      <DocumentSlider
+        label="Shadow opacity"
+        value={Math.round(shadow.opacity * 100)}
+        min={0}
+        max={100}
+        suffix="%"
+        onChange={(v) => setShadow({ ...shadow, opacity: v / 100 })}
+      />
+    </PanelSection>
   );
 }

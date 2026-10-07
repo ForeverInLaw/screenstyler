@@ -1,7 +1,9 @@
 'use client';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useWorkspaceStore } from '@/lib/editor/workspace-store';
 import { EditorShell } from '@/components/editor/EditorShell';
 import { Toolbar } from '@/components/editor/Toolbar';
 import { CanvasStage } from '@/components/canvas/CanvasStage';
@@ -10,13 +12,19 @@ import { UploadZone } from '@/components/editor/UploadZone';
 import { useDocumentStore } from '@/lib/document/store';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { getBlobStoreForUser, getProjectStoreForUser } from '@/lib/storage/active-stores';
-import { exportPng, downloadBlob, exportFilename } from '@/lib/export/export-png';
+import { useEditorExport } from '@/lib/editor/use-editor-export';
+import { exportPng } from '@/lib/export/export-png';
 import { useAutosave } from '@/lib/editor/use-autosave';
 import type { ScreenstylerDoc } from '@/lib/document/schema';
 import { createBlankDoc } from '@/lib/document/factory';
 import { DocumentRecoveryScreen } from '@/components/editor/DocumentRecoveryScreen';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { projectKeys, useProjectQuery, useProjectsQuery, useRenameProjectMutation } from '@/lib/projects/use-projects';
+import {
+  projectKeys,
+  useProjectQuery,
+  useProjectsQuery,
+  useRenameProjectMutation,
+} from '@/lib/projects/use-projects';
 import { imageFileFromClipboard, isEditablePasteTarget } from '@/lib/upload/clipboard';
 import { ingestImageFile, validateImageFile } from '@/lib/upload/load-image';
 import { handleScreenshotShortcut } from '@/lib/editor/selection-shortcuts';
@@ -29,8 +37,13 @@ function EditorPage() {
   const doc = useDocumentStore((s) => s.doc);
   const loadDoc = useDocumentStore((s) => s.loadDoc);
   const addScreenshot = useDocumentStore((s) => s.addScreenshot);
-  const [activeTool, setActiveTool] = useState<'select' | 'arrow' | 'text' | 'highlight' | 'blur'>('select');
-  const [isPreview, setIsPreview] = useState(false);
+  const activeTool = useWorkspaceStore((s) => s.activeTool);
+  const setActiveTool = useWorkspaceStore((s) => s.setActiveTool);
+  const isPreview = useWorkspaceStore((s) => s.isPreview);
+  const togglePreview = useWorkspaceStore((s) => s.togglePreview);
+
+  const resetTools = useWorkspaceStore((s) => s.resetTools);
+  useEffect(() => resetTools(), [id, resetTools]);
 
   const project = useProjectQuery(id);
   const renameProject = useRenameProjectMutation(project.userId);
@@ -108,7 +121,11 @@ function EditorPage() {
       event.preventDefault();
       const validation = validateImageFile(file);
       if (!validation.ok) {
-        window.alert(validation.reason === 'TOO_LARGE' ? 'Image is larger than 25 MB.' : 'Use a PNG, JPG, or WebP image.');
+        window.alert(
+          validation.reason === 'TOO_LARGE'
+            ? 'Image is larger than 25 MB.'
+            : 'Use a PNG, JPG, or WebP image.',
+        );
         return;
       }
 
@@ -159,15 +176,7 @@ function EditorPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPreview]);
 
-  async function handleExport() {
-    if (!frameRef.current) return;
-    try {
-      const blob = await exportPng(frameRef.current, 2);
-      downloadBlob(blob, exportFilename(projectName, 2));
-    } catch {
-      window.alert('Export failed. Make sure the image finished loading, then retry.');
-    }
-  }
+  const exportMutation = useEditorExport(frameRef, projectName);
 
   function handleRenameProject(name: string) {
     if (!id) return;
@@ -175,9 +184,9 @@ function EditorPage() {
   }
 
   const corruptError =
-    project.error instanceof Error && 'isCorrupt' in project.error ?
-      project.error as Error & { isCorrupt: true; rawJson: string }
-    : null;
+    project.error instanceof Error && 'isCorrupt' in project.error
+      ? (project.error as Error & { isCorrupt: true; rawJson: string })
+      : null;
 
   if (corruptError) {
     return (
@@ -192,22 +201,48 @@ function EditorPage() {
 
   if (project.isError) {
     return (
-      <p style={{ padding: 32 }}>
-        Could not load this project. It may have been deleted.
-      </p>
+      <main className="grid min-h-dvh place-items-center bg-background p-6">
+        <div className="max-w-sm text-center">
+          <h1 className="text-2xl font-medium">Project unavailable.</h1>
+          <p className="mt-3 text-sm text-secondary">It may have been deleted, or the connection failed.</p>
+          <Link href="/projects" className="button mt-6">
+            Back to projects
+          </Link>
+        </div>
+      </main>
+    );
+  }
+  if (id && (project.isLoading || project.isAuthPending)) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-background">
+        <p role="status" className="text-sm text-secondary">
+          Opening your canvas...
+        </p>
+      </main>
     );
   }
 
   return (
     <EditorShell
+      saveStatus={
+        !id
+          ? 'Unsaved canvas'
+          : saveMutation.isPending
+            ? 'Saving...'
+            : saveMutation.isError
+              ? 'Save failed'
+              : 'Autosave on'
+      }
       toolbar={
         <Toolbar
           projectName={projectName}
-          onExport={handleExport}
+          onExport={() => exportMutation.mutate()}
+          isExporting={exportMutation.isPending}
+          canExport={!!doc.content.screenshots?.length}
           activeTool={activeTool}
           onChangeTool={setActiveTool}
           isPreview={isPreview}
-          onTogglePreview={() => setIsPreview(!isPreview)}
+          onTogglePreview={togglePreview}
           onRenameProject={handleRenameProject}
           isRenamingProject={renameProject.isPending}
         />
@@ -251,7 +286,7 @@ function EditorPage() {
             </div>
           </ErrorBoundary>
         ) : (
-          <div style={{ flex: 1, display: 'flex', background: '#0f1115' }}>
+          <div className="flex min-h-0 flex-1 overflow-y-auto bg-workbench">
             <UploadZone />
           </div>
         )
