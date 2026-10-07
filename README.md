@@ -96,6 +96,12 @@ shared styled components. Their popups share the studio palette, selection marks
 and Tabler icons, with library-managed keyboard navigation and focus restoration.
 Editor shortcuts leave these controls alone, including when their popups are open.
 
+Sliders use Base UI with exact numeric entry and a compact variant for annotation
+tools. Background and annotation colors use react-colorful inside Base UI popovers,
+with saturation/hue controls and validated HEX input. Continuous edits preview on
+the canvas and create one Undo step when finished. The shared document-edit session
+keeps history handling separate from UI presentation and finishes on unmount.
+
 ## Editor controls
 
 - Click a screenshot to select it. Shift+click adds or removes a screenshot.

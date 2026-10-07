@@ -47,7 +47,7 @@ describe('isEditablePasteTarget', () => {
     expect(isEditablePasteTarget(document.createElement('div'))).toBe(false);
   });
 
-  it.each(['combobox', 'listbox', 'menu'])('leaves keys and paste to a custom %s', (role) => {
+  it.each(['combobox', 'listbox', 'menu', 'slider'])('leaves keys and paste to a custom %s', (role) => {
     const control = document.createElement('div');
     control.setAttribute('role', role);
     const child = document.createElement('span');

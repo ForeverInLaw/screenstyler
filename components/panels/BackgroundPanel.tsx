@@ -4,6 +4,7 @@ import { PanelSection } from '@/components/ui/PanelSection';
 import { DocumentSlider } from '@/components/ui/DocumentSlider';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { DocumentColorPicker } from '@/components/ui/DocumentColorPicker';
 import { useRef, useState } from 'react';
 import { useSession } from '@/lib/auth/client';
 import { useDocumentStore } from '@/lib/document/store';
@@ -101,34 +102,34 @@ export function BackgroundPanel() {
             onChange={(angle) => setCustomGradient({ angle })}
           />
           <div className="grid grid-cols-2 gap-3">
-            <label className="control-row">
-              Start
-              <input
-                type="color"
-                aria-label="Gradient start color"
+            <div className="control-row">
+              <span>Start</span>
+              <DocumentColorPicker
+                label="Gradient start color"
                 value={gradientStart}
-                onChange={(event) => setCustomGradient({ start: event.target.value })}
+                onChange={(start) => setCustomGradient({ start })}
+                hideValue
               />
-            </label>
-            <label className="control-row">
-              End
-              <input
-                type="color"
-                aria-label="Gradient end color"
+            </div>
+            <div className="control-row">
+              <span>End</span>
+              <DocumentColorPicker
+                label="Gradient end color"
                 value={gradientEnd}
-                onChange={(event) => setCustomGradient({ end: event.target.value })}
+                onChange={(end) => setCustomGradient({ end })}
+                hideValue
               />
-            </label>
+            </div>
           </div>
         </div>
-        <label className="control-row">
+        <div className="control-row">
           <span>Custom Solid Color:</span>
-          <input
-            type="color"
+          <DocumentColorPicker
+            label="Custom Solid Color"
             value={activeSolidColor}
-            onChange={(e) => setBackground({ type: 'solid', color: e.target.value })}
+            onChange={(color) => setBackground({ type: 'solid', color })}
           />
-        </label>
+        </div>
         <div className="grid gap-2 text-xs text-secondary">
           <span>Custom Background Image:</span>
           <Button onClick={() => fileRef.current?.click()} disabled={isUploading}>

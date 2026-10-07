@@ -1,5 +1,57 @@
 # Screenstyler roadmap
 
+## Sliders and color editing
+
+Keep the canvas as the focal point while making inspector and annotation values
+easy to adjust precisely. Use the existing graphite tokens, amber filled tracks,
+chalk handles, and compact mono number inputs. Base UI owns slider, number-field,
+and popover behavior; react-colorful owns saturation/hue and validated HEX input.
+Color popovers use the same raised graphite surface as other studio popups.
+Four-point spacing and 40px slider/color-trigger targets keep the controls usable
+on mobile; numeric values stay compact alongside their labels.
+
+Encapsulate continuous document edits behind one undo session, shared by color
+and slider controls. Keep presentation independent of document history, modules
+under 500 lines, global state in Zustand selectors, and server state in TanStack
+Query. No new animations or document migrations are needed.
+
+- [x] Style all sliders and add exact numeric input.
+- [x] Replace native color dialogs with shared palette/HEX popovers.
+- [x] Verify drag/keyboard/touch edits, dismissal, focus, Undo/Redo, and export.
+- [x] Document and commit the verified changes.
+
+### Slider and color verification
+
+- All 146 unit/integration tests and 40 Chromium scenarios passed. The final
+  focused run rechecked the four mouse/touch control scenarios after adding HEX
+  Enter-to-close and matching Shift-key increments for sliders and number fields.
+- Covered one Undo/Redo per drag or typed edit, returning to the initial value,
+  ownership of history pauses, repeated finishing, numeric bounds and decimals,
+  invalid HEX recovery, palette keyboard input, screenshot shortcut isolation,
+  popup focus restoration, and mobile viewport bounds. Export also passed.
+- Production screenshots at 1440 × 1000 and 390 × 844 were inspected for
+  inspector sliders, color popovers, and annotation controls. No horizontal
+  overflow or JavaScript errors were observed. Touch gestures were emulated in
+  Chromium; Safari and Firefox were not exercised.
+- TypeScript, builds, and ESLint passed. The same six existing image warnings
+  and existing blob-store tracing/standalone-start warnings remain.
+- The original slider finalizer recorded the already-edited document. The shared
+  session restores the original while tracking is paused, then applies the final
+  state through public Zustand/zundo APIs. Controls finish on dismissal/unmount.
+  UI presentation has no dependency on document history.
+
+### Slider and color changed files
+
+- `components/ui/Slider.tsx`, `components/ui/DocumentSlider.tsx`,
+  `components/ui/ColorPicker.tsx`, `components/ui/DocumentColorPicker.tsx`
+- `components/panels/BackgroundPanel.tsx`, `components/panels/panels.test.tsx`,
+  `components/editor/AnnotationOptions.tsx`
+- `lib/document/edit-session.ts`, `lib/document/edit-session.test.ts`,
+  `lib/editor/use-document-edit.ts`
+- `lib/upload/clipboard.ts`, `lib/upload/clipboard.test.ts`
+- `e2e/editor-controls.spec.ts`, `app/globals.css`
+- `package.json`, `package-lock.json`, `README.md`, `roadmap.md`
+
 ## Studio form controls
 
 Use Base UI 1.8 for select, checkbox, and account-menu interaction, styled with the

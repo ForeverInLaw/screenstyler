@@ -86,20 +86,6 @@ select,
 textarea {
   accent-color: var(--studio-accent);
 }
-input[type='range'] {
-  width: 100%;
-  height: 24px;
-  cursor: pointer;
-}
-input[type='color'] {
-  width: 40px;
-  height: 40px;
-  padding: 4px;
-  background: var(--control-fill);
-  border: 1px solid var(--control-line);
-  border-radius: 8px;
-  cursor: pointer;
-}
 ::selection {
   background: var(--studio-accent-soft);
   color: var(--chalk);
@@ -278,6 +264,84 @@ input[type='color'] {
     background: var(--studio-accent);
     color: var(--on-accent);
   }
+  .studio-slider-control {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    padding: 0 8px;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+  }
+  .studio-slider-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--frame-line-strong);
+  }
+  .studio-slider-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--studio-accent);
+  }
+  .studio-slider-thumb {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--graphite-raised);
+    border-radius: 50%;
+    background: var(--chalk);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+  }
+  .studio-slider-thumb[data-dragging],
+  .studio-slider-thumb:hover {
+    border-color: var(--studio-accent);
+  }
+  .studio-slider-thumb:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .studio-number {
+    display: flex;
+    height: 32px;
+    align-items: center;
+    border: 1px solid var(--control-line);
+    border-radius: 6px;
+    background: var(--control-fill);
+    color: var(--chalk);
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 11px;
+  }
+  .studio-number-input {
+    width: 56px;
+    min-width: 0;
+    height: 100%;
+    padding: 0 8px;
+    text-align: right;
+    outline: none;
+  }
+  .studio-number:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .studio-color-trigger {
+    display: inline-flex;
+    width: auto;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+  }
+  .studio-color-trigger:hover,
+  .studio-color-trigger[data-popup-open] {
+    border-color: var(--frame-line-strong);
+  }
+  .studio-color-swatch {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgb(240 244 246 / 20%);
+    border-radius: 4px;
+  }
   .notice {
     padding: 12px 16px;
     border-radius: 8px;
@@ -318,6 +382,31 @@ input[type='color'] {
     border-bottom: 2px solid var(--studio-accent);
     border-right: 2px solid var(--studio-accent);
   }
+}
+
+/* Override react-colorful's injected styles while sharing the studio's focus tokens. */
+.studio-color-panel.react-colorful {
+  width: 100%;
+  height: 184px;
+  gap: 16px;
+}
+.studio-color-panel .react-colorful__saturation {
+  border: 1px solid var(--frame-line-strong);
+  border-radius: 8px;
+}
+.studio-color-panel .react-colorful__hue {
+  height: 16px;
+  border-radius: 8px;
+}
+.studio-color-panel .react-colorful__pointer {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--chalk);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+.studio-color-panel .react-colorful__interactive:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

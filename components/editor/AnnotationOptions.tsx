@@ -17,6 +17,8 @@ import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { withAlpha } from '@/lib/style/css';
 import { Select } from '@/components/ui/Select';
+import { DocumentSlider } from '@/components/ui/DocumentSlider';
+import { DocumentColorPicker } from '@/components/ui/DocumentColorPicker';
 
 import type { EditorTool } from '@/lib/editor/workspace-store';
 
@@ -170,11 +172,11 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
               onClick={() => handleArrowColorChange(color)}
             />
           ))}
-          <input
-            type="color"
-            aria-label="Custom arrow color"
+          <DocumentColorPicker
+            label="Custom arrow color"
             value={arrowColor}
-            onChange={(event) => handleArrowColorChange(event.target.value)}
+            onChange={handleArrowColorChange}
+            hideValue
           />
         </div>
       )}
@@ -189,17 +191,16 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
             onValueChange={handleTextFontFamilyChange}
             options={textFontOptions.map((font) => ({ value: font.id, label: font.label }))}
           />
-          <input
-            className="max-w-24"
-            type="range"
-            aria-label="Text size"
+          <DocumentSlider
+            label="Text size"
+            compact
             min={14}
             max={72}
             step={2}
             value={textSize}
-            onChange={(event) => handleTextSizeChange(Number(event.target.value))}
+            suffix=" px"
+            onChange={handleTextSizeChange}
           />
-          <span className="min-w-8 font-mono text-xs tabular-nums">{textSize}</span>
         </div>
       )}
 
@@ -217,26 +218,23 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
               onClick={() => handleHighlightColorChange(color)}
             />
           ))}
-          <input
-            type="color"
-            aria-label="Custom highlight color"
+          <DocumentColorPicker
+            label="Custom highlight color"
             value={highlightColor}
-            onChange={(event) => handleHighlightColorChange(event.target.value)}
+            onChange={handleHighlightColorChange}
+            hideValue
           />
           <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-          <input
-            className="max-w-24"
-            type="range"
-            aria-label="Highlight opacity"
+          <DocumentSlider
+            label="Highlight opacity"
+            compact
             min={10}
             max={90}
             step={5}
             value={Math.round(highlightOpacity * 100)}
-            onChange={(event) => handleHighlightOpacityChange(Number(event.target.value) / 100)}
+            suffix="%"
+            onChange={(opacity) => handleHighlightOpacityChange(opacity / 100)}
           />
-          <span className="min-w-8 font-mono text-xs tabular-nums">
-            {Math.round(highlightOpacity * 100)}%
-          </span>
         </div>
       )}
 
@@ -250,17 +248,16 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
             onValueChange={handleBlurVariantChange}
             options={blurVariants.map((variant) => ({ value: variant.id, label: variant.label }))}
           />
-          <input
-            className="max-w-24"
-            type="range"
-            aria-label="Blur intensity"
+          <DocumentSlider
+            label="Blur intensity"
+            compact
             min={2}
             max={28}
             step={1}
             value={blurIntensity}
-            onChange={(event) => handleBlurIntensityChange(Number(event.target.value))}
+            suffix=" px"
+            onChange={handleBlurIntensityChange}
           />
-          <span className="min-w-8 font-mono text-xs tabular-nums">{blurIntensity}px</span>
         </div>
       )}
     </div>

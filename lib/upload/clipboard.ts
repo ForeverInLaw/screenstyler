@@ -14,6 +14,6 @@ export function isEditablePasteTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
   return target.closest(
-    'input, textarea, select, [contenteditable], [role="combobox"], [role="listbox"], [role="menu"]',
+    'input, textarea, select, [contenteditable], [role="combobox"], [role="listbox"], [role="menu"], [role="slider"], [data-color-picker]',
   ) !== null;
 }
