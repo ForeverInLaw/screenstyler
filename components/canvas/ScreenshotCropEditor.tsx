@@ -3,13 +3,15 @@ import React from 'react';
 import { IconCheck } from '@tabler/icons-react';
 import type { ScreenshotItem } from '@/lib/document/schema';
 import type { ScreenshotDragType } from './ScreenshotItemComponent';
+import type { CropAnchor } from '@/lib/document/store';
+import { imageCropToStyle } from '@/lib/style/css';
 
 type Props = {
   url: string;
   item: ScreenshotItem;
   canvasWidth: number;
   canvasHeight: number;
-  cropStart: { scale: number; imageX: number; imageY: number };
+  cropStart: CropAnchor;
   onDragStart: (e: React.MouseEvent, type: ScreenshotDragType) => void;
   onDone: () => void;
 };
@@ -30,6 +32,12 @@ export function ScreenshotCropEditor({
 }: Props) {
   const { scale: displayScale, imageX, imageY } = cropStart;
   const currentCrop = item.crop || { x: 0, y: 0, w: item.image.naturalWidth, h: item.image.naturalHeight };
+  const cropStyle = {
+    left: `${(currentCrop.x / item.image.naturalWidth) * 100}%`,
+    top: `${(currentCrop.y / item.image.naturalHeight) * 100}%`,
+    width: `${(currentCrop.w / item.image.naturalWidth) * 100}%`,
+    height: `${(currentCrop.h / item.image.naturalHeight) * 100}%`,
+  };
 
   return (
     <div
@@ -61,13 +69,11 @@ export function ScreenshotCropEditor({
 
       {/* Cropped Active Box */}
       <div
+        data-testid="crop-region"
         onMouseDown={(e) => onDragStart(e, 'crop-move')}
         style={{
           position: 'absolute',
-          left: `${currentCrop.x * displayScale}px`,
-          top: `${currentCrop.y * displayScale}px`,
-          width: `${currentCrop.w * displayScale}px`,
-          height: `${currentCrop.h * displayScale}px`,
+          ...cropStyle,
           outline: '2px solid #818cf8',
           boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
           cursor: 'default',
@@ -80,10 +86,7 @@ export function ScreenshotCropEditor({
           alt=""
           style={{
             position: 'absolute',
-            left: `${-currentCrop.x * displayScale}px`,
-            top: `${-currentCrop.y * displayScale}px`,
-            width: `${item.image.naturalWidth * displayScale}px`,
-            height: `${item.image.naturalHeight * displayScale}px`,
+            ...imageCropToStyle(item.image, currentCrop),
             maxWidth: 'none',
             maxHeight: 'none',
             userSelect: 'none',
@@ -96,10 +99,7 @@ export function ScreenshotCropEditor({
       <div
         style={{
           position: 'absolute',
-          left: `${currentCrop.x * displayScale}px`,
-          top: `${currentCrop.y * displayScale}px`,
-          width: `${currentCrop.w * displayScale}px`,
-          height: `${currentCrop.h * displayScale}px`,
+          ...cropStyle,
           pointerEvents: 'none',
         }}
       >
@@ -167,8 +167,8 @@ export function ScreenshotCropEditor({
         className="hide-on-export"
         style={{
           position: 'absolute',
-          left: `${(currentCrop.x + currentCrop.w / 2) * displayScale}px`,
-          top: `${(currentCrop.y + currentCrop.h) * displayScale + 16}px`,
+          left: `${((currentCrop.x + currentCrop.w / 2) / item.image.naturalWidth) * 100}%`,
+          top: `calc(${((currentCrop.y + currentCrop.h) / item.image.naturalHeight) * 100}% + 16px)`,
           transform: 'translateX(-50%)',
           background: 'rgba(15, 17, 21, 0.85)',
           backdropFilter: 'blur(8px)',

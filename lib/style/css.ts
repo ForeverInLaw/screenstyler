@@ -1,5 +1,15 @@
 import type { CSSProperties } from 'react';
-import type { Background, Shadow } from '../document/schema';
+import type { Background, Crop, ImageRef, Shadow } from '../document/schema';
+
+/** Positions the source image inside a crop viewport at any rendered size. */
+export function imageCropToStyle(image: ImageRef, crop: Crop): CSSProperties {
+  return {
+    left: `${(-crop.x / crop.w) * 100}%`,
+    top: `${(-crop.y / crop.h) * 100}%`,
+    width: `${(image.naturalWidth / crop.w) * 100}%`,
+    height: `${(image.naturalHeight / crop.h) * 100}%`,
+  };
+}
 
 export function withAlpha(hex: string, alpha: number): string {
   const h = hex.replace('#', '');

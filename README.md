@@ -68,7 +68,7 @@ Start the local development server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+Open [http://localhost:3100](http://localhost:3100) to view the application. Both `npm run dev` and `npm run start` default to port 3100.
 
 To use another port:
 
@@ -77,6 +77,24 @@ npm run dev -- -p 8080
 ```
 
 Set `BETTER_AUTH_URL` to the same origin when changing ports.
+
+## Editor controls
+
+- Click a screenshot to select it. Shift+click adds or removes a screenshot.
+- Drag from empty canvas to select screenshots intersecting the rectangle.
+  Shift+drag adds to the current selection. Ctrl/Cmd+A selects all screenshots.
+- Drag a selected image to move the selection. Corner handles resize it
+  proportionally. Each move or resize is one Undo step.
+- The selection toolbar deletes the selection or moves it one layer at a time,
+  keeping its internal order. Crop is available when one image is selected.
+- Escape clears the selection or cancels a drag. Delete/Backspace removes the
+  selected screenshots. Shortcuts leave editable controls alone.
+- Pink guides snap edges and centres to other screenshots within eight screen
+  pixels. Hold Ctrl/Cmd while dragging to bypass snapping. The threshold stays
+  the same when zooming; image alignment takes priority over the optional grid.
+
+See [the selection and alignment architecture](roadmap.md) for the state model
+and verification plan.
 
 ---
 
@@ -94,7 +112,7 @@ docker compose up --build -d
 
 This builds `screenstyler:latest`, injects credentials from `.env` at runtime
 (`.env` is never copied into the image), and serves on
-[http://localhost:3000](http://localhost:3000). A `/api/health` endpoint backs
+[http://localhost:3100](http://localhost:3100). A `/api/health` endpoint backs
 the container healthcheck.
 
 For production set `NEON_DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
@@ -137,3 +155,8 @@ Runs Playwright browser tests:
 ```bash
 npm run test:e2e
 ```
+
+Playwright starts its own server on port 3101 and refuses to reuse an existing
+server. Override the test port with `E2E_PORT=3102 npm run test:e2e` if needed.
+Tests use SQLite and blob storage under `.next/`, with cloud storage and email
+credentials disabled. Run them in a separate checkout from a running deployment.

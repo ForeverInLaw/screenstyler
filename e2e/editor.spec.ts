@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 test('create a project, upload an image, and export a PNG', async ({ page }) => {
   await page.goto('/projects');
   await page.getByRole('button', { name: 'New project' }).click();
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page).toHaveURL(/\/editor\?id=/);
 
   // 1x1 white PNG fixture (valid PNG – IHDR + IDAT + IEND)

@@ -7,7 +7,7 @@ import { ContentLayer } from './ContentLayer';
 import { AnnotationsLayer } from './AnnotationsLayer';
 import { useDocumentStore, normalizeDoc } from '@/lib/document/store';
 
-import { useEditorUiStore } from '@/lib/editor/ui-store';
+import { startMarqueeSelection } from '@/lib/editor/marquee-selection';
 
 const MIN_CONTENT_SCALE = 0.5;
 const MAX_CONTENT_SCALE = 2;
@@ -30,7 +30,6 @@ export const DocumentCanvas = forwardRef<
   const addAnnotation = useDocumentStore((s) => s.addAnnotation);
   const removeAnnotation = useDocumentStore((s) => s.removeAnnotation);
   const setTransform3d = useDocumentStore((s) => s.setTransform3d);
-  const setSelectedScreenshotId = useEditorUiStore((s) => s.setSelectedScreenshotId);
 
   const gridVisible = useDocumentStore((s) => s.doc.canvas.grid?.visible ?? false);
   const gridSize = useDocumentStore((s) => s.doc.canvas.grid?.size ?? 20);
@@ -52,14 +51,10 @@ export const DocumentCanvas = forwardRef<
   }
 
   return (
-    <DocumentFrame ref={ref} width={doc.canvas.width} height={doc.canvas.height} onWheel={handleWheelZoom}>
+    <DocumentFrame ref={ref} width={doc.canvas.width} height={doc.canvas.height} onWheel={handleWheelZoom}
+      onMouseDown={!isPreview && activeTool === 'select' ? startMarqueeSelection : undefined}>
       <div
         style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-        onClick={() => {
-          if (!isPreview) {
-            setSelectedScreenshotId(null);
-          }
-        }}
       >
         <BackgroundLayer background={doc.canvas.background} />
       </div>

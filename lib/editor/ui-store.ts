@@ -8,13 +8,15 @@ const MAX_VIEWPORT_ZOOM = 5;
 export type CropSession = CropAnchor & { itemId: string };
 
 interface EditorUiState {
-  selectedScreenshotId: string | null;
+  selectedScreenshotIds: string[];
   selectedAnnotationId: string | null;
   isCropMode: boolean;
   cropSession: CropSession | null;
   viewportZoom: number;
   viewportOffset: { x: number; y: number };
   setSelectedScreenshotId: (id: string | null) => void;
+  setSelectedScreenshotIds: (ids: readonly string[]) => void;
+  toggleScreenshot: (id: string) => void;
   setSelectedAnnotationId: (id: string | null) => void;
   beginCrop: (itemId: string, anchor: CropAnchor) => void;
   endCrop: () => void;
@@ -25,7 +27,7 @@ interface EditorUiState {
 }
 
 export const useEditorUiStore = create<EditorUiState>((set, get) => ({
-  selectedScreenshotId: null,
+  selectedScreenshotIds: [],
   selectedAnnotationId: null,
   isCropMode: false,
   cropSession: null,
@@ -41,15 +43,23 @@ export const useEditorUiStore = create<EditorUiState>((set, get) => ({
     set({ isCropMode: false, cropSession: null });
   },
   setSelectedScreenshotId: (id) => {
+    get().setSelectedScreenshotIds(id ? [id] : []);
+  },
+  setSelectedScreenshotIds: (ids) => {
     get().endCrop();
-    set({ selectedScreenshotId: id, selectedAnnotationId: null });
+    const existing = new Set(useDocumentStore.getState().doc.content.screenshots?.map((item) => item.id));
+    set({ selectedScreenshotIds: [...new Set(ids)].filter((id) => existing.has(id)), selectedAnnotationId: null });
+  },
+  toggleScreenshot: (id) => {
+    const ids = get().selectedScreenshotIds;
+    get().setSelectedScreenshotIds(ids.includes(id) ? ids.filter((selected) => selected !== id) : [...ids, id]);
   },
   setSelectedAnnotationId: (id) => {
     get().endCrop();
-    set({ selectedAnnotationId: id, selectedScreenshotId: null });
+    set({ selectedAnnotationId: id, selectedScreenshotIds: [] });
   },
   beginCrop: (itemId, anchor) =>
-    set({ isCropMode: true, cropSession: { itemId, ...anchor }, selectedScreenshotId: itemId, selectedAnnotationId: null }),
+    set({ isCropMode: true, cropSession: { itemId, ...anchor }, selectedScreenshotIds: [itemId], selectedAnnotationId: null }),
   setIsCropMode: (mode) => {
     if (mode) set({ isCropMode: true });
     else get().endCrop();
@@ -58,4 +68,3 @@ export const useEditorUiStore = create<EditorUiState>((set, get) => ({
   setViewportOffset: (offset) => set({ viewportOffset: offset }),
   resetViewportZoom: () => set({ viewportZoom: 1, viewportOffset: { x: 0, y: 0 } }),
 }));
-

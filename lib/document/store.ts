@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type { Background, ImageRef, ScreenstylerDoc, Shadow, Frame, Transform3D, Annotation, ScreenshotItem } from './schema';
 import { createBlankDoc } from './factory';
+import { moveScreenshotLayers, type LayerDirection } from './screenshot-layers';
 
 /** Anchor geometry captured when Crop Mode is entered, used to map the final
  * crop rectangle back onto the item's on-canvas box when the crop is committed. */
 export type CropAnchor = { scale: number; imageX: number; imageY: number };
+export type ScreenshotUpdates = Partial<Omit<ScreenshotItem, 'id' | 'image'>>;
 
 export function normalizeDoc(rawDoc: unknown): ScreenstylerDoc {
   if (!rawDoc || typeof rawDoc !== 'object') return createBlankDoc();
@@ -81,9 +83,12 @@ interface DocumentState {
   setImage: (image: ImageRef) => void;
   addScreenshot: (image: ImageRef, x?: number, y?: number) => void;
   removeScreenshot: (id: string) => void;
-  updateScreenshot: (id: string, updates: Partial<Omit<ScreenshotItem, 'id' | 'image'>>) => void;
+  removeScreenshots: (ids: readonly string[]) => void;
+  updateScreenshot: (id: string, updates: ScreenshotUpdates) => void;
+  updateScreenshots: (updates: readonly { id: string; updates: ScreenshotUpdates }[]) => void;
   commitCrop: (id: string, anchor: CropAnchor) => void;
-  reorderScreenshot: (id: string, direction: 'front' | 'back') => void;
+  reorderScreenshot: (id: string, direction: LayerDirection) => void;
+  reorderScreenshots: (ids: readonly string[], direction: LayerDirection) => void;
   setGridSettings: (grid: Partial<{ visible: boolean; size: number; snap: boolean }>) => void;
   setCanvasSize: (preset: string, width: number, height: number) => void;
   setTransform3d: (transform3d: Transform3D) => void;
@@ -104,7 +109,7 @@ interface DocumentState {
 
 export const useDocumentStore = create<DocumentState>()(
   temporal(
-    (set) => ({
+    (set, get) => ({
       doc: createBlankDoc(),
       setBackground: (background) =>
         set((s) => ({ doc: { ...s.doc, canvas: { ...s.doc.canvas, background } } })),
@@ -170,28 +175,26 @@ export const useDocumentStore = create<DocumentState>()(
             },
           };
         }),
-      removeScreenshot: (id) =>
-        set((s) => ({
-          doc: {
-            ...s.doc,
-            content: {
-              ...s.doc.content,
-              screenshots: (s.doc.content.screenshots || []).filter((item) => item.id !== id),
-            },
-          },
-        })),
-      updateScreenshot: (id, updates) =>
-        set((s) => ({
-          doc: {
-            ...s.doc,
-            content: {
-              ...s.doc.content,
-              screenshots: (s.doc.content.screenshots || []).map((item) =>
-                item.id === id ? { ...item, ...updates } : item
-              ),
-            },
-          },
-        })),
+      removeScreenshot: (id) => get().removeScreenshots([id]),
+      removeScreenshots: (ids) => set((s) => {
+        const selected = new Set(ids);
+        const screenshots = s.doc.content.screenshots || [];
+        const remaining = screenshots.filter((item) => !selected.has(item.id));
+        if (remaining.length === screenshots.length) return s;
+        return { doc: { ...s.doc, content: { ...s.doc.content,
+          screenshots: remaining, image: remaining.length ? s.doc.content.image : null,
+        } } };
+      }),
+      updateScreenshot: (id, updates) => get().updateScreenshots([{ id, updates }]),
+      updateScreenshots: (updates) => set((s) => {
+        const patches = new Map(updates.map((entry) => [entry.id, entry.updates]));
+        const screenshots = (s.doc.content.screenshots || []).map((item) => {
+          const patch = patches.get(item.id);
+          return patch ? { ...item, ...patch } : item;
+        });
+        if (!patches.size) return s;
+        return { doc: { ...s.doc, content: { ...s.doc.content, screenshots } } };
+      }),
       // Map the final crop rectangle back onto the item's on-canvas box. The
       // anchor was snapshotted at crop entry (item.x/y stay fixed while only
       // `crop` mutates), so this resizes the bounding box to the cropped region.
@@ -217,23 +220,18 @@ export const useDocumentStore = create<DocumentState>()(
             },
           };
         }),
-      reorderScreenshot: (id, direction) =>
+      reorderScreenshot: (id, direction) => get().reorderScreenshots([id], direction),
+      reorderScreenshots: (ids, direction) =>
         set((s) => {
-          const list = [...(s.doc.content.screenshots || [])];
-          const idx = list.findIndex((item) => item.id === id);
-          if (idx === -1) return {};
-          const [item] = list.splice(idx, 1);
-          if (direction === 'front') {
-            list.push(item);
-          } else {
-            list.unshift(item);
-          }
+          const list = s.doc.content.screenshots || [];
+          const reordered = moveScreenshotLayers(list, ids, direction);
+          if (reordered === list) return s;
           return {
             doc: {
               ...s.doc,
               content: {
                 ...s.doc.content,
-                screenshots: list,
+                screenshots: [...reordered],
               },
             },
           };
@@ -295,4 +293,3 @@ export const useDocumentStore = create<DocumentState>()(
     { limit: 100, partialize: (s) => ({ doc: s.doc }) },
   ),
 );
-

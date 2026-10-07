@@ -19,6 +19,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { projectKeys, useProjectQuery, useProjectsQuery, useRenameProjectMutation } from '@/lib/projects/use-projects';
 import { imageFileFromClipboard, isEditablePasteTarget } from '@/lib/upload/clipboard';
 import { ingestImageFile, validateImageFile } from '@/lib/upload/load-image';
+import { handleScreenshotShortcut } from '@/lib/editor/selection-shortcuts';
 
 function EditorPage() {
   const id = useSearchParams().get('id') ?? '';
@@ -134,6 +135,7 @@ function EditorPage() {
       ) {
         return;
       }
+      if (handleScreenshotShortcut(event)) return;
 
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const isCmdOrCtrl = isMac ? event.metaKey : event.ctrlKey;
