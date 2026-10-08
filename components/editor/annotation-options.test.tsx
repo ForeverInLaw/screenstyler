@@ -25,4 +25,3 @@ beforeEach(() => {
     expect(useAnnotationStyleStore.getState().arrowColor).toBe('#22c55e');
     expect(useDocumentStore.getState().doc.annotations[0]).toMatchObject({ color: '#fff' });
   });
-

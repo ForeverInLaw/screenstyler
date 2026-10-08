@@ -167,11 +167,10 @@ function EditorPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPreview]);
 
-  const exportMutation = useEditorExport(frameRef, projectName);
+  const exportMutation = useEditorExport(frameRef, id);
 
   function handleRenameProject(name: string) {
-    if (!id) return;
-    renameProject.mutate({ id, name });
+    return renameProject.mutateAsync({ id, name });
   }
 
   const corruptError =
@@ -236,6 +235,7 @@ function EditorPage() {
           onTogglePreview={togglePreview}
           onRenameProject={handleRenameProject}
           isRenamingProject={renameProject.isPending}
+          renameError={renameProject.error ? 'Could not save the name. Retry your changes.' : undefined}
         />
       }
       canvas={

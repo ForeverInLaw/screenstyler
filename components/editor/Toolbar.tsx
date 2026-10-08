@@ -32,8 +32,9 @@ type Props = {
   onChangeTool?: (tool: EditorTool) => void;
   isPreview?: boolean;
   onTogglePreview?: () => void;
-  onRenameProject?: (name: string) => void;
+  onRenameProject?: (name: string) => Promise<void>;
   isRenamingProject?: boolean;
+  renameError?: string;
   isExporting?: boolean;
   canExport?: boolean;
 };
@@ -55,6 +56,7 @@ export function Toolbar({
   onTogglePreview = () => {},
   onRenameProject,
   isRenamingProject = false,
+  renameError,
   isExporting = false,
   canExport = true,
 }: Props) {
@@ -64,10 +66,15 @@ export function Toolbar({
   const isInspectorOpen = useWorkspaceStore((s) => s.isInspectorOpen);
   const toggleInspector = useWorkspaceStore((s) => s.toggleInspector);
 
-  function rename(event: FormEvent<HTMLFormElement>) {
+  async function rename(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onRenameProject?.(draftName);
-    setIsEditing(false);
+    if (isRenamingProject) return;
+    try {
+      await onRenameProject?.(draftName);
+      setIsEditing(false);
+    } catch {
+      // The mutation exposes the error; keep the draft available for retry.
+    }
   }
 
   return (
@@ -81,20 +88,24 @@ export function Toolbar({
             /
           </span>
           {isEditing ? (
-            <form onSubmit={rename} className="flex min-w-0 items-center gap-1">
-              <input
-                autoFocus
-                aria-label="Project name"
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                className="field max-w-44"
-              />
-              <Button iconOnly type="submit" aria-label="Save project name" disabled={isRenamingProject}>
-                <IconCheck size={16} />
-              </Button>
-              <Button iconOnly variant="ghost" aria-label="Cancel rename" onClick={() => setIsEditing(false)}>
-                <IconX size={16} />
-              </Button>
+            <form onSubmit={rename} className="grid min-w-0 gap-1">
+              <div className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  aria-label="Project name"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  className="field max-w-44"
+                  disabled={isRenamingProject}
+                />
+                <Button iconOnly type="submit" aria-label="Save project name" disabled={isRenamingProject}>
+                  <IconCheck size={16} />
+                </Button>
+                <Button iconOnly variant="ghost" aria-label="Cancel rename" disabled={isRenamingProject} onClick={() => setIsEditing(false)}>
+                  <IconX size={16} />
+                </Button>
+              </div>
+              {renameError && <p role="alert" className="text-xs text-danger">{renameError}</p>}
             </form>
           ) : (
             <div className="flex min-w-0 items-center gap-1">
