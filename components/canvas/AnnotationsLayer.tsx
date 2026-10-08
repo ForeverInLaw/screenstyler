@@ -10,6 +10,7 @@ import { useDocumentStore } from '@/lib/document/store';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { withAlpha } from '@/lib/style/css';
+import { useDocumentEdit } from '@/lib/editor/use-document-edit';
 
 type Props = {
   annotations: Annotation[];
@@ -23,16 +24,13 @@ type Props = {
 };
 
 export function AnnotationsLayer({
-  annotations,
-  activeTool,
-  onChangeTool,
-  canvasWidth,
-  canvasHeight,
-  onAddAnnotation,
-  onRemoveAnnotation,
-  isPreview = false,
+  annotations, activeTool, onChangeTool, canvasWidth, canvasHeight,
+  onAddAnnotation, onRemoveAnnotation, isPreview = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const edit = useDocumentEdit();
+  const dragCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => dragCleanup.current?.(), []);
   const selectedAnnotationId = useEditorUiStore((s) => s.selectedAnnotationId);
   const setSelectedAnnotationId = useEditorUiStore((s) => s.setSelectedAnnotationId);
 
@@ -53,7 +51,8 @@ export function AnnotationsLayer({
     e.preventDefault();
     e.stopPropagation();
 
-    useDocumentStore.temporal.getState().pause();
+    dragCleanup.current?.();
+    edit.begin();
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -111,14 +110,15 @@ export function AnnotationsLayer({
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
 
-      const temporal = useDocumentStore.temporal.getState();
-      temporal.resume();
-      const state = useDocumentStore.getState();
-      useDocumentStore.setState({ doc: { ...state.doc } });
+      window.removeEventListener('blur', onMouseUp);
+      dragCleanup.current = null;
+      edit.commit();
     };
 
+    dragCleanup.current = onMouseUp;
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onMouseUp);
   };
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);

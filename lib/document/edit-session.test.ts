@@ -10,6 +10,26 @@ beforeEach(() => {
 });
 
 describe('DocumentEditSession', () => {
+  it('keeps history paused until all overlapping gestures finish', () => {
+    const first = new DocumentEditSession();
+    const second = new DocumentEditSession();
+    first.begin();
+    useDocumentStore.getState().setPadding(100);
+    second.begin();
+    useDocumentStore.getState().setCornerRadius(30);
+    first.commit();
+    try {
+      expect(useDocumentStore.temporal.getState().isTracking).toBe(false);
+      expect(useDocumentStore.temporal.getState().pastStates).toHaveLength(0);
+      useDocumentStore.getState().setCornerRadius(40);
+    } finally {
+      second.commit();
+    }
+    expect(useDocumentStore.temporal.getState().pastStates).toHaveLength(1);
+    useDocumentStore.temporal.getState().undo();
+    expect(useDocumentStore.getState().doc.content).toMatchObject({ padding: 64, cornerRadius: 12 });
+  });
+
   it('previews multiple changes and records the original for one Undo/Redo step', () => {
     const edit = new DocumentEditSession();
     edit.begin();

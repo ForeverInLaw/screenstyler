@@ -3,18 +3,22 @@ import { useDocumentStore } from './store';
 
 /** Live edits share one history entry, retaining the document from before the gesture. */
 export class DocumentEditSession {
-  #before: ScreenstylerDoc | null = null;
+  static #batch: { before: ScreenstylerDoc; owners: Set<DocumentEditSession> } | null = null;
 
   begin = () => {
-    if (this.#before || !useDocumentStore.temporal.getState().isTracking) return;
-    this.#before = useDocumentStore.getState().doc;
-    useDocumentStore.temporal.getState().pause();
+    if (!DocumentEditSession.#batch) {
+      if (!useDocumentStore.temporal.getState().isTracking) return;
+      DocumentEditSession.#batch = { before: useDocumentStore.getState().doc, owners: new Set() };
+      useDocumentStore.temporal.getState().pause();
+    }
+    DocumentEditSession.#batch.owners.add(this);
   };
 
   commit = () => {
-    const before = this.#before;
-    if (!before) return;
-    this.#before = null;
+    const batch = DocumentEditSession.#batch;
+    if (!batch?.owners.delete(this) || batch.owners.size > 0) return;
+    DocumentEditSession.#batch = null;
+    const { before } = batch;
     const after = useDocumentStore.getState().doc;
     // Restore while paused so zundo records the original when the final edit is applied.
     useDocumentStore.setState({ doc: before });
