@@ -26,7 +26,6 @@ export const DocumentCanvas = forwardRef<
   }
 >(function DocumentCanvas({ doc: rawDoc, activeTool = 'select', onChangeTool, isPreview = false }, ref) {
   const doc = normalizeDoc(rawDoc);
-  const annotations = useDocumentStore((s) => s.doc.annotations);
   const addAnnotation = useDocumentStore((s) => s.addAnnotation);
   const removeAnnotation = useDocumentStore((s) => s.removeAnnotation);
   const setTransform3d = useDocumentStore((s) => s.setTransform3d);
@@ -75,7 +74,7 @@ export const DocumentCanvas = forwardRef<
 
       <ContentLayer content={doc.content} canvasWidth={doc.canvas.width} canvasHeight={doc.canvas.height} isPreview={isPreview}>
         <AnnotationsLayer
-          annotations={annotations}
+          annotations={doc.annotations}
           activeTool={activeTool}
           onChangeTool={onChangeTool}
           canvasWidth={doc.canvas.width}

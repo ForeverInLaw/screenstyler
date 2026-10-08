@@ -29,10 +29,12 @@ type Props = {
   content: ScreenstylerDoc['content'];
   isPreview?: boolean;
   toolbarLayer?: HTMLElement | null;
+  canvasWidth?: number;
+  canvasHeight?: number;
 };
 
-export function ScreenshotItemComponent({ item: sourceItem, content, isPreview = false, toolbarLayer = null }: Props) {
-  const item = useInteractionStore((s) => s.previewItems[sourceItem.id] ?? sourceItem);
+export function ScreenshotItemComponent({ item: sourceItem, content, isPreview = false, toolbarLayer = null, canvasWidth, canvasHeight }: Props) {
+  const item = useInteractionStore((s) => isPreview ? sourceItem : s.previewItems[sourceItem.id] ?? sourceItem);
   const doc = useDocumentStore((s) => s.doc);
   const edit = useDocumentEdit();
   const dragCleanup = React.useRef<(() => void) | null>(null);
@@ -160,7 +162,7 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
   // Normal / Render mode
   const screenshots = content.screenshots || [];
   const layerIndex = screenshots.findIndex((screenshot) => screenshot.id === item.id);
-  const screenshotStyle = screenshotRectStyle(screenshotRect(item, content.frame), doc.canvas.width, doc.canvas.height);
+  const screenshotStyle = screenshotRectStyle(screenshotRect(item, content.frame), canvasWidth ?? doc.canvas.width, canvasHeight ?? doc.canvas.height);
   return (
     <div
       data-testid="screenshot-item"

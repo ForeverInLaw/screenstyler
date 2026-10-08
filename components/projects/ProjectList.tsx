@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { IconArrowUpRight, IconCopy, IconPencil, IconTrash, IconPhoto } from '@tabler/icons-react';
+import { useState } from 'react';
+import { IconArrowUpRight, IconCopy, IconPencil, IconTrash, IconPhoto, IconEye } from '@tabler/icons-react';
 import type { ProjectMeta } from '@/lib/storage/types';
 import { useObjectUrl } from '@/components/canvas/use-object-url';
 import { useProjectQuery } from '@/lib/projects/use-projects';
@@ -24,7 +25,8 @@ function ProjectCard({
   isBusy,
 }: Omit<Props, 'projects'> & { project: ProjectMeta }) {
   const url = useObjectUrl(project.thumbnailKey);
-  const preview = useProjectQuery(project.id, !project.thumbnailKey);
+  const [previewRequested, setPreviewRequested] = useState(false);
+  const preview = useProjectQuery(project.id, previewRequested && !project.thumbnailKey);
   return (
     <li className="group min-w-0">
       <Link
@@ -37,7 +39,7 @@ function ProjectCard({
             {url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={url} alt={project.name} className="size-full object-cover" />
-            ) : preview.data ? (
+            ) : previewRequested && preview.data ? (
               <ProjectDocumentPreview doc={preview.data} />
             ) : (
               <div className="grid size-full place-items-center bg-well">
@@ -59,6 +61,22 @@ function ProjectCard({
       <div className="mt-2 flex items-center justify-between gap-3 border-b border-border pb-4">
         <span className="eyebrow text-[9px]">SCREENSHOT PROJECT</span>
         <div className="flex gap-1">
+          {!project.thumbnailKey && (
+            <Button
+              iconOnly
+              variant="ghost"
+              aria-label={`Preview ${project.name}`}
+              aria-pressed={previewRequested}
+              title={preview.isError ? 'Retry preview' : 'Preview'}
+              disabled={preview.isFetching}
+              onClick={() => {
+                if (preview.isError) void preview.refetch();
+                else setPreviewRequested((requested) => !requested);
+              }}
+            >
+              <IconEye size={18} />
+            </Button>
+          )}
           <Button
             iconOnly
             variant="ghost"
@@ -92,6 +110,7 @@ function ProjectCard({
           </Button>
         </div>
       </div>
+      {previewRequested && preview.isError && <p role="alert" className="mt-2 text-xs text-danger">Preview unavailable. Retry the preview or open the project.</p>}
     </li>
   );
 }
