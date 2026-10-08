@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { useEditorExport } from './use-editor-export';
@@ -32,4 +32,20 @@ it('does not download with a guessed name when metadata fails', async () => {
   await act(async () => { await expect(result.current.mutateAsync()).rejects.toThrow('Could not load the project name'); });
   expect(mocks.exportPng).not.toHaveBeenCalled();
   expect(mocks.download).not.toHaveBeenCalled();
+});
+
+it('keeps the requested canvas while metadata loads', async () => {
+  let finish!: (value: { data: { id: string; name: string }[] }) => void;
+  mocks.refetch.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const node = document.createElement('div');
+  const canvas = { current: node };
+  const { result } = renderHook(() => useEditorExport(canvas, 'project'), { wrapper });
+  await act(async () => {
+    const exporting = result.current.mutateAsync();
+    await waitFor(() => expect(mocks.refetch).toHaveBeenCalled());
+    canvas.current = document.createElement('div');
+    finish({ data: [{ id: 'project', name: 'Release shot' }] });
+    await exporting;
+  });
+  expect(mocks.exportPng).toHaveBeenCalledWith(node, 2);
 });

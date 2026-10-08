@@ -8,14 +8,15 @@ export function useEditorExport(canvas: RefObject<HTMLDivElement | null>, projec
   const projects = useProjectsQuery();
   return useMutation({
     mutationFn: async () => {
-      if (!canvas.current) return;
+      const node = canvas.current;
+      if (!node) return;
       let name = projectId ? projects.data?.find((project) => project.id === projectId)?.name : 'Untitled';
       if (name === undefined) {
         const result = await projects.refetch();
         name = result.data?.find((project) => project.id === projectId)?.name;
         if (result.error || name === undefined) throw new Error('Could not load the project name. Check your connection and retry.');
       }
-      const blob = await exportPng(canvas.current, 2);
+      const blob = await exportPng(node, 2);
       downloadBlob(blob, exportFilename(name, 2));
     },
     onError: (error) => window.alert(error.message || 'Export failed. Make sure the image finished loading, then retry.'),

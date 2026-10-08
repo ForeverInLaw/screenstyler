@@ -39,7 +39,8 @@ keep them independent of the currently open editor document. Documents and image
 blobs are fetched only after requesting a preview. Existing thumbnails still load
 automatically.
 
-Verified: 162 unit/integration tests, 42 Chromium scenarios, TypeScript,
+Verified: 162 full-suite unit/integration tests, then three final export checks
+(163 tests total), 42 Chromium scenarios, TypeScript,
 production build and ESLint (zero errors; four existing image warnings).
 The five initial reproduction checks failed before the fixes and passed after.
 The dev server and the temporary browser-test server are stopped.
