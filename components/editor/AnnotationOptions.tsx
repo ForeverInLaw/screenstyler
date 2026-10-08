@@ -34,7 +34,8 @@ export function AnnotationOptions({ activeTool }: { activeTool: EditorTool }) {
   const annotations = useDocumentStore((s) => s.doc.annotations);
   const updateAnnotation = useDocumentStore((s) => s.updateAnnotation);
 
-  const selectedAnnotation = annotations.find((a) => a.id === selectedAnnotationId);
+  const selectedAnnotation = annotations.find((a) => a.id === selectedAnnotationId
+    && (activeTool === 'select' || a.type === activeTool));
   const effectiveTool = selectedAnnotation ? selectedAnnotation.type : activeTool;
 
   const arrowColor = useAnnotationStyleStore((s) => s.arrowColor);
