@@ -127,7 +127,8 @@ test('resizing a selection preserves image proportions and spacing and Undo rest
 for (const grouped of [false, true]) {
   test(`resizing framed ${grouped ? 'selections' : 'screenshots'} keeps the opposite corner fixed`, async ({ page }) => {
     const images = await scene(page);
-    await page.getByRole('combobox', { name: 'Type:', exact: true }).selectOption('window');
+    await page.getByRole('combobox', { name: 'Type:', exact: true }).click();
+    await page.getByRole('option', { name: 'Window Frame', exact: true }).click();
     if (grouped) await selectPair(page, images);
     else await images.nth(2).click({ position: { x: 20, y: 100 } });
     const selection = grouped ? page.getByTestId('screenshot-group-selection') : images.nth(2);

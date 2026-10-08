@@ -5,20 +5,43 @@ vi.mock('@/lib/auth/client', () => ({
   signOut: vi.fn(),
   signUp: { email: vi.fn() },
 }));
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Toolbar } from './Toolbar';
 import { useDocumentStore } from '@/lib/document/store';
 import { createBlankDoc } from '@/lib/document/factory';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
+import { useEditorUiStore } from '@/lib/editor/ui-store';
+import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query';
 
 beforeEach(() => {
   useDocumentStore.getState().loadDoc(createBlankDoc());
   useDocumentStore.temporal.getState().clear();
   useAnnotationStyleStore.getState().reset();
+  useEditorUiStore.getState().setSelectedAnnotationId(null);
 });
 
 describe('Toolbar', () => {
+  it('retains the rename draft after failure and closes only after saving', async () => {
+    const save = vi.fn<(name: string) => Promise<void>>().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
+    function RenameToolbar() {
+      const mutation = useMutation({ mutationFn: save });
+      return <Toolbar projectName="Original" onExport={() => {}}
+        onRenameProject={mutation.mutateAsync} isRenamingProject={mutation.isPending}
+        renameError={mutation.error?.message} />;
+    }
+    render(<QueryClientProvider client={new QueryClient()}><RenameToolbar /></QueryClientProvider>);
+    await userEvent.click(screen.getByRole('button', { name: 'Rename project' }));
+    await userEvent.clear(screen.getByRole('textbox', { name: 'Project name' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Project name' }), 'My draft');
+    await userEvent.click(screen.getByRole('button', { name: 'Save project name' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('offline');
+    expect(screen.getByRole('textbox', { name: 'Project name' })).toHaveValue('My draft');
+    await userEvent.click(screen.getByRole('button', { name: 'Save project name' }));
+    await waitFor(() => expect(screen.queryByRole('textbox')).not.toBeInTheDocument());
+    expect(save.mock.calls.map(([name]) => name)).toEqual(['My draft', 'My draft']);
+  });
+
   it('shows the project name', () => {
     render(<Toolbar projectName="Hello Shot" onExport={() => {}} />);
     expect(screen.getByText('Hello Shot')).toBeInTheDocument();
@@ -54,7 +77,8 @@ describe('Toolbar', () => {
   it('updates text drawing defaults', async () => {
     render(<Toolbar projectName="P" onExport={() => {}} activeTool="text" />);
 
-    await userEvent.selectOptions(screen.getByLabelText('Text font'), 'mono');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Text font' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Mono' }));
     fireEvent.change(screen.getByLabelText('Text size'), { target: { value: '40' } });
 
     expect(useAnnotationStyleStore.getState()).toMatchObject({
@@ -78,7 +102,8 @@ describe('Toolbar', () => {
   it('updates blur drawing defaults', async () => {
     render(<Toolbar projectName="P" onExport={() => {}} activeTool="blur" />);
 
-    await userEvent.selectOptions(screen.getByLabelText('Blur type'), 'frosted');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Blur type' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Frosted blur' }));
     fireEvent.change(screen.getByLabelText('Blur intensity'), { target: { value: '18' } });
 
     expect(useAnnotationStyleStore.getState()).toMatchObject({

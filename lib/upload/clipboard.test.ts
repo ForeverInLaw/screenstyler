@@ -46,4 +46,13 @@ describe('isEditablePasteTarget', () => {
   it('allows paste handling outside editable controls', () => {
     expect(isEditablePasteTarget(document.createElement('div'))).toBe(false);
   });
+
+  it.each(['combobox', 'listbox', 'menu', 'slider'])('leaves keys and paste to a custom %s', (role) => {
+    const control = document.createElement('div');
+    control.setAttribute('role', role);
+    const child = document.createElement('span');
+    control.append(child);
+
+    expect(isEditablePasteTarget(child)).toBe(true);
+  });
 });

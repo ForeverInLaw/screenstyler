@@ -9,20 +9,29 @@ export function ScreenshotInteractionOverlay({ canvasWidth, canvasHeight }: Prop
   const guides = useInteractionStore((state) => state.guides);
   return (
     <>
-      {marquee && <div
-        data-testid="selection-marquee"
-        style={{ ...screenshotRectStyle(marquee, canvasWidth, canvasHeight), border: '1px solid #818cf8', background: 'rgba(99,102,241,0.12)', boxSizing: 'border-box' }}
-      />}
+      {marquee && (
+        <div
+          data-testid="selection-marquee"
+          style={{
+            ...screenshotRectStyle(marquee, canvasWidth, canvasHeight),
+            border: '1px solid var(--studio-accent)',
+            background: 'color-mix(in srgb, var(--studio-accent) 12%, transparent)',
+            boxSizing: 'border-box',
+          }}
+        />
+      )}
       {guides.map((guide) => (
         <div
           key={guide.axis}
           data-testid="alignment-guide"
           style={{
-            position: 'absolute', background: '#f472b6', pointerEvents: 'none',
-            left: `${(guide.axis === 'x' ? guide.position : guide.start) / canvasWidth * 100}%`,
-            top: `${(guide.axis === 'y' ? guide.position : guide.start) / canvasHeight * 100}%`,
-            width: guide.axis === 'x' ? 2 : `${(guide.end - guide.start) / canvasWidth * 100}%`,
-            height: guide.axis === 'y' ? 2 : `${(guide.end - guide.start) / canvasHeight * 100}%`,
+            position: 'absolute',
+            background: 'var(--studio-accent)',
+            pointerEvents: 'none',
+            left: `${((guide.axis === 'x' ? guide.position : guide.start) / canvasWidth) * 100}%`,
+            top: `${((guide.axis === 'y' ? guide.position : guide.start) / canvasHeight) * 100}%`,
+            width: guide.axis === 'x' ? 2 : `${((guide.end - guide.start) / canvasWidth) * 100}%`,
+            height: guide.axis === 'y' ? 2 : `${((guide.end - guide.start) / canvasHeight) * 100}%`,
           }}
         />
       ))}

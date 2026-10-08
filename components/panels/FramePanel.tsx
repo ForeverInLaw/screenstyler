@@ -1,5 +1,8 @@
 'use client';
+import { IconBrowser } from '@tabler/icons-react';
 import { useDocumentStore } from '@/lib/document/store';
+import { PanelSection } from '@/components/ui/PanelSection';
+import { Select } from '@/components/ui/Select';
 import type { Frame } from '@/lib/document/schema';
 
 export function FramePanel() {
@@ -19,165 +22,82 @@ export function FramePanel() {
   }
 
   return (
-    <section style={{ padding: 16, borderBottom: '1px solid #2a2d36', color: '#e5e7eb' }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 'bold' }}>Frame Mockup</h3>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Frame Type Selection */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
-          <span>Type:</span>
-          <select
-            value={frame.type}
-            onChange={(e) => handleTypeChange(e.target.value as Frame['type'])}
-            style={{
-              flex: 1,
-              background: '#1f2937',
-              border: '1px solid #2a2d36',
-              color: '#ffffff',
-              borderRadius: '6px',
-              padding: '6px 8px',
-              fontSize: '12px',
-              outline: 'none',
-            }}
-          >
-            <option value="none">None (Standard)</option>
-            <option value="window">Window Frame</option>
-            <option value="browser">Browser Frame</option>
-            <option value="device">Device Bezel</option>
-          </select>
-        </label>
-
-        {/* Window Specific Controls */}
+    <PanelSection icon={IconBrowser} title="Frame Mockup">
+      <div className="grid gap-3">
+        <Select
+          label="Type:"
+          value={frame.type}
+          onValueChange={handleTypeChange}
+          options={[
+            { value: 'none', label: 'None (Standard)' },
+            { value: 'window', label: 'Window Frame' },
+            { value: 'browser', label: 'Browser Frame' },
+            { value: 'device', label: 'Device Bezel' },
+          ]}
+        />
         {frame.type === 'window' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
-            <span>Style:</span>
-            <select
-              value={frame.variant}
-              onChange={(e) => setFrame({ type: 'window', variant: e.target.value as 'macos' | 'macos-dark' })}
-              style={{
-                flex: 1,
-                background: '#1f2937',
-                border: '1px solid #2a2d36',
-                color: '#ffffff',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                outline: 'none',
-              }}
-            >
-              <option value="macos">macOS Light</option>
-              <option value="macos-dark">macOS Dark</option>
-            </select>
-          </label>
+          <Select
+            label="Style:"
+            value={frame.variant}
+            onValueChange={(variant) => setFrame({ type: 'window', variant })}
+            options={[
+              { value: 'macos', label: 'macOS Light' },
+              { value: 'macos-dark', label: 'macOS Dark' },
+            ]}
+          />
         )}
-
-        {/* Browser Specific Controls */}
         {frame.type === 'browser' && (
           <>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
-              <span>Variant:</span>
-              <select
-                value={frame.variant}
-                onChange={(e) =>
-                  setFrame({
-                    ...frame,
-                    variant: e.target.value as 'safari' | 'chrome' | 'arc',
-                  })
-                }
-                style={{
-                  flex: 1,
-                  background: '#1f2937',
-                  border: '1px solid #2a2d36',
-                  color: '#ffffff',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  outline: 'none',
-                }}
-              >
-                <option value="safari">Safari</option>
-                <option value="chrome">Google Chrome</option>
-                <option value="arc">Arc Browser</option>
-              </select>
-            </label>
+            <Select
+              label="Variant:"
+              value={frame.variant}
+              onValueChange={(variant) => setFrame({ ...frame, variant })}
+              options={[
+                { value: 'safari', label: 'Safari' },
+                { value: 'chrome', label: 'Google Chrome' },
+                { value: 'arc', label: 'Arc Browser' },
+              ]}
+            />
 
             {frame.variant !== 'arc' && (
               <>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
+                <label className="control-row">
                   <span>URL:</span>
                   <input
+                    className="field"
                     type="text"
                     value={frame.url || ''}
                     onChange={(e) => setFrame({ ...frame, url: e.target.value })}
                     placeholder="screenstyler.com"
-                    style={{
-                      flex: 1,
-                      background: '#1f2937',
-                      border: '1px solid #2a2d36',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
                   />
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
-                  <span>Theme:</span>
-                  <select
-                    value={frame.theme}
-                    onChange={(e) =>
-                      setFrame({
-                        ...frame,
-                        theme: e.target.value as 'light' | 'dark',
-                      })
-                    }
-                    style={{
-                      flex: 1,
-                      background: '#1f2937',
-                      border: '1px solid #2a2d36',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="light">Light Theme</option>
-                    <option value="dark">Dark Theme</option>
-                  </select>
-                </label>
+                <Select
+                  label="Theme:"
+                  value={frame.theme ?? 'light'}
+                  onValueChange={(theme) => setFrame({ ...frame, theme })}
+                  options={[
+                    { value: 'light', label: 'Light Theme' },
+                    { value: 'dark', label: 'Dark Theme' },
+                  ]}
+                />
               </>
             )}
           </>
         )}
-
-        {/* Device Specific Controls */}
         {frame.type === 'device' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '13px' }}>
-            <span>Device:</span>
-            <select
-              value={frame.variant}
-              onChange={(e) => setFrame({ type: 'device', variant: e.target.value as 'iphone' | 'macbook' | 'ipad' })}
-              style={{
-                flex: 1,
-                background: '#1f2937',
-                border: '1px solid #2a2d36',
-                color: '#ffffff',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                outline: 'none',
-              }}
-            >
-              <option value="iphone">iPhone Mockup</option>
-              <option value="ipad">iPad Mockup</option>
-              <option value="macbook">MacBook Mockup</option>
-            </select>
-          </label>
+          <Select
+            label="Device:"
+            value={frame.variant}
+            onValueChange={(variant) => setFrame({ type: 'device', variant })}
+            options={[
+              { value: 'iphone', label: 'iPhone Mockup' },
+              { value: 'ipad', label: 'iPad Mockup' },
+              { value: 'macbook', label: 'MacBook Mockup' },
+            ]}
+          />
         )}
       </div>
-    </section>
+    </PanelSection>
   );
 }

@@ -1,10 +1,16 @@
 import type { ReactElement } from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProjectList } from './ProjectList';
 import type { ProjectMeta } from '@/lib/storage/types';
+import { createBlankDoc } from '@/lib/document/factory';
+
+const load = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/storage/active-stores', () => ({ getProjectStoreForUser: () => ({ load }) }));
+vi.mock('@/components/canvas/use-object-url', () => ({ useObjectUrl: () => null }));
+beforeEach(() => { load.mockReset(); load.mockResolvedValue(createBlankDoc()); });
 
 vi.mock('@/lib/auth/client', () => ({
   useSession: () => ({ data: null, isPending: false }),
@@ -21,6 +27,18 @@ function renderWithClient(ui: ReactElement) {
 }
 
 describe('ProjectList', () => {
+  it('loads only a requested preview, even when other documents are cached', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['project', 'local', 'anonymous', 'b'], createBlankDoc());
+    render(<QueryClientProvider client={client}><ProjectList projects={metas}
+      onDelete={() => {}} onDuplicate={() => {}} onRename={() => {}} /></QueryClientProvider>);
+    expect(load).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('document-frame')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Preview First' }));
+    await waitFor(() => expect(screen.getByTestId('document-frame')).toBeInTheDocument());
+    expect(load).toHaveBeenCalledExactlyOnceWith('a');
+  });
+
   it('renders one card per project with an open link', () => {
     renderWithClient(<ProjectList projects={metas} onDelete={() => {}} onDuplicate={() => {}} onRename={() => {}} />);
     expect(screen.getByText('First')).toBeInTheDocument();

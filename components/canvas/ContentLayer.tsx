@@ -101,6 +101,8 @@ export function ContentLayer({ content, canvasWidth = 1600, canvasHeight = 1000,
               key={item.id}
               item={item}
               content={content}
+              canvasWidth={canvasWidth}
+              canvasHeight={canvasHeight}
               isPreview={isPreview}
               toolbarLayer={toolbarLayer}
             />

@@ -78,6 +78,30 @@ npm run dev -- -p 8080
 
 Set `BETTER_AUTH_URL` to the same origin when changing ports.
 
+## Studio interface
+
+The overview, project gallery, editor, and account screens share a graphite
+palette with an amber action accent. Projects support name search and sorting by
+last edit or name. The inspector has visual style previews and can be collapsed
+with the sidebar button, including on mobile. The footer provides zoom and fit
+controls; export shows progress and is available once a screenshot is loaded.
+
+Shared UI controls live in `components/ui`, theme tokens in `app/globals.css`,
+and editor visibility in `lib/editor/workspace-store.ts`. Account requests and
+export progress use TanStack Query hooks. Document data, undo, and storage formats
+are unchanged by the redesign.
+
+Selects, checkboxes, and the account menu use [Base UI](https://base-ui.com/) behind
+shared styled components. Their popups share the studio palette, selection marks,
+and Tabler icons, with library-managed keyboard navigation and focus restoration.
+Editor shortcuts leave these controls alone, including when their popups are open.
+
+Sliders use Base UI with exact numeric entry and a compact variant for annotation
+tools. Background and annotation colors use react-colorful inside Base UI popovers,
+with saturation/hue controls and validated HEX input. Continuous edits preview on
+the canvas and create one Undo step when finished. The shared document-edit session
+keeps history handling separate from UI presentation and finishes on unmount.
+
 ## Editor controls
 
 - Click a screenshot to select it. Shift+click adds or removes a screenshot.
@@ -89,7 +113,7 @@ Set `BETTER_AUTH_URL` to the same origin when changing ports.
   keeping its internal order. Crop is available when one image is selected.
 - Escape clears the selection or cancels a drag. Delete/Backspace removes the
   selected screenshots. Shortcuts leave editable controls alone.
-- Pink guides snap edges and centres to other screenshots within eight screen
+- Amber guides snap edges and centres to other screenshots within eight screen
   pixels. Hold Ctrl/Cmd while dragging to bypass snapping. The threshold stays
   the same when zooming; image alignment takes priority over the optional grid.
 

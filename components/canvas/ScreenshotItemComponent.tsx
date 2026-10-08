@@ -14,6 +14,7 @@ import { useInteractionStore } from '@/lib/editor/interaction-store';
 import { screenshotRect, screenshotRectStyle } from '@/lib/editor/screenshot-geometry';
 import { startScreenshotDrag, type ScreenshotTransform } from '@/lib/editor/screenshot-drag';
 import { createContentCoordinates } from '@/lib/editor/content-coordinates';
+import { useDocumentEdit } from '@/lib/editor/use-document-edit';
 
 export type ScreenshotDragType =
   | ScreenshotTransform
@@ -28,11 +29,16 @@ type Props = {
   content: ScreenstylerDoc['content'];
   isPreview?: boolean;
   toolbarLayer?: HTMLElement | null;
+  canvasWidth?: number;
+  canvasHeight?: number;
 };
 
-export function ScreenshotItemComponent({ item: sourceItem, content, isPreview = false, toolbarLayer = null }: Props) {
-  const item = useInteractionStore((s) => s.previewItems[sourceItem.id] ?? sourceItem);
+export function ScreenshotItemComponent({ item: sourceItem, content, isPreview = false, toolbarLayer = null, canvasWidth, canvasHeight }: Props) {
+  const item = useInteractionStore((s) => isPreview ? sourceItem : s.previewItems[sourceItem.id] ?? sourceItem);
   const doc = useDocumentStore((s) => s.doc);
+  const edit = useDocumentEdit();
+  const dragCleanup = React.useRef<(() => void) | null>(null);
+  React.useEffect(() => () => dragCleanup.current?.(), []);
   const updateScreenshot = useDocumentStore((s) => s.updateScreenshot);
   const removeScreenshot = useDocumentStore((s) => s.removeScreenshot);
   const reorderScreenshot = useDocumentStore((s) => s.reorderScreenshot);
@@ -75,7 +81,8 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
     e.preventDefault();
     e.stopPropagation();
 
-    useDocumentStore.temporal.getState().pause();
+    dragCleanup.current?.();
+    edit.begin();
 
     const origin = coordinates.point(e.clientX, e.clientY);
 
@@ -124,14 +131,15 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
 
-      const temporal = useDocumentStore.temporal.getState();
-      temporal.resume();
-      const state = useDocumentStore.getState();
-      useDocumentStore.setState({ doc: { ...state.doc } });
+      window.removeEventListener('blur', onMouseUp);
+      dragCleanup.current = null;
+      edit.commit();
     };
 
+    dragCleanup.current = onMouseUp;
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onMouseUp);
   };
 
   if (!url) return null;
@@ -154,7 +162,7 @@ export function ScreenshotItemComponent({ item: sourceItem, content, isPreview =
   // Normal / Render mode
   const screenshots = content.screenshots || [];
   const layerIndex = screenshots.findIndex((screenshot) => screenshot.id === item.id);
-  const screenshotStyle = screenshotRectStyle(screenshotRect(item, content.frame), doc.canvas.width, doc.canvas.height);
+  const screenshotStyle = screenshotRectStyle(screenshotRect(item, content.frame), canvasWidth ?? doc.canvas.width, canvasHeight ?? doc.canvas.height);
   return (
     <div
       data-testid="screenshot-item"

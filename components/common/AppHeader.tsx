@@ -1,50 +1,45 @@
 import Link from 'next/link';
+import { IconPhoto, IconStack2 } from '@tabler/icons-react';
 import { AuthButton } from '@/components/auth/AuthButton';
+import { Brand } from './Brand';
 import { isLocalOnly } from '@/lib/config/runtime';
 
 type NavKey = 'home' | 'projects';
+const navItems = [
+  { key: 'home', href: '/', label: 'Overview', Icon: IconPhoto },
+  { key: 'projects', href: '/projects', label: 'Projects', Icon: IconStack2 },
+] as const;
 
-type Props = {
-  active?: NavKey;
-};
-
-const navItems: { key: NavKey; href: string; label: string }[] = [
-  { key: 'home', href: '/', label: 'Overview' },
-  { key: 'projects', href: '/projects', label: 'Projects' },
-];
-
-export function AppHeader({ active = 'home' }: Props) {
+export function AppHeader({ active = 'home' }: { active?: NavKey }) {
   return (
-    <header className="border-b border-zinc-200/80 bg-stone-50/85 backdrop-blur">
-      <div className="mx-auto flex min-h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-3 text-zinc-950">
-          <span className="grid size-9 place-items-center rounded-lg bg-zinc-950 text-sm font-semibold text-white shadow-sm">
-            Ss
-          </span>
-          <span className="text-base font-semibold tracking-tight">Screenstyler</span>
+    <header className="border-b border-border bg-background">
+      <div className="mx-auto grid min-h-20 max-w-[1440px] grid-cols-[1fr_auto] items-center justify-between gap-x-4 gap-y-2 md:flex px-5 py-3 sm:px-10">
+        <Link href="/" aria-label="Screenstyler home">
+          <Brand />
         </Link>
-
-        <nav aria-label="Primary" className="hidden items-center gap-1 rounded-lg bg-white p-1 shadow-sm ring-1 ring-zinc-200 md:flex">
-          {navItems.map((item) => {
-            const isActive = active === item.key;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                aria-current={isActive ? 'page' : undefined}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-zinc-950 text-white'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav aria-label="Primary" className="order-3 col-span-2 flex items-center gap-1 md:order-none">
+          {navItems.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              aria-current={active === item.key ? 'page' : undefined}
+              className={`button button-ghost px-2 sm:px-5 ${active === item.key ? 'bg-well text-foreground' : ''}`}
+            >
+              <item.Icon size={20} stroke={1.6} aria-hidden="true" />
+              {item.label}
+            </Link>
+          ))}
         </nav>
-
-        {!isLocalOnly() && <AuthButton />}
+        <div className="order-2 flex items-center gap-4 md:order-none">
+          {isLocalOnly() ? (
+            <span className="eyebrow hidden items-center gap-2 sm:flex">
+              <span className="size-1.5 rounded-full bg-success" />
+              LOCAL WORKSPACE
+            </span>
+          ) : (
+            <AuthButton />
+          )}
+        </div>
       </div>
     </header>
   );

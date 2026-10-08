@@ -1,7 +1,8 @@
 'use client';
+import { SelectionOutline, SelectionHandle } from './AnnotationSelection';
 import { useState, useRef, type MouseEvent, useEffect } from 'react';
 import { IconX } from '@tabler/icons-react';
-import type { Annotation, Point, Rect } from '@/lib/document/schema';
+import type { Annotation, Point } from '@/lib/document/schema';
 import { arrowStrokeDasharray, getArrowVariant } from '@/lib/annotations/arrows';
 import { blurOverlayStyle } from '@/lib/annotations/blurs';
 import { getTextFontFamily } from '@/lib/annotations/text';
@@ -9,6 +10,7 @@ import { useDocumentStore } from '@/lib/document/store';
 import { useAnnotationStyleStore } from '@/lib/editor/annotation-style-store';
 import { useEditorUiStore } from '@/lib/editor/ui-store';
 import { withAlpha } from '@/lib/style/css';
+import { useDocumentEdit } from '@/lib/editor/use-document-edit';
 
 type Props = {
   annotations: Annotation[];
@@ -22,16 +24,13 @@ type Props = {
 };
 
 export function AnnotationsLayer({
-  annotations,
-  activeTool,
-  onChangeTool,
-  canvasWidth,
-  canvasHeight,
-  onAddAnnotation,
-  onRemoveAnnotation,
-  isPreview = false,
+  annotations, activeTool, onChangeTool, canvasWidth, canvasHeight,
+  onAddAnnotation, onRemoveAnnotation, isPreview = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const edit = useDocumentEdit();
+  const dragCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => dragCleanup.current?.(), []);
   const selectedAnnotationId = useEditorUiStore((s) => s.selectedAnnotationId);
   const setSelectedAnnotationId = useEditorUiStore((s) => s.setSelectedAnnotationId);
 
@@ -52,7 +51,8 @@ export function AnnotationsLayer({
     e.preventDefault();
     e.stopPropagation();
 
-    useDocumentStore.temporal.getState().pause();
+    dragCleanup.current?.();
+    edit.begin();
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -110,14 +110,15 @@ export function AnnotationsLayer({
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
 
-      const temporal = useDocumentStore.temporal.getState();
-      temporal.resume();
-      const state = useDocumentStore.getState();
-      useDocumentStore.setState({ doc: { ...state.doc } });
+      window.removeEventListener('blur', onMouseUp);
+      dragCleanup.current = null;
+      edit.commit();
     };
 
+    dragCleanup.current = onMouseUp;
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onMouseUp);
   };
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
@@ -282,7 +283,6 @@ export function AnnotationsLayer({
             })}
         </defs>
 
-        {/* Highlights */}
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'highlight' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'highlight' }> => a.type === 'highlight')
@@ -301,8 +301,8 @@ export function AnnotationsLayer({
                   }} />
                 {!isPreview && isSel && (
                   <>
-                    <rect x={hl.rect.x - 2} y={hl.rect.y - 2} width={hl.rect.w + 4} height={hl.rect.h + 4} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" rx={6} style={{ pointerEvents: 'none' }} />
-                    <circle cx={hl.rect.x + hl.rect.w} cy={hl.rect.y + hl.rect.h} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5}
+                    <SelectionOutline x={hl.rect.x - 2} y={hl.rect.y - 2} width={hl.rect.w + 4} height={hl.rect.h + 4} rx={6} />
+                    <SelectionHandle cx={hl.rect.x + hl.rect.w} cy={hl.rect.y + hl.rect.h}
                       style={{ cursor: 'nwse-resize', pointerEvents: 'auto' }}
                       onMouseDown={(e) => handleDragStart(e, hl, 'resize-br')} />
                   </>
@@ -311,7 +311,6 @@ export function AnnotationsLayer({
             );
           })}
 
-        {/* Arrows */}
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'arrow' ? [tempAnnotation] : [])
           .filter((a): a is Extract<Annotation, { type: 'arrow' }> => a.type === 'arrow')
@@ -339,10 +338,10 @@ export function AnnotationsLayer({
                   }} />
                 {!isPreview && isSel && (
                   <>
-                    <circle cx={arrow.from.x} cy={arrow.from.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5}
+                    <SelectionHandle cx={arrow.from.x} cy={arrow.from.y}
                       style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                       onMouseDown={(e) => handleDragStart(e, arrow, 'handle-from')} />
-                    <circle cx={arrow.to.x} cy={arrow.to.y} r={5} fill="#ffffff" stroke="#3b82f6" strokeWidth={1.5}
+                    <SelectionHandle cx={arrow.to.x} cy={arrow.to.y}
                       style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                       onMouseDown={(e) => handleDragStart(e, arrow, 'handle-to')} />
                   </>
@@ -351,7 +350,6 @@ export function AnnotationsLayer({
             );
           })}
 
-        {/* Texts */}
         {annotations
           .filter((a): a is Extract<Annotation, { type: 'text' }> => a.type === 'text')
           .map((t) => {
@@ -377,14 +375,13 @@ export function AnnotationsLayer({
                   {t.text}
                 </text>
                 {!isPreview && isSel && (
-                  <rect x={t.pos.x - 4} y={t.pos.y - 2} width={w + 8} height={h + 4} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" rx={2} style={{ pointerEvents: 'none' }} />
+                  <SelectionOutline x={t.pos.x - 4} y={t.pos.y - 2} width={w + 8} height={h + 4} rx={2} />
                 )}
               </g>
             );
           })}
       </svg>
 
-      {/* HTML Layer for Blurs */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {annotations
           .concat(tempAnnotation && tempAnnotation.type === 'blur' ? [tempAnnotation] : [])
@@ -414,7 +411,7 @@ export function AnnotationsLayer({
               >
                 {!isPreview && isSel && (
                   <>
-                    <div style={{ position: 'absolute', inset: '-2px', border: '1.5px dashed #3b82f6', borderRadius: '6px', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', inset: '-2px', border: '1.5px dashed var(--studio-accent)', borderRadius: '6px', pointerEvents: 'none' }} />
                     <div
                       onMouseDown={(e) => {
                         e.stopPropagation();
@@ -427,7 +424,7 @@ export function AnnotationsLayer({
                         width: '10px',
                         height: '10px',
                         background: '#ffffff',
-                        border: '1.5px solid #3b82f6',
+                        border: '1.5px solid var(--studio-accent)',
                         borderRadius: '50%',
                         cursor: 'nwse-resize',
                         pointerEvents: 'auto',
@@ -476,8 +473,8 @@ export function AnnotationsLayer({
                 }}
                 style={{
                   position: 'absolute', left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)',
-                  width: '20px', height: '20px', borderRadius: '50%', background: '#ef4444', border: '2px solid #fff',
-                  color: '#ffffff', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center',
+                  width: '20px', height: '20px', borderRadius: '50%', background: 'var(--graphite-raised)', border: '2px solid var(--frame-line)',
+                  color: 'var(--danger)', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', cursor: 'pointer', zIndex: 30, boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
                   pointerEvents: 'auto',
                 }}
@@ -489,12 +486,11 @@ export function AnnotationsLayer({
         </div>
       )}
 
-      {/* Floating text input */}
       {textPos && !isPreview && (
         <div className="hide-on-export" style={{ position: 'absolute', left: `${(textPos.x / canvasWidth) * 100}%`, top: `${(textPos.y / canvasHeight) * 100}%`, zIndex: 40 }}>
           <input autoFocus type="text" value={textVal} onChange={(e) => setTextVal(e.target.value)} onBlur={handleTextSubmit}
             onKeyDown={(e) => e.key === 'Enter' && handleTextSubmit()} placeholder="Type and press Enter"
-            style={{ background: '#1f2937', border: '1px solid #ef4444', color: '#ffffff', padding: '4px 8px', borderRadius: '4px', fontSize: '16px', outline: 'none', width: '200px' }}
+            className="field w-52"
           />
         </div>
       )}

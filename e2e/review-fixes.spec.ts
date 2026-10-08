@@ -25,12 +25,36 @@ const corners = [
   { name: 'bottom right', x: 1, y: 1 },
 ] as const;
 
+for (const grouped of [false, true]) {
+  test(`keyboard resize keeps the opposite corner anchored for ${grouped ? 'framed groups' : 'single screenshots'}`, async ({ page }) => {
+    const images = await scene(page, grouped);
+    if (grouped) {
+      await page.getByRole('combobox', { name: 'Type:', exact: true }).click();
+      await page.getByRole('option', { name: 'Window Frame', exact: true }).click();
+    }
+    const selection = grouped ? page.getByTestId('screenshot-group-selection') : images.first();
+    const before = await bounds(selection);
+    const anchor = await pointOn(selection, { x: 0, y: 0 });
+    const handle = page.getByRole('button', { name: 'Resize from bottom-right corner' });
+    await handle.focus();
+    await expect(handle).toBeFocused();
+    await handle.press('Shift+ArrowRight');
+    expect((await bounds(selection)).width).toBeGreaterThan(before.width);
+    expectPoint(await pointOn(selection, { x: 0, y: 0 }), anchor);
+    await page.keyboard.press('Control+z');
+    expect(Math.abs((await bounds(selection)).width - before.width)).toBeLessThan(1.5);
+  });
+}
+
 for (const mode of ['single', 'group', 'framed group'] as const) {
   for (const corner of mode === 'framed group' ? corners.slice(0, 1) : corners) {
     test(`vertical-only resize changes a ${mode} from its ${corner.name} corner`, async ({ page }) => {
       const grouped = mode !== 'single';
       const images = await scene(page, grouped);
-      if (mode === 'framed group') await page.getByRole('combobox', { name: 'Type:', exact: true }).selectOption('window');
+      if (mode === 'framed group') {
+        await page.getByRole('combobox', { name: 'Type:', exact: true }).click();
+        await page.getByRole('option', { name: 'Window Frame', exact: true }).click();
+      }
       const selection = grouped ? page.getByTestId('screenshot-group-selection') : images.first();
       const original = await bounds(selection);
       const originals = await Promise.all([0, ...(grouped ? [1] : [])].map((index) => bounds(images.nth(index))));

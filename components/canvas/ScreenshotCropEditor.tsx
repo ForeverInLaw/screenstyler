@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { Button } from '@/components/ui/Button';
 import { IconCheck } from '@tabler/icons-react';
 import type { ScreenshotItem } from '@/lib/document/schema';
 import type { ScreenshotDragType } from './ScreenshotItemComponent';
@@ -74,7 +75,7 @@ export function ScreenshotCropEditor({
         style={{
           position: 'absolute',
           ...cropStyle,
-          outline: '2px solid #818cf8',
+          outline: '2px solid var(--studio-accent)',
           boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
           cursor: 'default',
           overflow: 'hidden',
@@ -170,38 +171,12 @@ export function ScreenshotCropEditor({
           left: `${((currentCrop.x + currentCrop.w / 2) / item.image.naturalWidth) * 100}%`,
           top: `calc(${((currentCrop.y + currentCrop.h) / item.image.naturalHeight) * 100}% + 16px)`,
           transform: 'translateX(-50%)',
-          background: 'rgba(15, 17, 21, 0.85)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: 99,
-          padding: '6px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          color: '#ffffff',
-          fontSize: 12,
-          fontWeight: 'bold',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
         }}
       >
-        <button
-          type="button"
-          onClick={onDone}
-          style={{
-            background: '#6366f1',
-            border: 'none',
-            color: '#ffffff',
-            padding: '4px 12px',
-            borderRadius: 20,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          <IconCheck size={14} />
+        <Button variant="primary" onClick={onDone}>
+          <IconCheck size={14} aria-hidden="true" />
           Done Cropping
-        </button>
+        </Button>
       </div>
     </div>
   );

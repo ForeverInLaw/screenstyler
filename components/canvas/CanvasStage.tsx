@@ -7,6 +7,7 @@ type Props = { docWidth: number; docHeight: number; children: ReactNode };
 export function CanvasStage({ docWidth, docHeight, children }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const panCleanupRef = useRef<(() => void) | null>(null);
   const [fitScale, setFitScale] = useState(1);
   const viewportZoom = useEditorUiStore((s) => s.viewportZoom);
   const viewportOffset = useEditorUiStore((s) => s.viewportOffset);
@@ -19,11 +20,7 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
       const pad = 48;
-      const fit = Math.min(
-        (el.clientWidth - pad) / docWidth,
-        (el.clientHeight - pad) / docHeight,
-        1,
-      );
+      const fit = Math.min((el.clientWidth - pad) / docWidth, (el.clientHeight - pad) / docHeight, 1);
       setFitScale(fit > 0 ? fit : 1);
     });
     observer.observe(el);
@@ -31,43 +28,40 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
   }, [docWidth, docHeight]);
 
   // Alt+Wheel: zoom towards cursor position
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      if (!e.altKey) return;
-      e.preventDefault();
+  const handleWheel = useCallback((e: WheelEvent) => {
+    if (!e.altKey || e.deltaY === 0) return;
+    e.preventDefault();
 
-      const container = containerRef.current;
-      if (!container) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-      const rect = container.getBoundingClientRect();
-      // Mouse position relative to the container center
-      const mx = e.clientX - rect.left - rect.width / 2;
-      const my = e.clientY - rect.top - rect.height / 2;
+    const rect = container.getBoundingClientRect();
+    // Mouse position relative to the container center
+    const mx = e.clientX - rect.left - rect.width / 2;
+    const my = e.clientY - rect.top - rect.height / 2;
 
-      const state = useEditorUiStore.getState();
-      const oldZoom = state.viewportZoom;
-      const oldOffset = state.viewportOffset;
+    const state = useEditorUiStore.getState();
+    const oldZoom = state.viewportZoom;
+    const oldOffset = state.viewportOffset;
 
-      const direction = e.deltaY < 0 ? 1 : -1;
-      const step = e.shiftKey ? 0.15 : 0.08;
-      const rawNext = oldZoom + direction * step;
-      const newZoom = Math.min(5, Math.max(0.1, Number(rawNext.toFixed(2))));
+    const direction = e.deltaY < 0 ? 1 : -1;
+    const step = e.shiftKey ? 0.15 : 0.08;
+    const rawNext = oldZoom + direction * step;
+    const newZoom = Math.min(5, Math.max(0.1, Number(rawNext.toFixed(2))));
 
-      if (newZoom === oldZoom) return;
+    if (newZoom === oldZoom) return;
 
-      const ratio = newZoom / oldZoom;
+    const ratio = newZoom / oldZoom;
 
-      // Zoom-to-cursor formula:
-      // The point under the cursor should stay fixed.
-      // newOffset = mouse - (mouse - oldOffset) * ratio
-      const newOffsetX = mx - (mx - oldOffset.x) * ratio;
-      const newOffsetY = my - (my - oldOffset.y) * ratio;
+    // Zoom-to-cursor formula:
+    // The point under the cursor should stay fixed.
+    // newOffset = mouse - (mouse - oldOffset) * ratio
+    const newOffsetX = mx - (mx - oldOffset.x) * ratio;
+    const newOffsetY = my - (my - oldOffset.y) * ratio;
 
-      useEditorUiStore.getState().setViewportZoom(newZoom);
-      useEditorUiStore.getState().setViewportOffset({ x: newOffsetX, y: newOffsetY });
-    },
-    [],
-  );
+    useEditorUiStore.getState().setViewportZoom(newZoom);
+    useEditorUiStore.getState().setViewportOffset({ x: newOffsetX, y: newOffsetY });
+  }, []);
 
   // Attach as non-passive so we can preventDefault
   useEffect(() => {
@@ -78,38 +72,42 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
   }, [handleWheel]);
 
   // Middle-mouse-button panning
-  const handleMiddleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.button !== 1) return; // middle button only
-      e.preventDefault();
+  useEffect(() => () => panCleanupRef.current?.(), []);
 
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const startOffset = useEditorUiStore.getState().viewportOffset;
+  const handleMiddleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 1) return; // middle button only
+    e.preventDefault();
+    panCleanupRef.current?.();
 
-      const container = containerRef.current;
-      if (container) container.style.cursor = 'grabbing';
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startOffset = useEditorUiStore.getState().viewportOffset;
 
-      const onMouseMove = (moveEvent: MouseEvent) => {
-        const dx = moveEvent.clientX - startX;
-        const dy = moveEvent.clientY - startY;
-        useEditorUiStore.getState().setViewportOffset({
-          x: startOffset.x + dx,
-          y: startOffset.y + dy,
-        });
-      };
+    const container = containerRef.current;
+    if (container) container.style.cursor = 'grabbing';
 
-      const onMouseUp = () => {
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-        if (container) container.style.cursor = '';
-      };
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      useEditorUiStore.getState().setViewportOffset({
+        x: startOffset.x + dx,
+        y: startOffset.y + dy,
+      });
+    };
 
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-    },
-    [],
-  );
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onMouseUp);
+      if (container) container.style.cursor = '';
+      panCleanupRef.current = null;
+    };
+
+    panCleanupRef.current = onMouseUp;
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onMouseUp);
+  }, []);
 
   // Alt+Double-click to reset zoom
   const handleDoubleClick = useCallback(
@@ -123,7 +121,6 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
   );
 
   const combinedScale = fitScale * viewportZoom;
-  const showZoomBadge = Math.abs(viewportZoom - 1) > 0.01;
 
   return (
     <div
@@ -137,7 +134,7 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        background: '#0f1115',
+        background: 'var(--cutting-mat)',
         position: 'relative',
       }}
     >
@@ -151,32 +148,6 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
       >
         {children}
       </div>
-
-      {/* Zoom level indicator */}
-      {showZoomBadge && (
-        <div
-          className="hide-on-export"
-          style={{
-            position: 'absolute',
-            bottom: '12px',
-            right: '12px',
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(8px)',
-            color: '#e2e8f0',
-            fontSize: '12px',
-            fontWeight: 500,
-            fontFamily: 'Inter, system-ui, sans-serif',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            userSelect: 'none',
-            pointerEvents: 'none',
-            zIndex: 50,
-          }}
-        >
-          {Math.round(viewportZoom * 100)}%
-        </div>
-      )}
     </div>
   );
 }

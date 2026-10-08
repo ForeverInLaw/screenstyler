@@ -23,10 +23,12 @@ describe('BackgroundPanel', () => {
     });
   });
 
-  it('updates a custom gradient', () => {
+  it('updates a custom gradient', async () => {
     render(<BackgroundPanel />);
-    fireEvent.change(screen.getByLabelText('Gradient angle'), { target: { value: '45' } });
-    fireEvent.change(screen.getByLabelText('Gradient start color'), { target: { value: '#111111' } });
+    fireEvent.change(screen.getByRole('slider', { name: 'Gradient angle' }), { target: { value: '45' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Gradient start color' }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Gradient start color HEX' }), { target: { value: '#111111' } });
+    await userEvent.keyboard('{Escape}');
     expect(useDocumentStore.getState().doc.canvas.background).toMatchObject({
       type: 'gradient',
       angle: 45,
@@ -38,7 +40,7 @@ describe('BackgroundPanel', () => {
 describe('StylePanel', () => {
   it('updates padding from the slider', () => {
     render(<StylePanel />);
-    const slider = screen.getByLabelText('Padding');
+    const slider = screen.getByRole('slider', { name: 'Padding' });
     fireEvent.change(slider, { target: { value: '150' } });
     expect(useDocumentStore.getState().doc.content.padding).toBe(150);
   });
