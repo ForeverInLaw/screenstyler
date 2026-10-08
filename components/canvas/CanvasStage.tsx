@@ -7,6 +7,7 @@ type Props = { docWidth: number; docHeight: number; children: ReactNode };
 export function CanvasStage({ docWidth, docHeight, children }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const panCleanupRef = useRef<(() => void) | null>(null);
   const [fitScale, setFitScale] = useState(1);
   const viewportZoom = useEditorUiStore((s) => s.viewportZoom);
   const viewportOffset = useEditorUiStore((s) => s.viewportOffset);
@@ -28,7 +29,7 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
 
   // Alt+Wheel: zoom towards cursor position
   const handleWheel = useCallback((e: WheelEvent) => {
-    if (!e.altKey) return;
+    if (!e.altKey || e.deltaY === 0) return;
     e.preventDefault();
 
     const container = containerRef.current;
@@ -71,9 +72,12 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
   }, [handleWheel]);
 
   // Middle-mouse-button panning
+  useEffect(() => () => panCleanupRef.current?.(), []);
+
   const handleMiddleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 1) return; // middle button only
     e.preventDefault();
+    panCleanupRef.current?.();
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -94,11 +98,15 @@ export function CanvasStage({ docWidth, docHeight, children }: Props) {
     const onMouseUp = () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onMouseUp);
       if (container) container.style.cursor = '';
+      panCleanupRef.current = null;
     };
 
+    panCleanupRef.current = onMouseUp;
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onMouseUp);
   }, []);
 
   // Alt+Double-click to reset zoom
