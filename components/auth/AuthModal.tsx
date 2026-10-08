@@ -36,7 +36,7 @@ export function AuthModal() {
             { mode, email, password },
             {
               onSuccess: (result) => {
-                if (result.mode === 'login') router.push('/projects');
+                if (result.mode === 'login' || result.isAuthenticated) router.push('/projects');
               },
             },
           );
@@ -98,9 +98,9 @@ export function AuthModal() {
           {error.message}
         </p>
       )}
-      {emailAuth.data?.mode === 'signup' && (
+      {emailAuth.data?.mode === 'signup' && !emailAuth.data.isAuthenticated && (
         <p role="status" className="notice notice-success mt-4">
-          We sent a verification link to {emailAuth.data.email}.
+          Account created. Verify your email before signing in. If no link arrives at {emailAuth.data.email}, contact the site administrator.
         </p>
       )}
       <p className="mt-6 text-center text-xs text-secondary">

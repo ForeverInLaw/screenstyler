@@ -12,7 +12,7 @@ export function useEmailAuthMutation() {
           ? await signUp.email({ email, password, name: email, callbackURL: '/projects' })
           : await signIn.email({ email, password, callbackURL: '/projects' });
       if (result.error) throw new Error(result.error.message ?? 'Could not sign in. Try again.');
-      return { mode, email };
+      return { mode, email, isAuthenticated: Boolean(result.data?.token) };
     },
   });
 }

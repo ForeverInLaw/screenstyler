@@ -4,14 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useEmailVerificationQuery,
+  useEmailAuthMutation,
   useGoogleAuthMutation,
   usePasswordResetMutation,
 } from './use-account-actions';
 
-const mocks = vi.hoisted(() => ({ social: vi.fn(), verify: vi.fn(), requestReset: vi.fn(), reset: vi.fn() }));
+const mocks = vi.hoisted(() => ({ signup: vi.fn(), social: vi.fn(), verify: vi.fn(), requestReset: vi.fn(), reset: vi.fn() }));
 vi.mock('./client', () => ({
   signIn: { social: mocks.social, email: vi.fn() },
-  signUp: { email: vi.fn() },
+  signUp: { email: mocks.signup },
   authClient: {
     verifyEmail: mocks.verify,
     requestPasswordReset: mocks.requestReset,
@@ -29,6 +30,15 @@ function wrapper({ children }: { children: ReactNode }) {
 beforeEach(() => vi.clearAllMocks());
 
 describe('account request states', () => {
+  it.each([null, 'session-token'])('identifies whether signup created a session (%s)', async (token) => {
+    mocks.signup.mockResolvedValue({ error: null, data: { token } });
+    const { result } = renderHook(() => useEmailAuthMutation(), { wrapper });
+    await act(async () => {
+      const response = await result.current.mutateAsync({ mode: 'signup', email: 'person@example.com', password: 'password123' });
+      expect(response.isAuthenticated).toBe(Boolean(token));
+    });
+  });
+
   it('reports a returned Google provider error and finishes the pending state', async () => {
     mocks.social.mockResolvedValue({ error: { message: 'Provider unavailable' } });
     const { result } = renderHook(() => useGoogleAuthMutation(), { wrapper });
