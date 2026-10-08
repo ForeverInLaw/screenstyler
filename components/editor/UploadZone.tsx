@@ -24,13 +24,13 @@ export function UploadZone() {
     for (const file of files) {
       const result = validateImageFile(file);
       if (!result.ok) {
-        firstError = MESSAGES[result.reason];
+        firstError ??= MESSAGES[result.reason];
         continue;
       }
       try {
         addScreenshot(await ingestImageFile(file, data?.user?.id ?? null));
       } catch {
-        firstError = 'Could not read that image. Try another file.';
+        firstError ??= 'Could not read that image. Try another file.';
       }
     }
     setError(firstError);
